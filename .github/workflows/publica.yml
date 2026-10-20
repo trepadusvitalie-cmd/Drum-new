@@ -1,0 +1,19 @@
+name: Publica exe
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publica:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copiaza exe-ul in release v1 (fara cod)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download drum-exe -R trepadusvitalie-cmd/apk-builder-action -D exe
+          ls -la exe
+          gh release delete v1 -R "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          gh release create v1 exe/* -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Drum_Analiza.exe" --notes "Programul Drum RM – Analiza pentru PC."
