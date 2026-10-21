@@ -1,0 +1,59 @@
+name: Construieste Drum_Analiza.exe
+
+# Codul se ia din repo-ul privat (secretul GISTEREN_TOKEN, doar citire) numai pe durata construirii;
+# aici se publică doar exe-ul și arhiva portabilă (Release v1). Codul nu ajunge în acest repo.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Codul (privat)
+        uses: actions/checkout@v4
+        with:
+          repository: betilgeize-dot/gisteren
+          token: ${{ secrets.GISTEREN_TOKEN }}
+          path: src
+          sparse-checkout: tools/drum_pc
+          lfs: true
+
+      - name: Construire (CONSTRUIESTE_EXE.bat)
+        shell: cmd
+        run: cmd /c "src\tools\drum_pc\CONSTRUIESTE_EXE.bat < nul > build.log 2>&1" || (powershell -c "Get-Content build.log -Tail 40" & exit 1)
+
+      - name: Verificare
+        shell: pwsh
+        run: |
+          $d = "src\tools\drum_pc\dist"
+          Get-ChildItem $d | Format-Table Name, Length
+          if (-not (Test-Path "$d\Drum_Analiza_autonom.exe")) { throw "lipseste exe-ul autonom" }
+          if (-not (Get-ChildItem -Recurse "$d\Drum_Analiza\_internal" -Filter "cv2*.pyd")) { throw "lipseste OpenCV" }
+          if (-not (Test-Path "$d\Drum_Analiza\_internal\rcr\model_indicatoare.npz")) { throw "lipseste clasificatorul de indicatoare (rcr)" }
+
+      - name: Test pornire (20 s fara eroare)
+        shell: pwsh
+        run: |
+          $p = Start-Process src\tools\drum_pc\dist\Drum_Analiza\Drum_Analiza.exe -PassThru
+          Start-Sleep 20
+          if ($p.HasExited) { throw "exe-ul s-a inchis singur (cod $($p.ExitCode))" }
+          Stop-Process -Id $p.Id -Force
+
+      - name: Publicare (Release v1, doar exe si zip)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $d = "src/tools/drum_pc/dist"
+          gh release delete v1 -R $env:GITHUB_REPOSITORY --yes --cleanup-tag 2>$null
+          gh release create v1 "$d/Drum_Analiza_autonom.exe" "$d/Drum_Analiza_portabil.zip" -R $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA `
+            --title "Drum_Analiza.exe" --notes "Programul Drum RM – Analiza pentru PC. Construit $(Get-Date -Format 'dd.MM.yyyy HH:mm')."
+
+      - name: Curatare (codul nu ramane pe masina)
+        if: always()
+        shell: pwsh
+        run: Remove-Item -Recurse -Force src -ErrorAction SilentlyContinue
