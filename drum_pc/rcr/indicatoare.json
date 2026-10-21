@@ -1,0 +1,2634 @@
+[
+{
+"nr": "1.1",
+"indice": "A41",
+"ro": "Trecere la nivel cu o cale ferată cu bariere",
+"ru": "Железнодорожный переезд со шлагбаумом",
+"categorie": "avertizare"
+},
+{
+"nr": "1.2",
+"indice": "A42",
+"ro": "Trecere la nivel cu o cale ferată fără bariere",
+"ru": "Железнодорожный переезд без шлагбаума",
+"categorie": "avertizare"
+},
+{
+"nr": "1.3.1",
+"indice": "A49",
+"ro": "Cale ferată fără bariere cu o singură linie",
+"ru": "Однопутная железная дорога без шлагбаума",
+"categorie": "avertizare"
+},
+{
+"nr": "1.3.2",
+"indice": "A50",
+"ro": "Cale ferată fără bariere cu două sau mai multe linii",
+"ru": "Многопутная железная дорога без шлагбаума",
+"categorie": "avertizare"
+},
+{
+"nr": "1.3.3",
+"indice": "A51",
+"ro": "Cale ferată fără bariere cu o singură linie, prevăzută cu instalație de semnalizare luminoasă automată",
+"ru": "Однопутная железная дорога без шлагбаума, оборудованная автоматической световой сигнализацией",
+"categorie": "avertizare"
+},
+{
+"nr": "1.3.4",
+"indice": "A52",
+"ro": "Cale ferată fără bariere cu două sau mai multe linii, prevăzută cu instalație de semnalizare luminoasă automată",
+"ru": "Многопутная железная дорога без шлагбаума, оборудованная автоматической световой сигнализацией",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.1",
+"indice": "A44",
+"ro": "Apropiere de trecerea la nivel cu calea ferată în afara localităților",
+"ru": "Приближение к железнодорожному переезду вне населенных пунктов",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.2",
+"indice": "",
+"ro": "Apropiere de trecerea la nivel cu calea ferată în afara localităților",
+"ru": "Приближение к железнодорожному переезду вне населенных пунктов",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.3",
+"indice": "",
+"ro": "Apropiere de trecerea la nivel cu calea ferată în afara localităților",
+"ru": "Приближение к железнодорожному переезду вне населенных пунктов",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.4",
+"indice": "",
+"ro": "Apropiere de trecerea la nivel cu calea ferată în afara localităților",
+"ru": "Приближение к железнодорожному переезду вне населенных пунктов",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.5",
+"indice": "",
+"ro": "Apropiere de trecerea la nivel cu calea ferată în afara localităților",
+"ru": "Приближение к железнодорожному переезду вне населенных пунктов",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.6",
+"indice": "",
+"ro": "Apropiere de trecerea la nivel cu calea ferată în afara localităților",
+"ru": "Приближение к железнодорожному переезду вне населенных пунктов",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.7",
+"indice": "A45",
+"ro": "Panouri suplimentare la nodurile rutiere de pe autostrăzi",
+"ru": "Дополнительные панели на дорожные развязки на автомагистралях",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.8",
+"indice": "",
+"ro": "Panouri suplimentare la nodurile rutiere de pe autostrăzi",
+"ru": "Дополнительные панели на дорожные развязки на автомагистралях",
+"categorie": "avertizare"
+},
+{
+"nr": "1.4.9",
+"indice": "",
+"ro": "Panouri suplimentare la nodurile rutiere de pe autostrăzi",
+"ru": "Дополнительные панели на дорожные развязки на автомагистралях",
+"categorie": "avertizare"
+},
+{
+"nr": "1.5",
+"indice": "A43",
+"ro": "Trecere la nivel cu liniile de tramvai",
+"ru": "Пересечение с трамвайной линией",
+"categorie": "avertizare"
+},
+{
+"nr": "1.6",
+"indice": "A34",
+"ro": "Intersecție a drumurilor de semnificație echivalentă",
+"ru": "Пересечение равнозначных дорог",
+"categorie": "avertizare"
+},
+{
+"nr": "1.7.1",
+"indice": "A35",
+"ro": "Intersecție cu un drum fără prioritate",
+"ru": "Пересечение со второстепенной дорогой",
+"categorie": "avertizare"
+},
+{
+"nr": "1.7.2",
+"indice": "A36",
+"ro": "Intersecție cu un drum fără prioritate",
+"ru": "Пересечение со второстепенной дорогой",
+"categorie": "avertizare"
+},
+{
+"nr": "1.7.3",
+"indice": "A37",
+"ro": "Intersecție cu un drum fără prioritate",
+"ru": "Пересечение со второстепенной дорогой",
+"categorie": "avertizare"
+},
+{
+"nr": "1.7.4",
+"indice": "A38",
+"ro": "Intersecție cu un drum fără prioritate",
+"ru": "Пересечение со второстепенной дорогой",
+"categorie": "avertizare"
+},
+{
+"nr": "1.7.5",
+"indice": "A39",
+"ro": "Intersecție cu un drum fără prioritate",
+"ru": "Пересечение со второстепенной дорогой",
+"categorie": "avertizare"
+},
+{
+"nr": "1.8",
+"indice": "A40",
+"ro": "Intersecție cu sens giratoriu",
+"ru": "Пересечение с круговым движением",
+"categorie": "avertizare"
+},
+{
+"nr": "1.9",
+"indice": "A28",
+"ro": "Semafor",
+"ru": "Светофор",
+"categorie": "avertizare"
+},
+{
+"nr": "1.10",
+"indice": "A15",
+"ro": "Pod basculant sau bac de transbordare",
+"ru": "Разводной мост или паром",
+"categorie": "avertizare"
+},
+{
+"nr": "1.11",
+"indice": "A16",
+"ro": "Ieșire spre chei",
+"ru": "Выезд на набережную",
+"categorie": "avertizare"
+},
+{
+"nr": "1.12.1",
+"indice": "A1",
+"ro": "Curbă periculoasă",
+"ru": "Опасный поворот",
+"categorie": "avertizare"
+},
+{
+"nr": "1.12.2",
+"indice": "A2",
+"ro": "Curbă periculoasă",
+"ru": "Опасный поворот",
+"categorie": "avertizare"
+},
+{
+"nr": "1.13.1",
+"indice": "A3",
+"ro": "Curbe periculoase",
+"ru": "Опасные повороты",
+"categorie": "avertizare"
+},
+{
+"nr": "1.13.2",
+"indice": "A4",
+"ro": "Curbe periculoase",
+"ru": "Опасные повороты",
+"categorie": "avertizare"
+},
+{
+"nr": "1.14.1",
+"indice": "A7",
+"ro": "Pantă cu declivitate mare",
+"ru": "Крутой спуск",
+"categorie": "avertizare"
+},
+{
+"nr": "1.14.2",
+"indice": "A8",
+"ro": "Rampă cu declivitate mare",
+"ru": "Крутой подъем",
+"categorie": "avertizare"
+},
+{
+"nr": "1.15",
+"indice": "A19",
+"ro": "Drum alunecos",
+"ru": "Скользкая дорога",
+"categorie": "avertizare"
+},
+{
+"nr": "1.16.1",
+"indice": "A17",
+"ro": "Drum cu denivelări",
+"ru": "Неровная дорога",
+"categorie": "avertizare"
+},
+{
+"nr": "1.16.2",
+"indice": "A18",
+"ro": "Denivelare artificială",
+"ru": "Искусственная неровность",
+"categorie": "avertizare"
+},
+{
+"nr": "1.17.1",
+"indice": "A20",
+"ro": "Împroșcare cu pietriș",
+"ru": "Выброс гравия",
+"categorie": "avertizare"
+},
+{
+"nr": "1.17.2",
+"indice": "A12",
+"ro": "Acostament periculos",
+"ru": "Опасная обочина",
+"categorie": "avertizare"
+},
+{
+"nr": "1.18.1",
+"indice": "A9",
+"ro": "Drum îngustat",
+"ru": "Cужение дороги",
+"categorie": "avertizare"
+},
+{
+"nr": "1.18.2",
+"indice": "A10",
+"ro": "Drum îngustat",
+"ru": "Cужение дороги",
+"categorie": "avertizare"
+},
+{
+"nr": "1.18.3",
+"indice": "A11",
+"ro": "Drum îngustat",
+"ru": "Cужение дороги",
+"categorie": "avertizare"
+},
+{
+"nr": "1.19",
+"indice": "A31",
+"ro": "Circulație în dublu sens",
+"ru": "Двухстороннее движение",
+"categorie": "avertizare"
+},
+{
+"nr": "1.20",
+"indice": "A22",
+"ro": "Presemnalizare trecere pentru pietoni",
+"ru": "Предупреждение пешеходный переход",
+"categorie": "avertizare"
+},
+{
+"nr": "1.21",
+"indice": "A23",
+"ro": "Copii",
+"ru": "Дети",
+"categorie": "avertizare"
+},
+{
+"nr": "1.22",
+"indice": "A24",
+"ro": "Bicicliști",
+"ru": "Велосипедисты",
+"categorie": "avertizare"
+},
+{
+"nr": "1.23",
+"indice": "A27",
+"ro": "Lucrări pe drum",
+"ru": "Дорожные работы",
+"categorie": "avertizare"
+},
+{
+"nr": "1.24.1",
+"indice": "A25",
+"ro": "Animale",
+"ru": "Животные",
+"categorie": "avertizare"
+},
+{
+"nr": "1.24.2",
+"indice": "A26",
+"ro": "Animale",
+"ru": "Животные",
+"categorie": "avertizare"
+},
+{
+"nr": "1.25.1",
+"indice": "A21",
+"ro": "Căderi de pietre",
+"ru": "Падение камней",
+"categorie": "avertizare"
+},
+{
+"nr": "1.25.2",
+"indice": "",
+"ro": "Căderi de pietre",
+"ru": "Падение камней",
+"categorie": "avertizare"
+},
+{
+"nr": "1.26",
+"indice": "A30",
+"ro": "Vânt lateral",
+"ru": "Боковой ветер",
+"categorie": "avertizare"
+},
+{
+"nr": "1.27",
+"indice": "A29",
+"ro": "Aerodrom",
+"ru": "Аэродром",
+"categorie": "avertizare"
+},
+{
+"nr": "1.28",
+"indice": "A14",
+"ro": "Tunel",
+"ru": "Тоннель",
+"categorie": "avertizare"
+},
+{
+"nr": "1.29",
+"indice": "A13",
+"ro": "Drum aglomerat",
+"ru": "Дорожный затор",
+"categorie": "avertizare"
+},
+{
+"nr": "1.30",
+"indice": "A32",
+"ro": "Alte pericole",
+"ru": "Прочие опасности",
+"categorie": "avertizare"
+},
+{
+"nr": "1.31.1",
+"indice": "A33",
+"ro": "Accident",
+"ru": "Авария",
+"categorie": "avertizare"
+},
+{
+"nr": "1.31.2",
+"indice": "A55",
+"ro": "Punct negru",
+"ru": "Черное пятно",
+"categorie": "avertizare"
+},
+{
+"nr": "1.32.1",
+"indice": "A5a",
+"ro": "Direcția curbei periculoase",
+"ru": "Направление опасного поворота",
+"categorie": "avertizare"
+},
+{
+"nr": "1.32.2",
+"indice": "A5b",
+"ro": "Direcția curbei periculoase",
+"ru": "Направление опасного поворота",
+"categorie": "avertizare"
+},
+{
+"nr": "1.33",
+"indice": "",
+"ro": "Direcția curbei periculoase la stânga și la dreapta",
+"ru": "Направление опасных поворотов налево и направо",
+"categorie": "avertizare"
+},
+{
+"nr": "1.34.1",
+"indice": "A6a",
+"ro": "Curbă deosebit de periculoasă",
+"ru": "Особо опасный поворот",
+"categorie": "avertizare"
+},
+{
+"nr": "1.34.2",
+"indice": "A6b",
+"ro": "Curbă deosebit de periculoasă",
+"ru": "Особо опасный поворот",
+"categorie": "avertizare"
+},
+{
+"nr": "1.35",
+"indice": "A53",
+"ro": "Mașini și utilaje agricole",
+"ru": "Сельскохозяйственная техника и оборудование",
+"categorie": "avertizare"
+},
+{
+"nr": "1.36",
+"indice": "A54",
+"ro": "Punct de întoarcere a vehiculelor",
+"ru": "Место для разворота",
+"categorie": "avertizare"
+},
+{
+"nr": "2.1",
+"indice": "B1",
+"ro": "Cedează trecerea",
+"ru": "Уступи дорогу",
+"categorie": "prioritate"
+},
+{
+"nr": "2.2",
+"indice": "B2",
+"ro": "Oprire obligatorie",
+"ru": "Обязательная остановка",
+"categorie": "prioritate"
+},
+{
+"nr": "2.3",
+"indice": "B3",
+"ro": "Drum cu prioritate",
+"ru": "Главная дорога",
+"categorie": "prioritate"
+},
+{
+"nr": "2.4",
+"indice": "B4",
+"ro": "Sfârșitul drumului cu prioritate",
+"ru": "Конец главной дороги",
+"categorie": "prioritate"
+},
+{
+"nr": "2.5",
+"indice": "B5",
+"ro": "Prioritate pentru circulația din sens opus",
+"ru": "Преимущество встречного движения",
+"categorie": "prioritate"
+},
+{
+"nr": "2.6",
+"indice": "B6",
+"ro": "Prioritate în raport cu circulația din sens opus",
+"ru": "Преимущество перед встречным движением",
+"categorie": "prioritate"
+},
+{
+"nr": "3.1.1",
+"indice": "C1",
+"ro": "Acces interzis",
+"ru": "Въезд запрещен",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.1.2",
+"indice": "",
+"ro": "Acces interzis autovehiculelor utilate cu sistem de alimentare cu gaze",
+"ru": "Транспортным средствам, оснащенным системой газоснабжения, доступ запрещен",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.2",
+"indice": "C2",
+"ro": "Circulație interzisă",
+"ru": "Движение запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.3",
+"indice": "C3",
+"ro": "Circulație interzisă autovehiculelor",
+"ru": "Движение механических транспортных средств запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.4",
+"indice": "C7",
+"ro": "Circulație interzisă autocamioanelor",
+"ru": "Движение грузовых автомобилей запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.4.2",
+"indice": "C9",
+"ro": "Circulație interzisă autobuzelor",
+"ru": "Движение автобусов запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.5.1",
+"indice": "C4",
+"ro": "Circulație interzisă motocicletelor",
+"ru": "Движение мотоциклов запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.5.2",
+"indice": "C6",
+"ro": "Circulație interzisă ciclomotoarelor",
+"ru": "Движение мопедов запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.6",
+"indice": "C13",
+"ro": "Circulație interzisă mașinilor autopropulsate",
+"ru": "Движение самоходных машин запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.7",
+"indice": "C8",
+"ro": "Circulație interzisă autotrenurilor",
+"ru": "Движение автопоездов запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.8",
+"indice": "C46",
+"ro": "Circulație interzisă vehiculelor care transportă substanțe explozive sau ușor inflamabile",
+"ru": "Движение транспортных средств, перевозящих взрывчатые и легковоспламеняющееся грузы, запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.9.1",
+"indice": "C47",
+"ro": "Circulație interzisă vehiculelor care transportă încărcături periculoase",
+"ru": "Движение транспортных средств с опасными грузами запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.9.2",
+"indice": "C48",
+"ro": "Circulație interzisă vehiculelor care transportă substanțe de natură să polueze apele",
+"ru": "Запрещено движение транспортных средств, перевозящих вещества, которые могут загрязнять воду",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.10",
+"indice": "C11",
+"ro": "Circulație interzisă vehiculelor cu tracțiune animală",
+"ru": "Движение гужевого транспорта запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.11",
+"indice": "C5",
+"ro": "Circulație interzisă bicicletelor",
+"ru": "Движение на велосипедах запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.12",
+"indice": "C12",
+"ro": "Circulație interzisă pietonilor cu cărucioare de marfă",
+"ru": "Движение пешеходов с товарными тележками запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.13",
+"indice": "C10",
+"ro": "Circulație interzisă pietonilor",
+"ru": "Движение пешеходов запрещено",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.14",
+"indice": "C18",
+"ro": "Masă limitată",
+"ru": "Ограничение массы",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.15.1",
+"indice": "C19",
+"ro": "Masă limitată pe axă",
+"ru": "Ограничение массы, приходящейся на ось",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.15.2",
+"indice": "C20",
+"ro": "Masă limitată pe osie dublă",
+"ru": "Ограничение массы, приходящейся на двойную ось",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.15.3",
+"indice": "C21",
+"ro": "Masă limitată pe osie triplă",
+"ru": "Ограничение массы, приходящейся на тройную ось",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.16",
+"indice": "C17",
+"ro": "Înălțime limitată",
+"ru": "Ограничение высоты",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.17",
+"indice": "C16",
+"ro": "Lățime limitată",
+"ru": "Ограничение ширины",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.18",
+"indice": "C22",
+"ro": "Lungime limitată",
+"ru": "Ограничение длины",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.19.1",
+"indice": "C32",
+"ro": "Vama",
+"ru": "Таможня",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.19.2",
+"indice": "C34",
+"ro": "Poliția",
+"ru": "Полиция",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.20.1",
+"indice": "C25",
+"ro": "Viraj la dreapta interzis",
+"ru": "Поворот направо запрещен",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.20.2",
+"indice": "C24",
+"ro": "Viraj la stânga interzis",
+"ru": "Поворот налево запрещен",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.21",
+"indice": "C26",
+"ro": "Întoarcere interzisă",
+"ru": "Разворот запрещен",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.22",
+"indice": "C23",
+"ro": "Spațiu minim limitat",
+"ru": "Ограничение минимальной дистанции",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.23",
+"indice": "C27",
+"ro": "Depășire interzisă",
+"ru": "Обгон запрещен",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.24",
+"indice": "C37",
+"ro": "Sfârșitul zonei de interzicere a depășirii",
+"ru": "Конец зоны запрещения обгона",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.25",
+"indice": "C28",
+"ro": "Depășire interzisă autocamioanelor",
+"ru": "Обгон грузовым автомобилям запрещен",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.26",
+"indice": "",
+"ro": "Sfârșitul zonei de interzicere a depășirii pentru autocamioane",
+"ru": "Конец зоны запрещения обгона грузовым автомобилям",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.27.1",
+"indice": "C29",
+"ro": "Viteză maximă limitată",
+"ru": "Ограничение максимальной скорости",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.27.2",
+"indice": "",
+"ro": "Viteză maximă limitată",
+"ru": "Ограничение максимальной скорости",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.28",
+"indice": "C36",
+"ro": "Sfârșitul zonei cu viteză maximă limitată",
+"ru": "Конец зоны ограничения максимальной скорости",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.29",
+"indice": "C30",
+"ro": "Viteză maximă limitată pe categorii de autovehicule",
+"ru": "Ограничение максимальной скорости по категориям транспортных средств",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.30",
+"indice": "C31",
+"ro": "Claxonat interzis",
+"ru": "Подача звукового сигнала запрещена",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.31",
+"indice": "C39",
+"ro": "Oprire interzisă",
+"ru": "Остановка запрещена",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.32.1",
+"indice": "C38",
+"ro": "Staționare interzisă",
+"ru": "Стоянка запрещена",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.32.2",
+"indice": "C40",
+"ro": "Staționare interzisă în zilele impare ale lunii",
+"ru": "Стоянка запрещена по нечетным числам месяца",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.32.3",
+"indice": "C41",
+"ro": "Staționare interzisă în zilele pare ale lunii",
+"ru": "Стоянка запрещена по четным числам месяца",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "3.33",
+"indice": "C35",
+"ro": "Sfârșitul tuturor restricțiilor",
+"ru": "Конец всех ограничений",
+"categorie": "interzicere/restricție"
+},
+{
+"nr": "4.1.1",
+"indice": "D1",
+"ro": "Direcție obligatorie de deplasare",
+"ru": "Обязательное направление движения",
+"categorie": "obligare"
+},
+{
+"nr": "4.1.2",
+"indice": "D2",
+"ro": "Direcție obligatorie de deplasare",
+"ru": "Обязательное направление движения",
+"categorie": "obligare"
+},
+{
+"nr": "4.1.3",
+"indice": "D3",
+"ro": "Direcție obligatorie de deplasare",
+"ru": "Обязательное направление движения",
+"categorie": "obligare"
+},
+{
+"nr": "4.1.4",
+"indice": "D3",
+"ro": "Direcție obligatorie de deplasare",
+"ru": "Обязательное направление движения",
+"categorie": "obligare"
+},
+{
+"nr": "4.1.5",
+"indice": "D4",
+"ro": "Direcție obligatorie de deplasare",
+"ru": "Обязательное направление движения",
+"categorie": "obligare"
+},
+{
+"nr": "4.1.6",
+"indice": "D4",
+"ro": "Direcție obligatorie de deplasare",
+"ru": "Обязательное направление движения",
+"categorie": "obligare"
+},
+{
+"nr": "4.1.7",
+"indice": "",
+"ro": "Direcție obligatorie de deplasare",
+"ru": "Обязательное направление движения",
+"categorie": "obligare"
+},
+{
+"nr": "4.2.1",
+"indice": "D5",
+"ro": "Direcție obligatorie de ocolire a obstacolului",
+"ru": "Обязательное направление объезда препятствия",
+"categorie": "obligare"
+},
+{
+"nr": "4.2.2",
+"indice": "D5",
+"ro": "Direcție obligatorie de ocolire a obstacolului",
+"ru": "Обязательное направление объезда препятствия",
+"categorie": "obligare"
+},
+{
+"nr": "4.2.3",
+"indice": "D6",
+"ro": "Direcție obligatorie de ocolire a obstacolului",
+"ru": "Обязательное направление объезда препятствия",
+"categorie": "obligare"
+},
+{
+"nr": "4.3",
+"indice": "D7",
+"ro": "Sens giratoriu",
+"ru": "Круговое движение",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.1",
+"indice": "D8",
+"ro": "Pistă pentru bicicliști",
+"ru": "Велосипедная дорожка",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.2",
+"indice": "",
+"ro": "Sfârșitul pistei pentru bicicliști",
+"ru": "Конец велосипедной дорожки",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.3",
+"indice": "D19",
+"ro": "Pistă comună pentru pietoni și bicicliști",
+"ru": "Общая дорожка для пешеходов и велосипедов",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.4",
+"indice": "",
+"ro": "Sfârșitul pistei comune pentru pietoni și bicicliști",
+"ru": "Конец общей дорожки для пешеходов и велосипедов",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.5",
+"indice": "D11",
+"ro": "Piste delimitate pentru bicicliști și pietoni",
+"ru": "Раздельные дорожки для велосипедов и пешеходов",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.6",
+"indice": "",
+"ro": "Sfârșitul pistei delimitate pentru bicicliști și pietoni",
+"ru": "Конец раздельных дорожек для велосипедов и пешеходов",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.7",
+"indice": "D12",
+"ro": "Piste delimitate pentru pietoni și bicicliști",
+"ru": "Раздельные дорожки для пешеходов и велосипедов",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.8",
+"indice": "",
+"ro": "Sfârșitul pistei delimitate pentru pietoni și bicicliști",
+"ru": "Конец раздельных дорожек для пешеходов и велосипедов",
+"categorie": "obligare"
+},
+{
+"nr": "4.4.9",
+"indice": "D9",
+"ro": "Drum obligatoriu pentru categoria de vehicule indicată",
+"ru": "Обязательная дорога для указанной категории транспортных средств",
+"categorie": "obligare"
+},
+{
+"nr": "4.5.1",
+"indice": "D10",
+"ro": "Pistă pentru pietoni",
+"ru": "Пешеходная дорожка",
+"categorie": "obligare"
+},
+{
+"nr": "4.5.2",
+"indice": "",
+"ro": "Sfârșitul pistei pentru pietoni",
+"ru": "Конец пешеходной дорожки",
+"categorie": "obligare"
+},
+{
+"nr": "4.6",
+"indice": "D13",
+"ro": "Viteză minimă limitată",
+"ru": "Ограничение минимальной скорости",
+"categorie": "obligare"
+},
+{
+"nr": "4.7",
+"indice": "D14",
+"ro": "Sfârșitul zonei cu viteză minimă limitată",
+"ru": "Конец зоны ограничения минимальной скорости",
+"categorie": "obligare"
+},
+{
+"nr": "4.8",
+"indice": "D15",
+"ro": "Lanțuri antiderapante obligatorii",
+"ru": "Обязательное применение цепей противоскольжения",
+"categorie": "obligare"
+},
+{
+"nr": "4.9",
+"indice": "",
+"ro": "Sfârșitul obligației de a folosi lanțuri antiderapante",
+"ru": "Конец обязательного применения цепей противоскольжения",
+"categorie": "obligare"
+},
+{
+"nr": "4.10.1",
+"indice": "D16",
+"ro": "Direcție obligatorie pentru vehiculele care transportă încărcături periculoase",
+"ru": "Обязательное направление движения транспортных средств, перевозящих опасные грузы",
+"categorie": "obligare"
+},
+{
+"nr": "4.10.2",
+"indice": "D17",
+"ro": "Direcție obligatorie pentru vehiculele care transportă încărcături periculoase",
+"ru": "Обязательное направление движения транспортных средств, перевозящих опасные грузы",
+"categorie": "obligare"
+},
+{
+"nr": "4.10.3",
+"indice": "D18",
+"ro": "Direcție obligatorie pentru vehiculele care transportă încărcături periculoase",
+"ru": "Обязательное направление движения транспортных средств, перевозящих опасные грузы",
+"categorie": "obligare"
+},
+{
+"nr": "5.1",
+"indice": "G3",
+"ro": "Limite generale de viteză",
+"ru": "Общее ограничение скорости",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.2",
+"indice": "G6",
+"ro": "Autostradă",
+"ru": "Автомагистраль",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.3",
+"indice": "G7",
+"ro": "Sfârșit de autostradă",
+"ru": "Конец автомагистрали",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.4",
+"indice": "G17",
+"ro": "Drum pentru automobile",
+"ru": "Дорога для автомобилей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.5",
+"indice": "G18",
+"ro": "Sfârșitul drumului pentru automobile",
+"ru": "Конец дороги для автомобилей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.6.1",
+"indice": "G14",
+"ro": "Stație pentru autovehiculele de rută",
+"ru": "Остановка маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.6.2",
+"indice": "",
+"ro": "Pavilion de așteptare a vehiculelor de rută",
+"ru": "Павильон для ожидания маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.7",
+"indice": "",
+"ro": "Stație de tramvai",
+"ru": "Трамвайная остановка",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.8",
+"indice": "",
+"ro": "Stație de taxi",
+"ru": "Место стоянки такси",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.9",
+"indice": "G49",
+"ro": "Închirieri de automobile",
+"ru": "Прокат автомобилей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.10",
+"indice": "G48",
+"ro": "Gară auto",
+"ru": "Автовокзал",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.11",
+"indice": "G47",
+"ro": "Gară de trenuri",
+"ru": "Железнодорожный вокзал",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.12",
+"indice": "G45",
+"ro": "Port",
+"ru": "Порт",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.13",
+"indice": "G10",
+"ro": "Punct de asistență medicală",
+"ru": "Пункт медицинской помощи",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.14",
+"indice": "G9",
+"ro": "Spital",
+"ru": "Больница",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.15.1",
+"indice": "G21",
+"ro": "Stație de alimentare cu combustibil",
+"ru": "Автозаправочная станция",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.15.2",
+"indice": "",
+"ro": "Stație de alimentare cu energie electrică",
+"ru": "Электрозаправочная станция",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.16.1",
+"indice": "G33",
+"ro": "Service auto",
+"ru": "Автосервис",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.16.2",
+"indice": "",
+"ro": "Stație de testare tehnică",
+"ru": "Станция технического контроля",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.16.3",
+"indice": "G19",
+"ro": "Vulcanizare",
+"ru": "Вулканизация",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.16.4",
+"indice": "G74",
+"ro": "Refugiu rezervat depanării",
+"ru": "Место для аварийной остановки",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.17",
+"indice": "G63",
+"ro": "Cântar autovehicule",
+"ru": "Автомобильные весы",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.18",
+"indice": "",
+"ro": "Spălătorie",
+"ru": "Мойка",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.19",
+"indice": "G20",
+"ro": "Telefon",
+"ru": "Телефон",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.20",
+"indice": "G25",
+"ro": "Restaurant",
+"ru": "Ресторан",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.21",
+"indice": "G59",
+"ro": "Centru comercial",
+"ru": "Торговый центр",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.22",
+"indice": "G56",
+"ro": "Apă potabilă",
+"ru": "Питьевая вода",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.23",
+"indice": "G24",
+"ro": "Hotel sau motel",
+"ru": "Гостиница или мотель",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.24",
+"indice": "",
+"ro": "Loc de intersectare a carosabilelor",
+"ru": "Место пересечения проезжих частей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.25",
+"indice": "G27",
+"ro": "Camping",
+"ru": "Кемпинг",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.26",
+"indice": "G30",
+"ro": "Loc pentru popas",
+"ru": "Место отдыха",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.27",
+"indice": "G55",
+"ro": "Poșta",
+"ru": "Почта",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.28",
+"indice": "G11",
+"ro": "Poliția",
+"ru": "Полиция",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.29",
+"indice": "G64",
+"ro": "Atenție, radar",
+"ru": "Внимание, радар",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.30.1",
+"indice": "G73",
+"ro": "Monitorizare trafic",
+"ru": "Мониторинг дорожного движения",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.30.2",
+"indice": "G80",
+"ro": "Vinietă",
+"ru": "Виньетка",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.30.3",
+"indice": "G81",
+"ro": "Control vinietă",
+"ru": "Контроль виньетки",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.30.4",
+"indice": "G82",
+"ro": "Control video al vinietei",
+"ru": "Видеоконтроль виньетки",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.31",
+"indice": "G32",
+"ro": "WC",
+"ru": "Туалет",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.32",
+"indice": "G50",
+"ro": "Plajă sau piscină",
+"ru": "Пляж или плавательный бассейн",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.33",
+"indice": "G67",
+"ro": "Punct de informare",
+"ru": "Пункт туристической информации",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.34",
+"indice": "G4",
+"ro": "Drum cu sens unic",
+"ru": "Дорога с односторонним движением",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.35",
+"indice": "",
+"ro": "Sfârșitul drumului cu sens unic",
+"ru": "Конец дороги с односторонним движением",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.36",
+"indice": "G5",
+"ro": "Intrare pe drumul cu sens unic",
+"ru": "Выезд на дорогу с односторонним движением",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.37.1",
+"indice": "",
+"ro": "Direcțiile de deplasare pe benzi",
+"ru": "Направление движения по полосам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.37.2",
+"indice": "F21",
+"ro": "Direcțiile de deplasare pe benzi",
+"ru": "Направление движения по полосам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.37.3",
+"indice": "F20",
+"ro": "Direcțiile de deplasare pe benzi",
+"ru": "Направление движения по полосам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.37.4",
+"indice": "",
+"ro": "Direcțiile de deplasare pe benzi",
+"ru": "Направление движения по полосам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.37.5",
+"indice": "F27",
+"ro": "Viteză maximă limitată pe benzi",
+"ru": "Ограничение максимальной скорости на полосах движения",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.37.6",
+"indice": "F25",
+"ro": "Viteză minimă obligatorie pentru o bandă de circulație",
+"ru": "Обязательная минимальная скорость для полосы движения",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.38.1",
+"indice": "",
+"ro": "Direcția de deplasare pe bandă",
+"ru": "Направление движения по полосе",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.38.2",
+"indice": "",
+"ro": "Direcția de deplasare pe bandă",
+"ru": "Направление движения по полосе",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.38.3",
+"indice": "",
+"ro": "Direcția de deplasare pe bandă",
+"ru": "Направление движения по полосе",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.38.4",
+"indice": "",
+"ro": "Direcția de deplasare pe bandă",
+"ru": "Направление движения по полосе",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.38.5",
+"indice": "",
+"ro": "Direcția de deplasare pe bandă",
+"ru": "Направление движения по полосе",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.38.6",
+"indice": "",
+"ro": "Direcția de deplasare pe bandă",
+"ru": "Направление движения по полосе",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.38.7",
+"indice": "",
+"ro": "Direcția de deplasare pe bandă",
+"ru": "Направление движения по полосе",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.39.1",
+"indice": "F57",
+"ro": "Bandă suplimentară",
+"ru": "Дополнительная полоса",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.39.2",
+"indice": "F57a",
+"ro": "Bandă suplimentară",
+"ru": "Дополнительная полоса",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.39.3",
+"indice": "",
+"ro": "Bandă suplimentară",
+"ru": "Дополнительная полоса",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.40.1",
+"indice": "F23",
+"ro": "Sfârșitul benzii",
+"ru": "Конец полосы",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.40.2",
+"indice": "F24",
+"ro": "Sfârșitul benzii",
+"ru": "Конец полосы",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.41.1",
+"indice": "F56a",
+"ro": "Direcțiile de deplasare pe benzi",
+"ru": "Направление движения по полосам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.41.2",
+"indice": "",
+"ro": "Direcțiile de deplasare pe benzi",
+"ru": "Направление движения по полосам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.41.3",
+"indice": "F56",
+"ro": "Direcțiile de deplasare pe benzi",
+"ru": "Направление движения по полосам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.42.1",
+"indice": "",
+"ro": "Bandă rezervată vehiculelor de rută",
+"ru": "Полоса для маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.42.2",
+"indice": "",
+"ro": "Sfârșitul benzii rezervate vehiculelor de rută",
+"ru": "Конец полосы для маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.42.3",
+"indice": "",
+"ro": "Bandă rezervată bicicliștilor",
+"ru": "Полоса для велосипедистов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.42.4",
+"indice": "",
+"ro": "Sfârșitul benzii rezervate bicicliștilor",
+"ru": "Конец полосы для велосипедистов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.43",
+"indice": "",
+"ro": "Drum cu bandă rezervată vehiculelor de rută",
+"ru": "Дорога с полосой для маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.43.2",
+"indice": "",
+"ro": "Drum cu bandă rezervată bicicliștilor",
+"ru": "Дорога с полосой для велосипедистов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.44",
+"indice": "",
+"ro": "Sfârșitul drumului cu bandă rezervată vehiculelor de rută",
+"ru": "Конец дороги с полосой для маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.44.2",
+"indice": "",
+"ro": "Sfârșitul drumului cu bandă rezervată bicicliștilor",
+"ru": "Конец дороги с полосой для велосипедистов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.45.1",
+"indice": "",
+"ro": "Intrare pe drumul cu bandă rezervată vehiculelor de rută",
+"ru": "Выезд на дорогу с полосой для маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.45.2",
+"indice": "",
+"ro": "Intrare pe drumul cu bandă rezervată vehiculelor de rută",
+"ru": "Выезд на дорогу с полосой для маршрутных транспортных средств",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.45.3",
+"indice": "",
+"ro": "Intrare pe drumul cu bandă rezervată bicicliștilor",
+"ru": "Выезд на дорогу с полосой для велосипедов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.45.4",
+"indice": "",
+"ro": "Intrare pe drumul cu bandă rezervată bicicliștilor",
+"ru": "Выезд на дорогу с полосой для велосипедов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.46",
+"indice": "",
+"ro": "Loc de întoarcere",
+"ru": "Место для разворота",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.47",
+"indice": "",
+"ro": "Zonă de întoarcere",
+"ru": "Зона для разворота",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.48.1",
+"indice": "G34",
+"ro": "Parcare",
+"ru": "Парковка",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.48.2",
+"indice": "G35",
+"ro": "Parcare",
+"ru": "Парковка",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.48.3",
+"indice": "G36",
+"ro": "Parcare subterană sau terestră etajată",
+"ru": "Подземная или надземная многоэтажная парковка",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.49",
+"indice": "",
+"ro": "Denivelare artificială",
+"ru": "Искусственная неровность",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.50.1",
+"indice": "G1",
+"ro": "Trecere pentru pieton",
+"ru": "Пешеходный переход",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.50.2",
+"indice": "G1",
+"ro": "Trecere pentru pieton",
+"ru": "Пешеходный переход",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.51.1",
+"indice": "G13",
+"ro": "Trecere denivelată pentru pietoni",
+"ru": "Пешеходный переход на разных уровнях",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.51.2",
+"indice": "",
+"ro": "Trecere denivelată pentru pietoni",
+"ru": "Пешеходный переход на разных уровнях",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.51.3",
+"indice": "G12",
+"ro": "Trecere denivelată pentru pietoni",
+"ru": "Пешеходный переход на разных уровнях",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.51.4",
+"indice": "",
+"ro": "Trecere denivelată pentru pietoni",
+"ru": "Пешеходный переход на разных уровнях",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.52",
+"indice": "G66",
+"ro": "Viteză recomandată",
+"ru": "Рекомендуемая скорость",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.53.1",
+"indice": "F15",
+"ro": "Drum fără ieșire",
+"ru": "Дорога, не имеющая сквозного проезда",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.53.2",
+"indice": "",
+"ro": "Drum fără ieșire",
+"ru": "Дорога, не имеющая сквозного проезда",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.53.3",
+"indice": "",
+"ro": "Drum fără ieșire",
+"ru": "Дорога, не имеющая сквозного проезда",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.54.1",
+"indice": "G38",
+"ro": "Zonă rezidențială",
+"ru": "Жилая зона",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.54.2",
+"indice": "G39",
+"ro": "Sfârșitul zonei rezidențiale",
+"ru": "Конец жилой зоны",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.55.1",
+"indice": "",
+"ro": "Intrare în zona de parcare",
+"ru": "Въезд в зону парковки",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.55.2",
+"indice": "",
+"ro": "Ieșire din zona de parcare",
+"ru": "Выезд из зоны парковки",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.56.1",
+"indice": "C44",
+"ro": "Zonă cu viteză maximă limitată",
+"ru": "Зона с ограниченной максимальной скоростью",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.56.2",
+"indice": "C45",
+"ro": "Sfârșitul zonei cu viteză maximă limitată",
+"ru": "Конец зоны с ограниченной максимальной скоростью",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.57.1",
+"indice": "G71",
+"ro": "Zonă pietonală",
+"ru": "Пешеходная зона",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.57.2",
+"indice": "G72",
+"ro": "Sfârșitul zonei pietonale",
+"ru": "Конец пешеходной зоны",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.57.3",
+"indice": "",
+"ro": "Zonă de frontieră",
+"ru": "Пограничная зона",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.57.4",
+"indice": "",
+"ro": "Sfârșitul zonei de frontieră",
+"ru": "Конец пограничной зоны",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.58.1",
+"indice": "F5",
+"ro": "Presemnalizarea direcțiilor de deplasare",
+"ru": "Предварительный указатель направлений",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.58.2",
+"indice": "F5a",
+"ro": "Presemnalizarea direcțiilor de deplasare",
+"ru": "Предварительный указатель направлений",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.58.3",
+"indice": "F1",
+"ro": "Presemnalizarea direcțiilor de deplasare",
+"ru": "Предварительный указатель направлений",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.58.4",
+"indice": "F1b",
+"ro": "Presemnalizarea direcțiilor de deplasare",
+"ru": "Предварительный указатель направлений",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.58.5",
+"indice": "F2",
+"ro": "Presemnalizarea direcțiilor de deplasare",
+"ru": "Предварительный указатель направлений",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.59.1",
+"indice": "F7",
+"ro": "Schemă de ocolire",
+"ru": "Схема объезда",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.59.2",
+"indice": "F4",
+"ro": "Presemnalizarea traseului de ocolire a localității",
+"ru": "Предварительный указатель объезда населенного пункта",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.59.3",
+"indice": "F8a",
+"ro": "Presemnalizare parcare pe drumurile naționale",
+"ru": "Знаки парковки на национальных дорогах",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.60",
+"indice": "F13",
+"ro": "Traseu de urmat pentru schimbarea direcției de mers",
+"ru": "Схема для изменения направления движения",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.61.1",
+"indice": "F29",
+"ro": "F31 F32 Direcțiile de deplasare spre anumite localități sau obiective",
+"ru": "Направление движения к населенным пунктам или другим объектам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.61.2",
+"indice": "F3",
+"ro": "F31 F32 Direcțiile de deplasare spre anumite localități sau obiective",
+"ru": "Направление движения к населенным пунктам или другим объектам",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.62",
+"indice": "F52",
+"ro": "Distanțele până la localitățile indicate",
+"ru": "Расстояние до указанных населенных пунктов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.63",
+"indice": "F47",
+"ro": "Intrare în localitate",
+"ru": "Въезд в населенный пункт",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.64",
+"indice": "F48",
+"ro": "Ieșire din localitate",
+"ru": "Выезд из населенного пункта",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.65",
+"indice": "F47",
+"ro": "Intrare în localitate",
+"ru": "Въезд в населенный пункт",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.66",
+"indice": "F49",
+"ro": "Ieșire din localitate",
+"ru": "Выезд из населенного пункта",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.67",
+"indice": "F51",
+"ro": "Denumirea râului sau altui obiectiv",
+"ru": "Наименование реки или другого объекта",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.68",
+"indice": "G68",
+"ro": "Denumirea străzii",
+"ru": "Наименование улицы",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.69",
+"indice": "G69",
+"ro": "Direcția spre stradă",
+"ru": "Направление к улице",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.70.1",
+"indice": "",
+"ro": "Indicator kilometric pentru autostrăzi",
+"ru": "Километровый знак для автомагистралей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.70.2",
+"indice": "",
+"ro": "Indicator kilometric pentru drumuri locale",
+"ru": "Километровый знак для местных дорог",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.71.1",
+"indice": "F39",
+"ro": "Numărul itinerarului",
+"ru": "Номер маршрута",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.71.2",
+"indice": "",
+"ro": "Numărul itinerarului",
+"ru": "Номер маршрута",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.71.3",
+"indice": "",
+"ro": "Numărul itinerarului",
+"ru": "Номер маршрута",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.71.4",
+"indice": "",
+"ro": "Numărul itinerarului",
+"ru": "Номер маршрута",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.71.5",
+"indice": "",
+"ro": "Numărul itinerarului",
+"ru": "Номер маршрута",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.71.6",
+"indice": "",
+"ro": "Numărul itinerarului",
+"ru": "Номер маршрута",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.71.7",
+"indice": "",
+"ro": "Numărul itinerarului",
+"ru": "Номер маршрута",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.72.1",
+"indice": "F16",
+"ro": "Direcțiile de circulație recomandate pentru autocamioane",
+"ru": "Рекомендуемое направление движения для грузовых автомобилей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.72.2",
+"indice": "F17",
+"ro": "Direcțiile de circulație recomandate pentru autocamioane",
+"ru": "Рекомендуемое направление движения для грузовых автомобилей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.72.3",
+"indice": "F18",
+"ro": "Direcțiile de circulație recomandate pentru autocamioane",
+"ru": "Рекомендуемое направление движения для грузовых автомобилей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.72.4",
+"indice": "F33",
+"ro": "Direcție de urmat pentru autovehiculele destinate transportului de mărfuri",
+"ru": "Направление движения транспортных средств, предназначенных для перевозки грузов",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.73",
+"indice": "",
+"ro": "Loc de oprire",
+"ru": "Место для остановки",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.74",
+"indice": "F12",
+"ro": "Avertizare, interzicere sau restricție pe un drum lateral",
+"ru": "Предупреждение, запрещение или ограничение на пересекаемой дороге",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.75",
+"indice": "",
+"ro": "Circulație reversibilă",
+"ru": "Реверсивное движение",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.76",
+"indice": "",
+"ro": "Sfârșit de circulație reversibilă",
+"ru": "Конец реверсивного движения",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.77",
+"indice": "",
+"ro": "Intrare pe drumul cu circulație reversibilă",
+"ru": "Выезд на дорогу с реверсивным движением",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.78.1",
+"indice": "K2",
+"ro": "Bornă kilometrică",
+"ru": "Километровая тумба",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.78.2",
+"indice": "K3",
+"ro": "Bornă kilometrică",
+"ru": "Километровая тумба",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.78.3",
+"indice": "K4",
+"ro": "Bornă kilometrică",
+"ru": "Километровая тумба",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.79",
+"indice": "",
+"ro": "Direcție spre obiectivul turistic",
+"ru": "Направление к туристическому объекту",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.80",
+"indice": "",
+"ro": "Cetate",
+"ru": "Крепость",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.81",
+"indice": "",
+"ro": "Mănăstire",
+"ru": "Монастырь",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.82",
+"indice": "",
+"ro": "Monument",
+"ru": "Памятник",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.83",
+"indice": "",
+"ro": "Rezervație naturală",
+"ru": "Природный заповедник",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.84",
+"indice": "",
+"ro": "Pensiune agroturistică",
+"ru": "Агротуристический пансионат",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.85",
+"indice": "",
+"ro": "Biserică",
+"ru": "Церковь",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.86",
+"indice": "",
+"ro": "Muzeu",
+"ru": "Музей",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.87",
+"indice": "",
+"ro": "Peșteră",
+"ru": "Пещера",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.88",
+"indice": "",
+"ro": "Stațiune balneoclimaterică",
+"ru": "Бальнеоклиматический курорт",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.89",
+"indice": "",
+"ro": "Atelier meșteșugăresc",
+"ru": "Ремесленная мастерская",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.90",
+"indice": "",
+"ro": "Vinărie",
+"ru": "Винзавод",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.91",
+"indice": "",
+"ro": "Cramă vitivinicolă",
+"ru": "Винный погреб",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.92",
+"indice": "",
+"ro": "Hipodrom",
+"ru": "Ипподром",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.93",
+"indice": "",
+"ro": "Grădină zoologică",
+"ru": "Зоопарк",
+"categorie": "informare și orientare"
+},
+{
+"nr": "5.94",
+"indice": "",
+"ro": "Parcare pentru rulote",
+"ru": "Парковка для трейлеров",
+"categorie": "informare și orientare"
+},
+{
+"nr": "6.1.1",
+"indice": "P4",
+"ro": "Distanța până la locul intrării în vigoare a indicatorului",
+"ru": "Расстояние до места начала действия знака",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.1.2",
+"indice": "P17",
+"ro": "Distanța până la locul intrării în vigoare a indicatorului",
+"ru": "Расстояние до места начала действия знака",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.2.1",
+"indice": "P2",
+"ro": "Direcția și distanța",
+"ru": "Направление и растояние",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.2.2",
+"indice": "",
+"ro": "Direcția și distanța",
+"ru": "Направление и растояние",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.3.1",
+"indice": "P8",
+"ro": "Zonă de acțiune",
+"ru": "Зона действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.3.2",
+"indice": "",
+"ro": "Sfârșitul zonei de acțiune",
+"ru": "Конец зоны действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.4.1",
+"indice": "P9",
+"ro": "Zonă de acțiune",
+"ru": "Зона действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.4.2",
+"indice": "P11",
+"ro": "Zonă de acțiune",
+"ru": "Зона действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.4.3",
+"indice": "P12",
+"ro": "Zonă de acțiune",
+"ru": "Зона действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.4.4",
+"indice": "",
+"ro": "Zonă de acțiune",
+"ru": "Зона действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.4.5",
+"indice": "",
+"ro": "Zonă de acțiune",
+"ru": "Зона действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.5.1",
+"indice": "",
+"ro": "Direcție de acțiune",
+"ru": "Направление действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.5.2",
+"indice": "",
+"ro": "Direcție de acțiune",
+"ru": "Направление действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.5.3",
+"indice": "",
+"ro": "Direcție de acțiune",
+"ru": "Направление действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.1",
+"indice": "P14",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.2",
+"indice": "",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.3",
+"indice": "",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.4",
+"indice": "",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.5",
+"indice": "",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.6",
+"indice": "",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.7",
+"indice": "",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.8",
+"indice": "",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.6.9",
+"indice": "P31",
+"ro": "Tipul de vehicul",
+"ru": "Вид транспортного средства",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.1",
+"indice": "",
+"ro": "Zile de odihnă sau de sărbătoare",
+"ru": "Выходные или праздничные дни",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.2",
+"indice": "",
+"ro": "Zile de lucru",
+"ru": "Рабочие дни",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.3",
+"indice": "",
+"ro": "Zilele săptămânii",
+"ru": "Дни недели",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.4",
+"indice": "",
+"ro": "Timp de acțiune",
+"ru": "Время действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.5",
+"indice": "",
+"ro": "Timp de acțiune",
+"ru": "Время действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.6",
+"indice": "",
+"ro": "Timp de acțiune",
+"ru": "Время действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.7",
+"indice": "",
+"ro": "Timp de acțiune",
+"ru": "Время действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.8",
+"indice": "P16",
+"ro": "Timp de acțiune",
+"ru": "Время действия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.7.9",
+"indice": "",
+"ro": "Temperatura de intrare în acțiune a indicatorului",
+"ru": "Температура начала действия знака",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.1",
+"indice": "P38",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.2",
+"indice": "P39",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.3",
+"indice": "P40",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.4",
+"indice": "P43",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.5",
+"indice": "",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.6",
+"indice": "P41",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.7",
+"indice": "",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.8",
+"indice": "P42",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.8.9",
+"indice": "",
+"ro": "Modul de amplasare a vehiculului în staționare",
+"ru": "Способ постановки транспортного средства на стоянку",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.9",
+"indice": "",
+"ro": "Parcare cu motorul oprit",
+"ru": "Стоянка с неработающим двигателем",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.10.1",
+"indice": "",
+"ro": "Servicii cu plată",
+"ru": "Платные услуги",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.10.2",
+"indice": "P15",
+"ro": "Parcare cu plată",
+"ru": "Платная парковка",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.11",
+"indice": "",
+"ro": "Restricția duratei de staționare",
+"ru": "Ограничение продолжительности стоянки",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.12",
+"indice": "",
+"ro": "Loc pentru verificarea autovehiculelor",
+"ru": "Место для осмотра автомобилей",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.13",
+"indice": "",
+"ro": "Restricție la masa maximă autorizată",
+"ru": "Ограничение максимальной массы",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.14",
+"indice": "",
+"ro": "Acostament periculos",
+"ru": "Опасная обочина",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.15.1",
+"indice": "P21",
+"ro": "Direcția drumului cu prioritate",
+"ru": "Направление главной дороги",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.15.2",
+"indice": "",
+"ro": "Direcția drumului cu prioritate",
+"ru": "Направление главной дороги",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.16",
+"indice": "",
+"ro": "Bandă de circulație",
+"ru": "Полоса движения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.17",
+"indice": "P48",
+"ro": "Pietoni orbi",
+"ru": "Слепые пешеходы",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.18.1",
+"indice": "P29",
+"ro": "Carosabil umed",
+"ru": "Влажное покрытие",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.18.2",
+"indice": "P27",
+"ro": "Carosabil alunecos",
+"ru": "Скользкое покрытие",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.18.3",
+"indice": "P48",
+"ro": "Pericol de răsturnare",
+"ru": "Опасность опрокидывания",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.19",
+"indice": "P13",
+"ro": "Loc de staționare rezervat persoanelor cu dizabilități",
+"ru": "Место стоянки для лиц с ограниченными возможностями",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.20",
+"indice": "",
+"ro": "Cu excepția persoanelor cu dizabilități",
+"ru": "Кроме лиц с ограниченными возможностями",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.21",
+"indice": "P26",
+"ro": "Folosiți lumina de întâlnire",
+"ru": "Пользуйтесь ближним светом",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.22",
+"indice": "P25",
+"ro": "Evacuare forțată a autovehiculelor",
+"ru": "Принудительная эвакуация автомобилей",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.23.1",
+"indice": "P23",
+"ro": "Direcție de circulație",
+"ru": "Направление движения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.23.2",
+"indice": "",
+"ro": "Direcție de circulație",
+"ru": "Направление движения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.23.3",
+"indice": "",
+"ro": "Direcție de circulație",
+"ru": "Направление движения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.23.4",
+"indice": "",
+"ro": "Direcție de circulație",
+"ru": "Направление движения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.23.5",
+"indice": "",
+"ro": "Direcție de circulație",
+"ru": "Направление движения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.23.6",
+"indice": "",
+"ro": "Direcție de circulație",
+"ru": "Направление движения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.24.1",
+"indice": "A47",
+"ro": "Direcția de ocolire a obstacolului",
+"ru": "Направление объезда препятствия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.24.2",
+"indice": "A46",
+"ro": "Direcția de ocolire a obstacolului",
+"ru": "Направление объезда препятствия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.24.3",
+"indice": "A48",
+"ro": "Direcția de ocolire a obstacolului",
+"ru": "Направление объезда препятствия",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.25",
+"indice": "",
+"ro": "Benzi rezonatoare",
+"ru": "Шумовые полосы",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.26",
+"indice": "",
+"ro": "Denivelare artificială",
+"ru": "Искусственная неровность",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.27",
+"indice": "P19",
+"ro": "Intervalul de timp când este permisă staționarea vehiculelor ce efectuează aprovizionarea",
+"ru": "Временной интервал, когда разрешена стоянка транспортных средств снабжения",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.28",
+"indice": "P22",
+"ro": "Viteza recomandată pe un sector de drum cu semafoare sincronizate",
+"ru": "Рекомендуемая скорость на участке дороги с синхронизированным светофором",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.29",
+"indice": "P34",
+"ro": "Trecere pentru pietoni desfiinață",
+"ru": "Пешеходный переход отменен",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.30",
+"indice": "P35",
+"ro": "Cu excepția riveranilor",
+"ru": "Кроме жителей улицы",
+"categorie": "panou adițional"
+},
+{
+"nr": "6.31",
+"indice": "P44",
+"ro": "Rampă pentru persoane cu handicap locomotor",
+"ru": "Рампа для лиц с ограниченными возможностями",
+"categorie": "panou adițional"
+}
+]
