@@ -67,7 +67,10 @@ class App:
         tk.Label(cap, text="Chat", bg=PANOU, fg="#202020", font=("Segoe UI Semibold", 12)).pack(side="left")
         tk.Label(cap, text="scrie liber, fără diacritice", bg=PANOU, fg="#808080", font=("Segoe UI", 9)).pack(side="left", padx=8)
         jos = tk.Frame(dr, bg=PANOU); jos.pack(side="bottom", fill="x", padx=10, pady=10)
-        chips = tk.Frame(jos, bg=PANOU); chips.pack(fill="x", pady=(0, 6))
+        self.lb_sug = tk.Listbox(jos, height=6, font=("Segoe UI", 10), activestyle="none", relief="flat", bd=0, highlightthickness=1,
+                                 highlightbackground="#C7CDD4", selectbackground=ACCENT, selectforeground="white")
+        self.lb_sug.bind("<ButtonRelease-1>", lambda e: self.accepta_sugestie()); self.sug_vizibil = False; self.termeni = []
+        chips = tk.Frame(jos, bg=PANOU); chips.pack(fill="x", pady=(0, 6)); self.chips = chips
         for c in ("porturi", "lista", "cabluri", "anuleaza", "ajutor"):
             b = tk.Label(chips, text=c, bg="#EEF2F6", fg="#334155", font=("Segoe UI", 9), padx=10, pady=3, cursor="hand2")
             b.pack(side="left", padx=(0, 6)); b.bind("<Button-1>", lambda e, c=c: self.trimite_text(c))
@@ -77,8 +80,10 @@ class App:
         self.ent.pack(side="left", fill="x", expand=True)
         trim = tk.Label(rand, text="➤", bg=ACCENT, fg="white", font=("Segoe UI", 14), padx=14, cursor="hand2"); trim.pack(side="right", fill="y")
         trim.bind("<Button-1>", lambda e: self.trimite())
-        self.ent.bind("<Return>", lambda e: (self.trimite(), "break")[1]); self.ent.bind("<Shift-Return>", lambda e: None)
+        self.ent.bind("<Return>", self.enter); self.ent.bind("<Shift-Return>", lambda e: None)
         self.ent.bind("<Up>", self.cmd_sus); self.ent.bind("<Down>", self.cmd_jos)
+        self.ent.bind("<KeyRelease>", self.sugereaza); self.ent.bind("<Tab>", lambda e: self.accepta_sugestie() or "break")
+        self.ent.bind("<Escape>", lambda e: self.ascunde_sugestii())
         corp = tk.Frame(dr, bg=PANOU); corp.pack(fill="both", expand=True, padx=(10, 4))
         self.txt = tk.Text(corp, wrap="word", state="disabled", font=("Segoe UI", 10), bg=PANOU, relief="flat", bd=0, padx=4, pady=4,
                            highlightthickness=0, spacing1=2, spacing3=2)
@@ -145,15 +150,85 @@ class App:
                 if sch and not r.startswith("N-am"): self.modificat = True
         except Exception:
             self.scrie("Eroare: " + traceback.format_exc(limit=2), "err")
-        self.actualizeaza_pagini(); self.selectie = []
+        self.actualizeaza_pagini(); self.selectie = []; self.termeni = []; self.ascunde_sugestii()
         self.deseneaza() if self.chat.ip == ip0 else self.potriveste()
 
+    # ---------- sugestii în timp ce scrii ----------
+    VOCAB = ["port", "porturile", "la", "prin", "sudura in", "rosu", "albastru", "verde", "intrerupt", "trage", "adauga", "leaga",
+             "manson", "stalp", "odf", "splitter", "cablu", "sterge", "muta", "redenumeste", "schimba lungimea", "anuleaza",
+             "salveaza", "lista", "cabluri", "porturi", "pagini", "pagina", "ajutor"]
+
+    def actualizeaza_termeni(self):
+        """numele din proiect (toate paginile): noduri, manșoane, elemente, cabluri – pentru sugestii"""
+        t = []
+        try:
+            import porturi
+            for i in range(len(self.doc.pagini)):
+                S = desen.Schema(self.doc, self.doc.pagini[i])
+                for nume, _ in porturi._candidati(S): t.append(nume)
+                for x, _ in S.elemente():
+                    l0 = x.split("\n")[0].strip()
+                    if l0 and len(l0) <= 30 and not re.fullmatch(r"[\d,.\s]+", l0): t.append(" ".join(x.split()) if re.match(r"(?i)^FO", x) else l0)
+        except Exception: pass
+        vaz = set(); self.termeni = []
+        for x in t:
+            k = vsdx_doc.norm(x)
+            if k and k not in vaz: vaz.add(k); self.termeni.append(x)
+
+    def cuvant_curent(self):
+        inainte = self.ent.get("1.0", "insert")
+        m = re.search(r"([\w\-.ăâîșşțţĂÂÎȘŞȚŢ]+(?: [\w\-.ăâîșşțţĂÂÎȘŞȚŢ]+)?)$", inainte)
+        return inainte, m
+
+    def sugereaza(self, e=None):
+        if e is not None and e.keysym in ("Up", "Down", "Return", "Tab", "Escape", "Shift_L", "Shift_R", "Control_L", "Control_R"): return
+        if not self.doc: return
+        if not self.termeni: self.actualizeaza_termeni()
+        inainte, m = self.cuvant_curent()
+        if not m or not re.search(r"[^\W\d_]", m.group(0)): return self.ascunde_sugestii()
+        variante = []
+        for frag in ([m.group(0)] + ([m.group(0).split(" ")[-1]] if " " in m.group(0) else [])):
+            q = vsdx_doc.norm(frag)
+            if not q: continue
+            tot = self.termeni + self.VOCAB
+            inc = [x for x in tot if vsdx_doc.norm(x).startswith(q)]
+            cont = [x for x in tot if q in vsdx_doc.norm(x) and x not in inc]
+            for x in inc + cont:
+                if vsdx_doc.norm(x) != q and (x, frag) not in variante and x not in [v[0] for v in variante]: variante.append((x, frag))
+            if variante: break
+        if not variante: return self.ascunde_sugestii()
+        self.variante = variante[:8]
+        self.lb_sug.delete(0, "end")
+        for x, _ in self.variante: self.lb_sug.insert("end", "  " + x)
+        self.lb_sug.configure(height=len(self.variante)); self.lb_sug.selection_clear(0, "end"); self.lb_sug.selection_set(0); self.sug_ales = False
+        if not self.sug_vizibil: self.lb_sug.pack(fill="x", pady=(0, 6), before=self.chips); self.sug_vizibil = True
+
+    def ascunde_sugestii(self):
+        if self.sug_vizibil: self.lb_sug.pack_forget(); self.sug_vizibil = False
+
+    def accepta_sugestie(self):
+        if not self.sug_vizibil: return False
+        sel = self.lb_sug.curselection(); k = sel[0] if sel else 0
+        x, frag = self.variante[k]
+        self.ent.delete(f"insert-{len(frag)}c", "insert"); self.ent.insert("insert", x + " ")
+        self.ascunde_sugestii(); self.ent.focus_set(); return True
+
+    def enter(self, e):
+        if self.sug_vizibil and getattr(self, "sug_ales", False): self.accepta_sugestie(); return "break"
+        self.ascunde_sugestii(); self.trimite(); return "break"
+
     def cmd_sus(self, e):
+        if self.sug_vizibil:
+            sel = self.lb_sug.curselection(); k = max(0, (sel[0] if sel else 0) - 1)
+            self.lb_sug.selection_clear(0, "end"); self.lb_sug.selection_set(k); self.lb_sug.see(k); self.sug_ales = True; return "break"
         if self.istoric_cmd and self.ih > 0:
             self.ih -= 1; self.ent.delete("1.0", "end"); self.ent.insert("1.0", self.istoric_cmd[self.ih])
         return "break"
 
     def cmd_jos(self, e):
+        if self.sug_vizibil:
+            sel = self.lb_sug.curselection(); k = min(self.lb_sug.size() - 1, (sel[0] if sel else -1) + 1)
+            self.lb_sug.selection_clear(0, "end"); self.lb_sug.selection_set(k); self.lb_sug.see(k); self.sug_ales = True; return "break"
         if self.ih < len(self.istoric_cmd) - 1:
             self.ih += 1; self.ent.delete("1.0", "end"); self.ent.insert("1.0", self.istoric_cmd[self.ih])
         return "break"
@@ -193,7 +268,7 @@ class App:
                 messagebox.showerror(TITLU, f"Nu pot deschide fișierul:\n{e}"); return
         self.chat = comenzi.Chat(self.doc); self.modificat = False; self.backup_facut = False; self.selectie = []
         self.root.title(f"{TITLU} – {os.path.basename(p)}"); self.actualizeaza_pagini(); self.potriveste()
-        self.analizeaza()
+        self.termeni = []; self.analizeaza()
 
     def nou(self):
         if not self.intreaba_salvare(): return
