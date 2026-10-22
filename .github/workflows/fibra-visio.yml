@@ -1,0 +1,45 @@
+name: Construieste Fibra_Visio.exe
+
+# Construiește exe-ul din fibra_visio/ și îl publică în Release fibra-visio (același link de descărcare).
+on:
+  push:
+    branches: [main]
+    paths: ["fibra_visio/**", ".github/workflows/fibra-visio.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Construire
+        working-directory: fibra_visio
+        run: |
+          python -m pip install -q pyinstaller
+          python -m PyInstaller --noconfirm --onefile --windowed --name Fibra_Visio --add-data "sablon;sablon" gui.py
+
+      - name: Test pornire (15 s fara eroare)
+        shell: pwsh
+        run: |
+          $p = Start-Process fibra_visio\dist\Fibra_Visio.exe -PassThru
+          Start-Sleep 15
+          if ($p.HasExited) { throw "exe-ul s-a inchis singur (cod $($p.ExitCode))" }
+          Stop-Process -Id $p.Id -Force
+
+      - name: Publicare (Release fibra-visio)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete fibra-visio -R $env:GITHUB_REPOSITORY --yes --cleanup-tag 2>$null
+          gh release create fibra-visio "fibra_visio/dist/Fibra_Visio.exe" -R $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA `
+            --title "Fibra_Visio.exe" --notes "Scheme de fibra optica in Visio, cu chat. Fara internet. Construit $(Get-Date -Format 'dd.MM.yyyy HH:mm')."
+          exit 0

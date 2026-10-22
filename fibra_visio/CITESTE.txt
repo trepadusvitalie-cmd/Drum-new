@@ -1,0 +1,47 @@
+FIBRA VISIO – scheme de fibră optică în Visio, cu chat
+======================================================
+
+Ce face
+  Deschide o schemă Visio (.vsdx) existentă – sau începe una nouă – și o modifică după ce îi scrii în chat.
+  Desenul existent rămâne neatins: simboluri, culori, cartuș, pagini. Se adaugă / se schimbă doar ce ceri.
+  Lucrează fără internet; schemele nu pleacă de pe calculator.
+
+Cum lucrezi
+  1. Pornește Fibra_Visio.exe → „Deschide schema…” (sau trage fișierul .vsdx peste exe).
+  2. Scrie în chat, apasă Enter. Schema din stânga se actualizează.
+  3. „Salvează” – la prima salvare originalul e păstrat ca <nume>_original.vsdx.
+  4. Deschide fișierul în Visio ca de obicei.
+
+Exemple de comenzi (diacriticele nu contează; scrie „ajutor” în program)
+  adaugă manșon M5 lângă M3
+  adaugă stâlp S12 la dreapta de M3
+  adaugă ODF ODF-2 48 porturi
+  adaugă splitter SP1 1:8 lângă B4
+  adaugă cablu 24FO de la M3 la S12, 150 m        (dacă S12 nu există, îl desenează)
+  adaugă cablu 24FO întrerupt de la M3 la S12
+  schimbă lungimea de la M1 la S5 în 180 m
+  schimbă cablul de la M1 la S5 în 48FO
+  șterge cablul de la M1 la S5      /   șterge M5
+  mută M5 la dreapta cu 2 cm        /   mută M5 lângă S7
+  redenumește M5 în M6
+  în M1 sudează fibrele 1-12 din M1-S5 cu 13-24 din ODF1-M1   (pagină nouă cu sudura, pe culorile fibrelor)
+  listă   cabluri   pagini   pagina 2   anulează   salvează
+  Mai multe comenzi deodată: câte una pe rând (Shift+Enter = rând nou).
+
+Cablul nou
+  Sus, „Cablu nou”: roșu / linie întreruptă / roșu întrerupt / ca cele existente.
+  Cablurile existente (negre, albastre) nu se schimbă.
+
+Simbolurile
+  Când pe schemă există deja un element de același fel (ex. M1, M2…), cel nou e o copie a lui (același simbol).
+  Dacă nu există, se folosește simbolul standard: manșon = elipsă, ODF = dreptunghi înalt, splitter = triunghi,
+  stâlp = cerc, cămin = pătrat cu X, clădire / cutie = dreptunghi.
+  Numele: M… manșon, S… stâlp, ODF… ODF, SP… splitter, C… cămin, B… clădire.
+  Un nume fără cifre se scrie între ghilimele:  mută "Statia centrala" la stânga cu 3 cm
+
+Limitări (versiunea 1)
+  • Doar .vsdx (fișierele vechi .vsd: deschide-le în Visio → Salvează ca .vsdx).
+  • Cablurile noi sunt linii drepte lipite de simboluri; în Visio le poți muta / îndoi normal.
+  • Previzualizarea din program e simplificată; în Visio desenul apare complet.
+
+Construire exe (o singură dată, pe un calculator cu Python): CONSTRUIESTE_EXE.bat → dist\Fibra_Visio.exe
