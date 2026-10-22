@@ -244,7 +244,7 @@ def mentiuni(S, t):
     chei.sort(key=lambda c: (-c[3], -len(c[0])))
     for trecere in (0, 1):                                    # întâi potrivirile exacte, apoi cele aproximative
         for cheie, nume, nod, forta in chei:
-            if not cheie or (trecere == 1 and forta < 2): continue
+            if not cheie or (trecere == 1 and forta != 2): continue      # aproximativ: doar cuvintele distinctive („popov”)
             if trecere == 0:
                 gas = [(m.start(), m.end(), 1.0) for m in re.finditer(re.escape(cheie), tc)
                        if not any(o[0] < m.end() and m.start() < o[1] for o in ocupat)]
@@ -294,6 +294,7 @@ def comanda(S, t):
     capete = [m for m in men if m[3] is not None]
     if len(capete) < 2: return None
     (a0, a1, an, A), (b0, b1, bn, B) = capete[0], capete[1]
+    if A.nume == B.nume: raise ValueError(f"„{A.nume}” apare la ambele capete – scrie numele întreg al celuilalt nod")
     # porturile: „A port 5 la B port 3” (numerele după nume) sau „portul 5 din A la portul 3 din B” (înainte)
     urm = lambda x: ([m[0] for m in men if m[0] > x] + [len(t)])[0]
     inainte_a = numere_in(t[:a0])
