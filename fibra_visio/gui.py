@@ -55,6 +55,8 @@ class App:
         self.cv.bind("<MouseWheel>", self.roata); self.cv.bind("<Button-4>", lambda e: self.zoom_la(e, 1.15)); self.cv.bind("<Button-5>", lambda e: self.zoom_la(e, 1 / 1.15))
         self.cv.bind("<ButtonPress-1>", self.clic); self.cv.bind("<B1-Motion>", self.trage); self.cv.bind("<ButtonRelease-1>", self.elibereaza)
         self.cv.bind("<Double-Button-1>", self.editeaza_text)
+        self.cv.bind("<ButtonRelease-3>", self.meniu)
+        self.cv.bind("<F2>", self.editeaza_text); self.cv.bind("<Return>", self.editeaza_text)
         for b in ("2", "3"):
             self.cv.bind(f"<ButtonPress-{b}>", self.pan_start); self.cv.bind(f"<B{b}-Motion>", self.pan)
         self.cv.bind("<Configure>", lambda e: self.deseneaza())
@@ -431,6 +433,7 @@ class App:
         self.deseneaza()
 
     def deseneaza(self):
+        if getattr(self, "ed_win", None): self.inchide_editor(True); return     # întâi termină editarea textului
         cv = self.cv; cv.delete("all")
         if not self.doc: return
         p = self.doc.pagini[self.chat.ip]; W, H = p.dimensiune()
@@ -512,7 +515,7 @@ class App:
     def zoom_la(self, e, k):
         self.ox = e.x - (e.x - self.ox) * k; self.oy = e.y - (e.y - self.oy) * k; self.zoom *= k; self.deseneaza()
 
-    def pan_start(self, e): self.px, self.py = e.x, e.y
+    def pan_start(self, e): self.px, self.py = e.x, e.y; self.px0, self.py0 = e.x, e.y
 
     def pan(self, e):
         self.ox += e.x - self.px; self.oy += e.y - self.py; self.px, self.py = e.x, e.y; self.deseneaza()
@@ -592,17 +595,19 @@ class App:
         self.muta_selectia(dx, dy); return "break"
 
     def focus_in_chat(self):
-        return self.root.focus_get() in (self.ent, self.txt)
+        try: f = self.root.focus_get()
+        except Exception: f = None
+        return f in (self.ent, self.txt) or (getattr(self, "ed_win", None) and f is getattr(self, "ed_txt", None))
 
     def copiaza(self, e=None):
-        if self.focus_in_chat() or not self.selectie: return
+        if (e is not None and self.focus_in_chat()) or not self.selectie: return
         self.clipboard = [copy.deepcopy(f.el) for f in self.selectie]
         b = [f.cutie() for f in self.selectie]; self.clip_centru = ((min(x[0] for x in b) + max(x[2] for x in b)) / 2, (min(x[1] for x in b) + max(x[3] for x in b)) / 2)
         self.status.config(text=f"Copiat: {len(self.clipboard)} forme. Du mausul unde vrei și apasă Ctrl+V.")
         return "break"
 
     def lipeste(self, e=None):
-        if self.focus_in_chat() or not getattr(self, "clipboard", None) or not self.doc: return
+        if (e is not None and self.focus_in_chat()) or not getattr(self, "clipboard", None) or not self.doc: return
         self.inainte_de_modificare(); p = self.doc.pagini[self.chat.ip]; sh = p.shapes_el()
         X = self.cv.winfo_pointerx() - self.cv.winfo_rootx(); Y = self.cv.winfo_pointery() - self.cv.winfo_rooty()
         if 0 <= X <= self.cv.winfo_width() and 0 <= Y <= self.cv.winfo_height(): tx, ty = self.pagina_xy(X, Y)
@@ -622,7 +627,7 @@ class App:
         return "break"
 
     def sterge_selectia(self, e=None):
-        if self.focus_in_chat() or not self.selectie: return
+        if (e is not None and self.focus_in_chat()) or not self.selectie or getattr(self, "ed_win", None): return
         self.inainte_de_modificare(); self.reselecteaza(); S = self.chat.schema
         for f in self.selectie: S.sterge(f)
         n = len(self.selectie); self.selectie = []; self.deseneaza(); self.status.config(text=f"Șters: {n} forme.")
@@ -646,15 +651,87 @@ class App:
         if self.focus_in_chat() or not self.doc: return
         self.inainte(); return "break"
 
-    def editeaza_text(self, e):
-        f = self.forma_la(e.x, e.y)
+    def forma_text_la(self, X, Y):
+        """forma cu text de sub maus – și în interiorul grupurilor; cea mai mică"""
+        x, y = self.pagina_xy(X, Y); tol = 4 / self.zoom; best, ba = None, 1e18
+        for f in self.doc.pagini[self.chat.ip].toate():
+            if not f.text: continue
+            try: x0, y0, x1, y1 = f.cutie()
+            except Exception: continue
+            if x0 - tol <= x <= x1 + tol and y0 - tol <= y <= y1 + tol:
+                a = max(x1 - x0, 0.01) * max(y1 - y0, 0.01)
+                if a < ba: best, ba = f, a
+        return best
+
+    def cu_text(self, f):
+        """forma însăși, sau primul copil cu text (la grupuri)"""
+        if f.text or not f.copii: return f
+        for c in f.copii:
+            g = self.cu_text(c)
+            if g.text: return g
+        return f
+
+    def editeaza_text(self, e=None):
+        if not self.doc: return
+        if e is not None and hasattr(e, "x") and e.widget is self.cv:
+            f = self.forma_text_la(e.x, e.y) or self.forma_la(e.x, e.y)
+        else:
+            if self.focus_in_chat() or not self.selectie: return
+            f = self.cu_text(self.selectie[0])
         if f is None: return
-        vechi = f.text
-        nou = editor_text(self.root, vechi)
-        if nou is None or nou == vechi: return
-        self.inainte_de_modificare()
-        toate = {g.id: g for g in self.doc.pagini[self.chat.ip].forme()}; desen._text(toate[f.id].el, nou)
-        self.selectie = [toate[f.id]]; self.deseneaza()
+        self.mod = None; self.cv.delete("tras")
+        self.editor_pe_schema(f)
+        return "break"
+
+    def editor_pe_schema(self, f):
+        """editarea textului direct pe schemă: Enter = gata, Shift+Enter = rând nou, Esc = renunță"""
+        if getattr(self, "ed_win", None): self.inchide_editor(False)
+        try: x0, y0, x1, y1 = f.cutie()
+        except Exception: return
+        a = self.ecran(x0, y1); b = self.ecran(x1, y0)
+        w = max(160, b[0] - a[0] + 20); vechi = f.text
+        lin = max(1, len(vechi.split("\n")))
+        t = tk.Text(self.cv, width=1, height=min(lin, 8), font=("Arial", 11), wrap="word", relief="solid", bd=1,
+                    highlightthickness=2, highlightcolor=ACCENT, padx=4, pady=2, undo=True)
+        t.insert("1.0", vechi); t.tag_add("sel", "1.0", "end-1c")
+        self.ed_win = self.cv.create_window((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, window=t, width=min(w, 600),
+                                           height=min(lin, 8) * 22 + 12)
+        self.ed_txt, self.ed_forma = t, f
+        t.focus_set()
+        t.bind("<Return>", lambda e: (self.inchide_editor(True), "break")[1])
+        t.bind("<KP_Enter>", lambda e: (self.inchide_editor(True), "break")[1])
+        t.bind("<Shift-Return>", lambda e: (t.insert("insert", "\n"), t.configure(height=int(t.cget("height")) + 1),
+                                            self.cv.itemconfigure(self.ed_win, height=(int(t.cget("height"))) * 22 + 12), "break")[3])
+        t.bind("<Escape>", lambda e: (self.inchide_editor(False), "break")[1])
+        t.bind("<FocusOut>", lambda e: self.root.after(50, lambda: self.inchide_editor(True) if getattr(self, "ed_win", None) else None))
+        self.status.config(text="Editezi textul: Enter = gata · Shift+Enter = rând nou · Esc = renunță")
+
+    def inchide_editor(self, pastreaza):
+        if not getattr(self, "ed_win", None): return
+        nou = self.ed_txt.get("1.0", "end-1c"); f = self.ed_forma
+        self.cv.delete(self.ed_win); self.ed_txt.destroy(); self.ed_win = None; self.cv.focus_set()
+        if pastreaza and nou != f.text:
+            self.inainte_de_modificare(); desen._text(f.el, nou); self.termeni = []
+            self.status.config(text="Text schimbat.")
+        self.reselecteaza(); self.deseneaza()
+
+    def meniu(self, e):
+        """clic dreapta (fără tragere): meniul cu acțiuni"""
+        if not self.doc or abs(e.x - self.px0) > 3 or abs(e.y - self.py0) > 3: return
+        f = self.forma_la(e.x, e.y)
+        if f is not None and f.id not in [s.id for s in self.selectie]: self.selectie = [f]; self.deseneaza()
+        m = tk.Menu(self.root, tearoff=0)
+        m.add_command(label="Editează textul        F2", command=lambda: self.editor_pe_schema(self.forma_text_la(e.x, e.y) or self.cu_text(f)) if f else None,
+                      state="normal" if f else "disabled")
+        m.add_separator()
+        m.add_command(label="Copiază                Ctrl+C", command=self.copiaza, state="normal" if self.selectie else "disabled")
+        m.add_command(label="Lipește aici           Ctrl+V", command=self.lipeste, state="normal" if self.clipboard else "disabled")
+        m.add_command(label="Șterge                 Delete", command=self.sterge_selectia, state="normal" if self.selectie else "disabled")
+        m.add_separator()
+        m.add_command(label="Înapoi                 Ctrl+Z", command=self.anuleaza_chat)
+        m.add_command(label="Înainte                Ctrl+Y", command=self.inainte)
+        m.add_command(label="Potrivește vederea", command=self.potriveste)
+        m.tk_popup(e.x_root, e.y_root)
 
     def selecteaza_tot(self, e=None):
         if self.focus_in_chat() or not self.doc: return
