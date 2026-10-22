@@ -1,5 +1,6 @@
 """Fibra Visio – fereastra: schema în stânga, chatul în dreapta. Deschizi un .vsdx, scrii ce să facă, salvezi."""
 import copy, math, os, re, shutil, sys, traceback
+import xml.etree.ElementTree as ET
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import vsdx_doc, desen, comenzi
@@ -451,6 +452,17 @@ class App:
                 b = f.cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
                 cv.create_rectangle(a[0] - 3, a[1] - 3, c[0] + 3, c[1] + 3, outline="#0078D7", dash=(4, 2), width=2)
             except Exception: pass
+        self.manere = []
+        if len(self.selectie) == 1 and not self.selectie[0].e1d:
+            try:
+                b = self.selectie[0].cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
+                xs = (a[0] - 3, (a[0] + c[0]) / 2, c[0] + 3); ys = (a[1] - 3, (a[1] + c[1]) / 2, c[1] + 3)
+                for i, X in enumerate(xs):
+                    for j, Y in enumerate(ys):
+                        if i == 1 and j == 1: continue
+                        cv.create_rectangle(X - 4, Y - 4, X + 4, Y + 4, fill="white", outline="#0078D7", width=1.5)
+                        self.manere.append((X, Y, i, j))
+            except Exception: pass
         n = len(self.selectie)
         self.status.config(text=f"Pagina {self.chat.ip + 1}/{len(self.doc.pagini)} „{p.nume}”" + (f" – selectate: {n}" if n else "") +
                            "   |  clic: selectează · trage: mută · trage pe gol: selectează zona · Ctrl+C/Ctrl+V · Delete · dublu-clic: text · "
@@ -539,8 +551,11 @@ class App:
     def clic(self, e):
         self.cv.focus_set()
         if not self.doc: return
-        f = self.forma_la(e.x, e.y); ids = [s.id for s in self.selectie]
         self.mouse0 = (e.x, e.y); self.mod = None
+        for X, Y, i, j in getattr(self, "manere", []):
+            if abs(e.x - X) <= 6 and abs(e.y - Y) <= 6:
+                self.mod = "redim"; self.maner = (i, j); return
+        f = self.forma_la(e.x, e.y); ids = [s.id for s in self.selectie]
         if f is not None:
             if e.state & 0x0001:                                   # Shift: adaugă / scoate din selecție
                 self.selectie = [s for s in self.selectie if s.id != f.id] if f.id in ids else self.selectie + [f]
@@ -556,6 +571,9 @@ class App:
         self.cv.delete("tras")
         if self.mod == "zona":
             self.cv.create_rectangle(self.mouse0[0], self.mouse0[1], e.x, e.y, outline="#0078D7", dash=(3, 2), tags="tras")
+        elif self.mod == "redim" and self.selectie:
+            r = self.cutie_noua(e)
+            if r: self.cv.create_rectangle(*r, outline="#0078D7", dash=(4, 2), width=2, tags="tras")
         elif self.mod == "muta" and self.selectie:
             dx, dy = e.x - self.mouse0[0], e.y - self.mouse0[1]
             for f in self.selectie:
@@ -565,6 +583,10 @@ class App:
     def elibereaza(self, e):
         if not self.doc or self.mod is None: return
         self.cv.delete("tras"); mod, self.mod = self.mod, None
+        if mod == "redim":
+            r = self.cutie_noua(e)
+            if r and (abs(e.x - self.mouse0[0]) > 2 or abs(e.y - self.mouse0[1]) > 2): self.redimensioneaza(self.selectie[0], r)
+            return
         if mod == "zona":
             if abs(e.x - self.mouse0[0]) < 3 and abs(e.y - self.mouse0[1]) < 3: return
             a = self.pagina_xy(min(e.x, self.mouse0[0]), max(e.y, self.mouse0[1])); b = self.pagina_xy(max(e.x, self.mouse0[0]), min(e.y, self.mouse0[1]))
@@ -574,6 +596,60 @@ class App:
             dx, dy = (e.x - self.mouse0[0]) / self.zoom, -(e.y - self.mouse0[1]) / self.zoom
             if abs(dx) * self.zoom < 2 and abs(dy) * self.zoom < 2: return
             self.muta_selectia(dx, dy)
+
+    def cutie_noua(self, e):
+        """dreptunghiul nou (pe ecran) când tragi de mânerul (i, j): 0 = stânga/sus, 2 = dreapta/jos, 1 = neschimbat"""
+        b = self.selectie[0].cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
+        x0, y0, x1, y1 = a[0], a[1], c[0], c[1]; i, j = self.maner; dx, dy = e.x - self.mouse0[0], e.y - self.mouse0[1]
+        if i == 0: x0 = min(x0 + dx, x1 - 4)
+        if i == 2: x1 = max(x1 + dx, x0 + 4)
+        if j == 0: y0 = min(y0 + dy, y1 - 4)
+        if j == 2: y1 = max(y1 + dy, y0 + 4)
+        return x0, y0, x1, y1
+
+    def redimensioneaza(self, f, r):
+        """schimbă lățimea / înălțimea formei (chenar, text, manșon…) la dreptunghiul r de pe ecran"""
+        if abs(math.sin(f.num("Angle", 0))) > 0.01 and abs(math.cos(f.num("Angle", 0))) > 0.01:
+            self.status.config(text="Forma e rotită oblic – n-o pot redimensiona aici (fă-o în Visio)."); return
+        X0, Y1 = self.pagina_xy(r[0], r[1]); X1, Y0 = self.pagina_xy(r[2], r[3])
+        b = f.cutie(); ow, oh = b[2] - b[0], b[3] - b[1]
+        if ow <= 0 or oh <= 0: return
+        sx, sy = (X1 - X0) / ow, (Y1 - Y0) / oh
+        vert = abs(math.sin(f.num("Angle", 0))) > 0.5                         # rotită 90°: lățimea formei e pe verticală
+        kx, ky = (sy, sx) if vert else (sx, sy)
+        self.inainte_de_modificare(); self.reselecteaza(); f = self.selectie[0]; V = vsdx_doc.V
+        W, H = f.num("Width") * kx, f.num("Height") * ky
+        for n, k in (("Width", kx), ("Height", ky), ("LocPinX", kx), ("LocPinY", ky), ("TxtPinX", kx), ("TxtWidth", kx), ("TxtLocPinX", kx),
+                     ("TxtPinY", ky), ("TxtHeight", ky), ("TxtLocPinY", ky)):
+            v = f.cell(n)
+            if v is None: continue
+            c = f.el.find(V + "Cell[@N='%s']" % n)
+            if c is None:
+                if n.startswith("Txt"): continue
+                c = desen._cell(f.el, n, 0.0)
+            c.set("V", "%.10g" % (vsdx_doc.fnum(v) * k))
+        # geometria cu valori absolute: scalată (rândurile din forma de bază se copiază în formă, cu formula moștenită)
+        for g in f.el.findall(V + "Section[@N='Geometry']"):
+            for row in g.findall(V + "Row"):
+                if (row.get("T") or "").startswith("Rel"): continue
+                for c in row.findall(V + "Cell"):
+                    if c.get("N") in ("X", "A", "C"): c.set("V", "%.10g" % (vsdx_doc.fnum(c.get("V")) * kx))
+                    if c.get("N") in ("Y", "B", "D"): c.set("V", "%.10g" % (vsdx_doc.fnum(c.get("V")) * ky))
+        if f.master and f.master[1] is not None and f.el.find(V + "Section[@N='Geometry']") is None:
+            for g in f.master[1].findall(V + "Section[@N='Geometry']"):
+                ng = ET.SubElement(f.el, V + "Section", {"N": "Geometry", "IX": g.get("IX", "0")})
+                for row in g.findall(V + "Row"):
+                    if (row.get("T") or "").startswith("Rel"): continue
+                    nr = ET.SubElement(ng, V + "Row", {"IX": row.get("IX", "0")})
+                    for c in row.findall(V + "Cell"):
+                        k = kx if c.get("N") in ("X", "A", "C") else ky if c.get("N") in ("Y", "B", "D") else 1
+                        a = {"N": c.get("N"), "V": "%.10g" % (vsdx_doc.fnum(c.get("V")) * k)}
+                        if c.get("F"): a["F"] = "Inh"
+                        ET.SubElement(nr, V + "Cell", a)
+        f = Forma_noua(self, f)
+        nb = f.cutie()                                                          # mută ca să stea exact în dreptunghiul cerut
+        desen._cell(f.el, "PinX", f.num("PinX") + X0 - nb[0]); desen._cell(f.el, "PinY", f.num("PinY") + Y0 - nb[1])
+        self.reselecteaza(); self.deseneaza(); self.status.config(text=f"Mărime nouă: {X1 - X0:.2f} × {Y1 - Y0:.2f} inch")
 
     def inainte_de_modificare(self):
         self.chat.istoric.append(self.doc.instantaneu()); self.chat.istoric = self.chat.istoric[-50:]; self.chat.refacere = []; self.modificat = True
@@ -736,6 +812,11 @@ class App:
     def selecteaza_tot(self, e=None):
         if self.focus_in_chat() or not self.doc: return
         self.selectie = self.doc.pagini[self.chat.ip].forme(); self.deseneaza(); return "break"
+
+
+def Forma_noua(app, f):
+    toate = {g.id: g for g in app.doc.pagini[app.chat.ip].forme()}
+    return toate.get(f.id, f)
 
 
 def dist_seg(x, y, ax, ay, bx, by):
