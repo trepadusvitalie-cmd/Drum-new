@@ -118,6 +118,34 @@ def porturi_xy(S, nd):
     return vert, (x0, y0, x1, y1), poz
 
 
+def porturi_ocupate(S, nd):
+    """porturile din care pleacă deja o fibră (o linie care se termină la marginea benzii, în dreptul portului)"""
+    vert, (x0, y0, x1, y1), poz = porturi_xy(S, nd); occ = set()
+    for f in S.p.forme():
+        if not f.e1d: continue
+        for px, py in ((f.num("BeginX"), f.num("BeginY")), (f.num("EndX"), f.num("EndY"))):
+            if vert and min(abs(px - x0), abs(px - x1)) < 0.12:
+                for k, y in enumerate(poz, 1):
+                    if abs(py - y) < 0.02: occ.add(k)
+            if not vert and min(abs(py - y0), abs(py - y1)) < 0.12:
+                for k, x in enumerate(poz, 1):
+                    if abs(px - x) < 0.02: occ.add(k)
+    return occ
+
+
+def eticheta(S, x, y, text, vertical=False):
+    sh = S.p.shapes_el()
+    el = ET.SubElement(sh, V + "Shape", {"ID": str(S.p.id_nou()), "Type": "Shape", "LineStyle": "0", "FillStyle": "0", "TextStyle": "0"})
+    w, h = 0.85, 0.3
+    for n, v in (("PinX", x), ("PinY", y), ("Width", w), ("Height", h), ("LocPinX", w / 2), ("LocPinY", h / 2), ("Angle", math.pi / 2 if vertical else 0.0)):
+        _cell(el, n, float(v))
+    _cell(el, "LinePattern", "0"); _cell(el, "FillPattern", "0")
+    ch = ET.SubElement(el, V + "Section", {"N": "Character"}); r = ET.SubElement(ch, V + "Row", {"IX": "0"})
+    for n, v in (("Font", "Arial"), ("Style", "17"), ("Size", "0.1111111"), ("Color", (STIL_CABLU_NOU.get("culoare") or "#000000"))):
+        ET.SubElement(r, V + "Cell", {"N": n, "V": v})
+    desen._text(el, text)
+
+
 def _linie(S, a, b, culoare, intrerupt, gros=0.01666667):
     (ax, ay), (bx, by) = a, b
     sh = S.p.shapes_el(); nid = S.p.id_nou(); L = math.hypot(bx - ax, by - ay) or 0.001
@@ -288,13 +316,35 @@ def comanda(S, t):
     if re.fullmatch(r"(porturi|benzi|lista porturi|noduri)", t.strip()):
         ns = noduri(S)
         return ("Benzi de porturi pe pagină: " + ", ".join(f"{n.nume} ({n.n})" for n in ns)) if ns else "Nu găsesc benzi de porturi (galbene) pe pagină."
-    if not re.search(r"\d", t) or not noduri(S): return None
+    if not noduri(S): return None
+    if not re.search(r"\d", t) and not re.search(r"cablu|fibre", t): return None
     if re.match(r"\s*(sterge|muta|redenumeste|schimba|anuleaza|lista|pagina)\b", t): return None
     men = mentiuni(S, t)
     capete = [m for m in men if m[3] is not None]
     if len(capete) < 2: return None
     (a0, a1, an, A), (b0, b1, bn, B) = capete[0], capete[1]
     if A.nume == B.nume: raise ValueError(f"„{A.nume}” apare la ambele capete – scrie numele întreg al celuilalt nod")
+    # cablu nou întreg: „cablu nou 12FO de la A la B” (fără porturi) -> fibrele pe primele porturi libere
+    mfo = re.search(r"(?:fo\s*-?\s*(\d+))|(?:(\d+)\s*(?:fo|f\.o\.|fibre|fib)\b)", t)
+    fara_fo = re.sub(r"(?:fo\s*-?\s*\d+)|(?:\d+\s*(?:fo|f\.o\.|fibre|fib)\b)|\d+(?:[.,]\d+)?\s*(?:m|km)\b", " ", t)
+    if re.search(r"cablu", t) and not re.search(r"\d", fara_fo):
+        la_lib = [k for k in range(1, A.n + 1) if k not in porturi_ocupate(S, A)]
+        lb_lib = [k for k in range(1, B.n + 1) if k not in porturi_ocupate(S, B)]
+        n = int(mfo.group(1) or mfo.group(2)) if mfo else min(len(la_lib), len(lb_lib))
+        if n <= 0: raise ValueError(f"nu mai sunt porturi libere ({A.nume}: {len(la_lib)} libere, {B.nume}: {len(lb_lib)} libere)")
+        if n > len(la_lib) or n > len(lb_lib):
+            raise ValueError(f"cablul de {n} fibre nu încape: {A.nume} are {len(la_lib)} porturi libere, {B.nume} {len(lb_lib)}")
+        la, lb = la_lib[:n], lb_lib[:n]
+        sud = next((m[2] for m in men if m[3] is None), None)
+        col = next((CULORI_CMD[w] for w in re.findall(r"[a-z]+", t) if w in CULORI_CMD), None)
+        intr = True if re.search(r"intrerup|punctat", t) else (False if re.search(r"continu", t) else None)
+        for i, (pa, pb) in enumerate(zip(la, lb)):
+            trage(S, A, pa, B, pb, col, intr, decalaj=(i - (n - 1) / 2) * PAS if not sud else 0, sudura=sud)
+        va, ba, poza = porturi_xy(S, A); vb, bb, pozb = porturi_xy(S, B)
+        ml = re.search(r"(\d+(?:[.,]\d+)?)\s*(m|km)\b", t)
+        ca, cb = ((ba[0] + ba[2]) / 2, (ba[1] + ba[3]) / 2), ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2)
+        eticheta(S, (ca[0] + cb[0]) / 2, (ca[1] + cb[1]) / 2 - 0.35, f"FO-{n}" + (f"\n{ml.group(1)} {ml.group(2)}" if ml else ""))
+        return f"Am desenat cablul nou FO-{n}: {A.nume} porturile {la[0]}–{la[-1]} → {B.nume} porturile {lb[0]}–{lb[-1]}" + (f", cu sudură în {sud}." if sud else ".")
     # porturile: „A port 5 la B port 3” (numerele după nume) sau „portul 5 din A la portul 3 din B” (înainte)
     urm = lambda x: ([m[0] for m in men if m[0] > x] + [len(t)])[0]
     inainte_a = numere_in(t[:a0])

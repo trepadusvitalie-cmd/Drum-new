@@ -121,17 +121,32 @@ class Chat:
         # 2) cuvinte scrise greșit -> cel mai apropiat cuvânt de comandă / nume din schemă
         cuv = re.findall(r"[\w\-.]+|\S", t); corect = []; schimbat = False
         dict_n = {norm(x).lower(): x for x in nume if x}
+        try: span_nume = [(a, b) for a, b, _, _ in porturi.mentiuni(S, t.lower())]
+        except Exception: span_nume = []
+        cuvinte_nume = {w.lower() for x in nume for w in re.split(r"[\s_\-./]+", x) if w}
+        poz = 0
         for w in cuv:
+            st = t.find(w, poz); poz = st + len(w) if st >= 0 else poz
             wl = w.lower()
-            if not re.search(r"[a-z]", wl) or len(wl) < 3 or wl in self.VOCAB or norm(w).lower() in dict_n: corect.append(w); continue
+            if (not re.search(r"[a-z]", wl) or len(wl) < 3 or wl in self.VOCAB or norm(w).lower() in dict_n or wl in cuvinte_nume
+                    or any(a <= st < b for a, b in span_nume)): corect.append(w); continue
             g = difflib.get_close_matches(wl, self.VOCAB, n=1, cutoff=0.75) or \
                 [dict_n[x] for x in difflib.get_close_matches(norm(w).lower(), list(dict_n), n=1, cutoff=0.72)]
             if g: corect.append(g[0]); schimbat = True
             else: corect.append(w)
-        if schimbat: out.append(re.sub(r"\s+([,.])", r"\1", " ".join(corect)))
+        if schimbat:
+            fr = re.sub(r"\s+([,.])", r"\1", " ".join(corect))
+            fr = re.sub(r"\b(\w+)( \1\b)+", r"\1", fr, flags=re.I)        # fără cuvinte repetate
+            out.append(fr)
+        # cablu nou fără porturi: propune forma completă
+        if re.search(r"cablu", t.lower()) and noduri:
+            try: men2 = [x[2] for x in porturi.mentiuni(S, t.lower()) if x[3] is not None]
+            except Exception: men2 = []
+            if len(men2) >= 2: out.insert(0, f"cablu nou 12FO de la {men2[0]} la {men2[1]}")
+            elif len(men2) == 1: out += [f"cablu nou 12FO de la {men2[0]} la {b}" for b in noduri if b != men2[0]][:3]
         # 3) comanda de fibră incompletă: completează cu nodurile existente
-        nr = re.findall(r"\d+", t)
-        if noduri and nr:
+        nr = re.findall(r"\d+", re.sub(r"(?i)(?:fo\s*-?\s*\d+)|(?:\d+\s*(?:fo|fibre|fib)\b)|\d+(?:[.,]\d+)?\s*(?:m|km)\b", " ", t))
+        if noduri and nr and not re.search(r"cablu", t.lower()):
             try: men = [x[2] for x in porturi.mentiuni(S, t.lower()) if x[3] is not None]
             except Exception: men = []
             a = men[0] if men else None
