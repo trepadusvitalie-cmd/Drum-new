@@ -23,8 +23,8 @@ jobs:
       - name: Construire
         working-directory: fibra_visio
         run: |
-          python -m pip install -q pyinstaller
-          python -m PyInstaller --noconfirm --onefile --windowed --name Fibra_Visio --add-data "sablon;sablon" gui.py
+          python -m pip install -q pyinstaller sv-ttk tkinterdnd2 pywin32
+          python -m PyInstaller --noconfirm --onefile --windowed --name Fibra_Visio --add-data "sablon;sablon" --collect-all sv_ttk --collect-all tkinterdnd2 --hidden-import win32com.client --hidden-import pythoncom gui.py
 
       - name: Test pornire (15 s fara eroare)
         shell: pwsh

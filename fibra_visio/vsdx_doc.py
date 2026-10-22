@@ -50,12 +50,31 @@ class Forma:
     @property
     def id(self): return int(self.el.get("ID"))
 
+    def _surse(self):
+        return [s for s in (self.el, self.master[1] if self.master and self.master[1] is not None else None) if s is not None]
+
+    def _stil(self, tip):
+        for s in self._surse():
+            if s.get(tip) is not None: return s.get(tip)
+        return None
+
     def cell(self, n, d=None):
-        for src in (self.el, self.master[1] if self.master and self.master[1] is not None else None):
-            if src is None: continue
+        """valoarea celulei: din formă, din forma de bază (master), apoi din stilul documentului"""
+        for src in self._surse():
             c = src.find(V + "Cell[@N='%s']" % n)
             if c is not None: return c.get("V")
-        return d
+        tip = "LineStyle" if n.startswith(("Line", "Rounding", "BeginArrow", "EndArrow")) else \
+              "FillStyle" if n.startswith(("Fill", "Shdw")) else "TextStyle"
+        v = self.doc.cell_stil(self._stil(tip), n, tip)
+        return d if v is None else v
+
+    def sectiune(self, sec, n, d=None):
+        """celula din rândul 0 al unei secțiuni (Character, Paragraph): formă, master, stil text"""
+        for src in self._surse():
+            c = src.find(V + "Section[@N='%s']/%sRow/%sCell[@N='%s']" % (sec, V, V, n))
+            if c is not None: return c.get("V")
+        v = self.doc.cell_stil(self._stil("TextStyle"), n, "TextStyle", sec)
+        return d if v is None else v
 
     def num(self, n, d=0.0): return fnum(self.cell(n), d)
 
@@ -234,6 +253,21 @@ class Document:
             r = p.find(V + "Rel"); rid = r.get("{%s}id" % NR) if r is not None else None
             if rid in rel: self.pagini.append(Pagina(self, p.get("Name") or p.get("NameU"), rel[rid][1], p))
 
+    def cell_stil(self, sid, n, tip, sec=None, adanc=0):
+        """celula dintr-o foaie de stil (cu moștenirea stilurilor părinte)"""
+        if sid is None or adanc > 10: return None
+        if not hasattr(self, "_stiluri"):
+            self._stiluri = {}
+            try:
+                for st in ET.fromstring(self.parts["visio/document.xml"]).iter(V + "StyleSheet"): self._stiluri[st.get("ID")] = st
+            except Exception: pass
+        st = self._stiluri.get(sid)
+        if st is None: return None
+        c = st.find(V + "Section[@N='%s']/%sRow/%sCell[@N='%s']" % (sec, V, V, n)) if sec else st.find(V + "Cell[@N='%s']" % n)
+        if c is not None: return c.get("V")
+        par = st.get(tip)
+        return None if par == sid else self.cell_stil(par, n, tip, sec, adanc + 1)
+
     def master_forma(self, mid, shape_id=None):
         if self._masters is None:
             self._masters = {}
@@ -295,10 +329,11 @@ class Document:
     def restaureaza(self, st):
         self.parts, self.ordine = dict(st[0]), list(st[1]); self._masters = None; self.incarca_pagini()
 
-    def salveaza(self, path):
+    def salveaza(self, path, pastreaza_cale=False):
         self.instantaneu()
         tmp = path + ".tmp"
         with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
             for n in ["[Content_Types].xml"] + [n for n in self.ordine if n != "[Content_Types].xml"]:
                 if n in self.parts and not n.endswith("/"): z.writestr(n, self.parts[n])
-        os.replace(tmp, path); self.path = path
+        os.replace(tmp, path)
+        if not pastreaza_cale: self.path = path

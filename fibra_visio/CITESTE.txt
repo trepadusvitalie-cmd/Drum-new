@@ -26,6 +26,20 @@ Exemple de comenzi (diacriticele nu contează; scrie „ajutor” în program)
   redenumește M5 în M6
   în M1 sudează fibrele 1-12 din M1-S5 cu 13-24 din ODF1-M1   (pagină nouă cu sudura, pe culorile fibrelor)
   listă   cabluri   pagini   pagina 2   anulează   salvează
+
+Scheme cu benzi de porturi (CTA / ODF / BTS cu banda galbenă 1…N)
+  La deschidere programul analizează pagina și spune ce noduri, manșoane și cabluri a găsit – cu numele din schema ta.
+  Fibra se trage port la port, cu colțuri drepte, ca o linie separată (roșie / întreruptă = nouă):
+  CTA Nord port 1 la CTA Sud port 2
+  trage fibrele de la CTA Nord 9-12 la BTS_Est 1-4 albastru
+  portul 7 din CTA Sud la portul 2 din BTS_Vest intrerupt
+  nord p3 la vest p3 sudura in M1      → trece prin manșonul M1, cu punctul roșu de sudură
+  Merge și fără diacritice, fără spații, cu nume incomplete („popov”) sau cu o literă greșită.
+
+Editare cu mausul
+  clic – selectează · Shift+clic – mai multe · trage pe gol – selectează zona · trage – mută
+  Ctrl+C / Ctrl+V – copiază și lipește (unde e mausul) · Delete – șterge · dublu-clic – schimbă textul
+  săgeți – mută 1 mm (Shift: 1 cm) · Ctrl+Z – anulează · rotița – zoom · clic dreapta + trage – mută vederea
   Mai multe comenzi deodată: câte una pe rând (Shift+Enter = rând nou).
 
 Cablul nou

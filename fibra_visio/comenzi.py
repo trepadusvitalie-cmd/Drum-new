@@ -16,6 +16,12 @@ AJUTOR = """Ce pot face (scrie ca în exemple; diacriticele nu contează):
 • mută M5 la dreapta cu 2 cm   /   mută M5 lângă S7
 • redenumește M5 în M6
 • în M1 sudează fibrele 1-12 din M1-S5 cu 13-24 din ODF1-M1
+FIBRE PE PORTURI (scheme cu benzi galbene de porturi; numele le citesc din schema ta):
+• CTA Nord port 1 la CTA Sud port 2
+• trage fibrele de la CTA Nord 9-12 la BTS_Est 1-4 albastru
+• portul 7 din CTA Sud la portul 2 din BTS_Vest intrerupt
+• nord p3 la vest p3 sudura in M1     (merge și prescurtat, fără spații, cu mici greșeli)
+• porturi   (ce benzi de porturi sunt pe pagină)
 • listă  (ce e pe pagină)   •  cabluri   •  pagini   •  pagina 2
 • anulează   •  salvează"""
 
@@ -52,6 +58,8 @@ class Chat:
 
     def raspunde(self, mesaj):
         """-> (răspuns, s-a schimbat desenul)"""
+        mesaj = re.sub(r"^[\s•\-*·>]+", "", mesaj.strip())                 # fără buline / liniuțe copiate din ajutor
+        mesaj = re.sub(r"\s{2,}\(.*\)\s*$", "", mesaj)                       # fără explicația din paranteză
         t = fara_diacritice(mesaj.strip()).lower()
         t = re.sub(r"\s+", " ", t).rstrip(".!")
         if not t: return "", False
@@ -86,6 +94,9 @@ class Chat:
 
     def executa(self, orig, t):
         S = self.schema
+        import porturi
+        r = porturi.comanda(S, t)                       # fibre de la un port la altul (CTA / ODF / BTS cu bandă galbenă)
+        if r is not None: return r, not r.startswith(("Benzi", "Nu găsesc"))
         # --- cablu nou ---
         m = re.match(r"(?:adauga|pune|deseneaza|trage|fa) (?:un |o )?cablu(?:l)?\s*(.*?)\s*de la " + NUME + r" (?:la|pana la|spre) " + NUME + r"(.*)$", t)
         if m:

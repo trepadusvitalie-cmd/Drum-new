@@ -1,5 +1,5 @@
 """Fibra Visio – fereastra: schema în stânga, chatul în dreapta. Deschizi un .vsdx, scrii ce să facă, salvezi."""
-import os, re, shutil, sys, traceback
+import copy, math, os, re, shutil, sys, traceback
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import vsdx_doc, desen, comenzi
@@ -18,48 +18,110 @@ def culoare(v, implicit):
     return implicit
 
 
+ACCENT = "#0F6CBD"; FUNDAL = "#F3F3F3"; PANOU = "#FFFFFF"; BULA_EU = "#DCEBFA"; BULA_PROG = "#F1F3F5"; BULA_ERR = "#FDE7E9"
+
+
 class App:
     def __init__(self, root):
-        self.root = root; self.doc = None; self.chat = None; self.modificat = False
+        self.root = root; self.doc = None; self.chat = None; self.modificat = False; self.orig_vsd = None
         self.zoom = 50.0; self.ox = 20; self.oy = 20; self.istoric_cmd = []; self.ih = 0
-        root.title(TITLU); root.geometry("1400x850")
-        bar = ttk.Frame(root); bar.pack(fill="x", padx=6, pady=4)
-        ttk.Button(bar, text="Deschide schema…", command=self.deschide).pack(side="left")
-        ttk.Button(bar, text="Schemă nouă", command=self.nou).pack(side="left", padx=4)
-        ttk.Button(bar, text="Salvează", command=self.salveaza).pack(side="left")
-        ttk.Button(bar, text="Salvează ca…", command=self.salveaza_ca).pack(side="left", padx=4)
-        ttk.Label(bar, text="   Pagina:").pack(side="left")
-        self.cb_pag = ttk.Combobox(bar, state="readonly", width=28); self.cb_pag.pack(side="left"); self.cb_pag.bind("<<ComboboxSelected>>", self.alege_pagina)
-        ttk.Label(bar, text="   Cablu nou:").pack(side="left")
-        self.cb_stil = ttk.Combobox(bar, state="readonly", width=20, values=["roșu", "linie întreruptă", "roșu întrerupt", "ca cele existente"])
+        root.title(TITLU); root.geometry("1440x880"); root.minsize(1000, 600)
+        try:
+            import sv_ttk; sv_ttk.set_theme("light")                    # tema Windows 11 (Sun Valley)
+        except Exception:
+            ttk.Style().theme_use("clam")
+        st = ttk.Style(); FONT = ("Segoe UI", 10)
+        st.configure(".", font=FONT); st.configure("Titlu.TLabel", font=("Segoe UI Semibold", 14), foreground=ACCENT)
+        st.configure("Mic.TLabel", font=("Segoe UI", 9), foreground="#606060")
+        # --- bara de sus ---
+        bar = ttk.Frame(root, padding=(10, 8)); bar.pack(fill="x")
+        ttk.Label(bar, text="◈ Fibra Visio", style="Titlu.TLabel").pack(side="left", padx=(0, 16))
+        for txt, cmd in (("📂  Deschide", self.deschide), ("＋  Schemă nouă", self.nou), ("💾  Salvează", self.salveaza), ("Salvează ca…", self.salveaza_ca)):
+            ttk.Button(bar, text=txt, command=cmd).pack(side="left", padx=3)
+        ttk.Separator(bar, orient="vertical").pack(side="left", fill="y", padx=12)
+        ttk.Label(bar, text="Pagina", style="Mic.TLabel").pack(side="left", padx=(0, 4))
+        self.cb_pag = ttk.Combobox(bar, state="readonly", width=26); self.cb_pag.pack(side="left"); self.cb_pag.bind("<<ComboboxSelected>>", self.alege_pagina)
+        ttk.Label(bar, text="Cablu nou", style="Mic.TLabel").pack(side="left", padx=(14, 4))
+        self.cb_stil = ttk.Combobox(bar, state="readonly", width=17, values=["roșu", "linie întreruptă", "roșu întrerupt", "ca cele existente"])
         self.cb_stil.current(0); self.cb_stil.pack(side="left"); self.cb_stil.bind("<<ComboboxSelected>>", self.stil_cablu)
-        ttk.Button(bar, text="Potrivește", command=self.potriveste).pack(side="right")
-        pw = ttk.PanedWindow(root, orient="horizontal"); pw.pack(fill="both", expand=True); self.pw = pw
-        st = ttk.Frame(pw); pw.add(st, weight=3)
-        self.cv = tk.Canvas(st, bg="#B0B0B0", highlightthickness=0); self.cv.pack(fill="both", expand=True)
+        ttk.Button(bar, text="⤢  Potrivește", command=self.potriveste).pack(side="right")
+        ttk.Button(bar, text="↶  Anulează", command=lambda: self.trimite_text("anuleaza")).pack(side="right", padx=4)
+        # --- schema | chat ---
+        pw = ttk.PanedWindow(root, orient="horizontal"); pw.pack(fill="both", expand=True, padx=8, pady=(0, 4)); self.pw = pw
+        stg = ttk.Frame(pw); pw.add(stg, weight=3)
+        self.cv = tk.Canvas(stg, bg="#E6E8EB", highlightthickness=0); self.cv.pack(fill="both", expand=True)
         self.cv.bind("<MouseWheel>", self.roata); self.cv.bind("<Button-4>", lambda e: self.zoom_la(e, 1.15)); self.cv.bind("<Button-5>", lambda e: self.zoom_la(e, 1 / 1.15))
-        self.cv.bind("<ButtonPress-1>", self.start_drag); self.cv.bind("<B1-Motion>", self.drag); self.cv.bind("<Configure>", lambda e: self.deseneaza())
-        dr = ttk.Frame(pw, width=430); pw.add(dr, weight=1)
-        self.txt = tk.Text(dr, wrap="word", state="disabled", font=("Segoe UI", 10), bg="#FAFAFA", relief="flat", padx=8, pady=8)
-        sb = ttk.Scrollbar(dr, command=self.txt.yview); self.txt.configure(yscrollcommand=sb.set)
-        jos = ttk.Frame(dr); jos.pack(side="bottom", fill="x", padx=4, pady=4)
-        sb.pack(side="right", fill="y"); self.txt.pack(fill="both", expand=True)
-        self.txt.tag_config("eu", foreground="#1F4E79", font=("Segoe UI", 10, "bold")); self.txt.tag_config("prog", foreground="#202020")
-        self.txt.tag_config("err", foreground="#C00000")
-        self.ent = tk.Text(jos, height=3, wrap="word", font=("Segoe UI", 11)); self.ent.pack(side="left", fill="x", expand=True)
-        ttk.Button(jos, text="Trimite", command=self.trimite).pack(side="left", padx=4, fill="y")
+        self.cv.bind("<ButtonPress-1>", self.clic); self.cv.bind("<B1-Motion>", self.trage); self.cv.bind("<ButtonRelease-1>", self.elibereaza)
+        self.cv.bind("<Double-Button-1>", self.editeaza_text)
+        for b in ("2", "3"):
+            self.cv.bind(f"<ButtonPress-{b}>", self.pan_start); self.cv.bind(f"<B{b}-Motion>", self.pan)
+        self.cv.bind("<Configure>", lambda e: self.deseneaza())
+        self.selectie = []; self.mod = None; self.clipboard = []
+        for k, fn in (("<Control-c>", self.copiaza), ("<Control-C>", self.copiaza), ("<Control-v>", self.lipeste), ("<Control-V>", self.lipeste),
+                      ("<Delete>", self.sterge_selectia), ("<Control-z>", self.anuleaza), ("<Control-Z>", self.anuleaza), ("<Control-a>", self.selecteaza_tot),
+                      ("<Control-s>", lambda e: self.salveaza()), ("<Control-o>", lambda e: self.deschide())):
+            root.bind(k, fn)
+        for k in ("<Left>", "<Right>", "<Up>", "<Down>"): self.cv.bind(k, self.sageti)
+        dr = tk.Frame(pw, bg=PANOU, width=440); pw.add(dr, weight=1)
+        cap = tk.Frame(dr, bg=PANOU); cap.pack(fill="x", padx=12, pady=(10, 4))
+        tk.Label(cap, text="Chat", bg=PANOU, fg="#202020", font=("Segoe UI Semibold", 12)).pack(side="left")
+        tk.Label(cap, text="scrie liber, fără diacritice", bg=PANOU, fg="#808080", font=("Segoe UI", 9)).pack(side="left", padx=8)
+        jos = tk.Frame(dr, bg=PANOU); jos.pack(side="bottom", fill="x", padx=10, pady=10)
+        chips = tk.Frame(jos, bg=PANOU); chips.pack(fill="x", pady=(0, 6))
+        for c in ("porturi", "lista", "cabluri", "anuleaza", "ajutor"):
+            b = tk.Label(chips, text=c, bg="#EEF2F6", fg="#334155", font=("Segoe UI", 9), padx=10, pady=3, cursor="hand2")
+            b.pack(side="left", padx=(0, 6)); b.bind("<Button-1>", lambda e, c=c: self.trimite_text(c))
+        cad = tk.Frame(jos, bg="#C7CDD4", padx=1, pady=1); cad.pack(fill="x")
+        rand = tk.Frame(cad, bg="white"); rand.pack(fill="x")
+        self.ent = tk.Text(rand, height=3, wrap="word", font=("Segoe UI", 11), relief="flat", bd=0, padx=8, pady=6, highlightthickness=0)
+        self.ent.pack(side="left", fill="x", expand=True)
+        trim = tk.Label(rand, text="➤", bg=ACCENT, fg="white", font=("Segoe UI", 14), padx=14, cursor="hand2"); trim.pack(side="right", fill="y")
+        trim.bind("<Button-1>", lambda e: self.trimite())
         self.ent.bind("<Return>", lambda e: (self.trimite(), "break")[1]); self.ent.bind("<Shift-Return>", lambda e: None)
         self.ent.bind("<Up>", self.cmd_sus); self.ent.bind("<Down>", self.cmd_jos)
-        self.status = ttk.Label(root, text="Deschide o schemă .vsdx sau începe una nouă.", anchor="w"); self.status.pack(fill="x", padx=6, pady=2)
+        corp = tk.Frame(dr, bg=PANOU); corp.pack(fill="both", expand=True, padx=(10, 4))
+        self.txt = tk.Text(corp, wrap="word", state="disabled", font=("Segoe UI", 10), bg=PANOU, relief="flat", bd=0, padx=4, pady=4,
+                           highlightthickness=0, spacing1=2, spacing3=2)
+        sb = ttk.Scrollbar(corp, command=self.txt.yview); self.txt.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y"); self.txt.pack(fill="both", expand=True)
+        self.txt.tag_config("eu", background=BULA_EU, foreground="#0B3B66", lmargin1=70, lmargin2=70, rmargin=6, spacing1=6, spacing3=6,
+                            font=("Segoe UI", 10), justify="left")
+        self.txt.tag_config("prog", background=BULA_PROG, foreground="#202020", lmargin1=6, lmargin2=6, rmargin=50, spacing1=6, spacing3=6)
+        self.txt.tag_config("err", background=BULA_ERR, foreground="#A4262C", lmargin1=6, lmargin2=6, rmargin=50, spacing1=6, spacing3=6)
+        self.txt.tag_config("cine", foreground="#808080", font=("Segoe UI", 8), spacing1=8)
+        self.txt.tag_config("cine_eu", justify="right", rmargin=8)
+        self.status = ttk.Label(root, text="Deschide o schemă .vsdx / .vsd (sau trage fișierul aici) ori începe una nouă.", anchor="w",
+                                style="Mic.TLabel", padding=(10, 3)); self.status.pack(fill="x")
         root.protocol("WM_DELETE_WINDOW", self.inchide)
-        self.scrie("Bună! Deschide o schemă Visio (.vsdx) sau apasă „Schemă nouă”, apoi scrie aici ce să fac.\n"
-                   "Scrie „ajutor” ca să vezi exemple de comenzi.", "prog")
+        self.scrie("Bună! Deschide o schemă Visio (.vsdx sau .vsd) – sau trage fișierul peste fereastră – apoi scrie aici ce să fac.\n"
+                   "Scrie „ajutor” ca să vezi exemple.", "prog")
+        self.activeaza_drop()
         self.ent.focus_set()
-        root.after(100, lambda: self.pw.sashpos(0, int(root.winfo_width() * 0.66)))
+        root.after(150, lambda: self.pw.sashpos(0, int(root.winfo_width() * 0.68)))
+
+    def activeaza_drop(self):
+        """drag & drop: tragi un .vsdx / .vsd peste fereastră și se deschide"""
+        try:
+            from tkinterdnd2 import DND_FILES
+            for w in (self.root, self.cv, self.txt, self.ent):
+                w.drop_target_register(DND_FILES); w.dnd_bind("<<Drop>>", self.la_drop)
+        except Exception:
+            pass
+
+    def la_drop(self, e):
+        fis = self.root.tk.splitlist(e.data)
+        fis = [f for f in fis if f.lower().endswith((".vsdx", ".vsd"))]
+        if not fis: self.scrie("Trage un fișier Visio (.vsdx sau .vsd).", "err"); return
+        if self.intreaba_salvare(): self.deschide_cale(fis[0])
+
+    def trimite_text(self, s):
+        self.ent.delete("1.0", "end"); self.ent.insert("1.0", s); self.trimite()
 
     # ---------- chat ----------
     def scrie(self, s, tag):
-        self.txt.configure(state="normal"); self.txt.insert("end", ("Tu: " if tag == "eu" else "") + s + "\n\n", tag)
+        self.txt.configure(state="normal")
+        self.txt.insert("end", ("Tu" if tag == "eu" else "Fibra Visio") + "\n", ("cine", "cine_eu") if tag == "eu" else ("cine",))
+        self.txt.insert("end", " " + s.strip() + " \n", tag)
         self.txt.configure(state="disabled"); self.txt.see("end")
 
     def trimite(self):
@@ -67,6 +129,8 @@ class App:
         if not m: return
         self.ent.delete("1.0", "end"); self.istoric_cmd.append(m); self.ih = len(self.istoric_cmd)
         self.scrie(m, "eu")
+        if comenzi.fara_diacritice(m).lower().strip(" .!") in ("anuleaza", "undo") and self.doc is not None:
+            self.anuleaza_chat(); return
         if comenzi.fara_diacritice(m).lower().strip(" .!") in ("salveaza", "salveaza schema", "save"):
             self.salveaza(); return
         if self.doc is None:
@@ -81,8 +145,8 @@ class App:
                 if sch and not r.startswith("N-am"): self.modificat = True
         except Exception:
             self.scrie("Eroare: " + traceback.format_exc(limit=2), "err")
-        self.actualizeaza_pagini()
-        self.potriveste()
+        self.actualizeaza_pagini(); self.selectie = []
+        self.deseneaza() if self.chat.ip == ip0 else self.potriveste()
 
     def cmd_sus(self, e):
         if self.istoric_cmd and self.ih > 0:
@@ -104,24 +168,36 @@ class App:
 
     def deschide(self):
         if not self.intreaba_salvare(): return
-        p = filedialog.askopenfilename(title="Deschide schema Visio", filetypes=[("Visio", "*.vsdx"), ("Toate", "*.*")])
+        p = filedialog.askopenfilename(title="Deschide schema Visio", filetypes=[("Visio", "*.vsdx *.vsd"), ("Visio nou", "*.vsdx"), ("Visio vechi", "*.vsd"), ("Toate", "*.*")])
         if p: self.deschide_cale(p)
 
     def deschide_cale(self, p):
-        if p.lower().endswith(".vsd"):
-            messagebox.showwarning(TITLU, "Fișierele .vsd (format vechi) nu se pot modifica. Deschide-l în Visio și salvează-l ca .vsdx."); return
-        try:
-            self.doc = vsdx_doc.Document(p)
-        except Exception as e:
-            messagebox.showerror(TITLU, f"Nu pot deschide fișierul:\n{e}"); return
-        self.chat = comenzi.Chat(self.doc); self.modificat = False; self.backup_facut = False
+        self.orig_vsd = None
+        if p.lower().endswith(".vsd"):                                   # format vechi: îl convertește Visio-ul de pe calculator
+            self.status.config(text="Convertesc .vsd → .vsdx cu Visio (câteva secunde)…"); self.root.update()
+            try:
+                import vsd_convert
+                tmp = vsd_convert.vsd_in_vsdx(p)
+            except Exception as e:
+                messagebox.showerror(TITLU, "Fișierul .vsd e formatul vechi al Visio. Ca să-l deschid, am nevoie de Visio instalat pe calculator.\n"
+                                     f"({e})\n\nAltfel: deschide-l în Visio → Fișier → Salvare ca → Visio Drawing (.vsdx)."); return
+            self.orig_vsd = p
+            try: self.doc = vsdx_doc.Document(tmp)
+            except Exception as e:
+                messagebox.showerror(TITLU, f"Nu pot deschide fișierul:\n{e}"); return
+            self.doc.path = os.path.splitext(p)[0] + ".vsdx"                 # „Salvează” scrie .vsdx alături (originalul .vsd rămâne)
+        else:
+            try:
+                self.doc = vsdx_doc.Document(p)
+            except Exception as e:
+                messagebox.showerror(TITLU, f"Nu pot deschide fișierul:\n{e}"); return
+        self.chat = comenzi.Chat(self.doc); self.modificat = False; self.backup_facut = False; self.selectie = []
         self.root.title(f"{TITLU} – {os.path.basename(p)}"); self.actualizeaza_pagini(); self.potriveste()
-        S = self.chat.schema
-        self.scrie(f"Am deschis „{os.path.basename(p)}”: {len(self.doc.pagini)} pagini; pe prima, {len(S.elemente())} elemente cu nume și {len(S.cabluri())} linii.", "prog")
+        self.analizeaza()
 
     def nou(self):
         if not self.intreaba_salvare(): return
-        self.doc = vsdx_doc.Document(); self.chat = comenzi.Chat(self.doc); self.modificat = False; self.backup_facut = False
+        self.doc = vsdx_doc.Document(); self.chat = comenzi.Chat(self.doc); self.modificat = False; self.backup_facut = False; self.selectie = []
         self.root.title(f"{TITLU} – schemă nouă"); self.actualizeaza_pagini(); self.potriveste()
         self.scrie("Am început o schemă nouă (A3 culcat). Exemplu: „adaugă ODF ODF-1 48 porturi”.", "prog")
 
@@ -142,9 +218,17 @@ class App:
 
     def salveaza_ca(self):
         if self.doc is None: return False
-        p = filedialog.asksaveasfilename(title="Salvează schema", defaultextension=".vsdx", filetypes=[("Visio", "*.vsdx")],
+        p = filedialog.asksaveasfilename(title="Salvează schema", defaultextension=".vsdx", filetypes=[("Visio (.vsdx)", "*.vsdx"), ("Visio 2003-2010 (.vsd)", "*.vsd")],
                                          initialfile=os.path.basename(self.doc.path) if self.doc.path else "schema_fibra.vsdx")
         if not p: return False
+        if p.lower().endswith(".vsd"):                                   # .vsd: salvez .vsdx temporar și îl convertește Visio
+            try:
+                import tempfile, vsd_convert
+                tmp = os.path.join(tempfile.mkdtemp(prefix="fibra_visio_"), "schema.vsdx"); self.doc.salveaza(tmp, pastreaza_cale=True)
+                vsd_convert.converteste(tmp, p)
+            except Exception as e:
+                messagebox.showerror(TITLU, f"Nu pot salva ca .vsd (am nevoie de Visio pe calculator):\n{e}"); return False
+            self.modificat = False; self.status.config(text=f"Salvat: {p}"); self.scrie(f"Am salvat „{os.path.basename(p)}” (format .vsd).", "prog"); return True
         try: self.doc.salveaza(p)
         except PermissionError:
             messagebox.showerror(TITLU, "Nu pot scrie fișierul – probabil e deschis în Visio."); return False
@@ -167,12 +251,22 @@ class App:
         self.cb_pag.current(self.chat.ip)
 
     def alege_pagina(self, e=None):
-        self.chat.ip = self.cb_pag.current(); self.potriveste()
+        self.chat.ip = self.cb_pag.current(); self.selectie = []; self.potriveste(); self.analizeaza()
 
-    # ---------- desen ----------
+    def analizeaza(self):
+        """la deschidere / schimbarea paginii: ce e pe schemă, ce nume pot folosi în chat"""
+        import porturi
+        try: self.scrie(porturi.analiza(self.chat.schema, os.path.basename(self.doc.path or "schemă nouă")), "prog")
+        except Exception as e: self.scrie(f"Am deschis schema ({len(self.doc.pagini)} pagini). Gata de lucru. (analiza: {e})", "prog")
+
+    # ---------- desen (ca în Visio) ----------
     def ecran(self, x, y):
         H = self.doc.pagini[self.chat.ip].dimensiune()[1]
         return self.ox + x * self.zoom, self.oy + (H - y) * self.zoom
+
+    def pagina_xy(self, X, Y):
+        H = self.doc.pagini[self.chat.ip].dimensiune()[1]
+        return (X - self.ox) / self.zoom, H - (Y - self.oy) / self.zoom
 
     def potriveste(self):
         """vederea pe desen (pe toată pagina, dacă e goală)"""
@@ -182,11 +276,11 @@ class App:
         try:
             bs = [f.cutie() for f in p.forme()]
             if bs:
-                x0, y0 = min(b[0] for b in bs) - 0.5, min(b[1] for b in bs) - 0.5
-                x1, y1 = max(b[2] for b in bs) + 0.5, max(b[3] for b in bs) + 0.5
+                x0, y0 = min(min(b[0] for b in bs), 0) - 0.2, min(min(b[1] for b in bs), 0) - 0.2
+                x1, y1 = max(max(b[2] for b in bs), W) + 0.2, max(max(b[3] for b in bs), H) + 0.2
         except Exception: pass
         cw, ch = max(self.cv.winfo_width(), 200), max(self.cv.winfo_height(), 200)
-        self.zoom = min((cw - 40) / max(x1 - x0, 0.5), (ch - 40) / max(y1 - y0, 0.5))
+        self.zoom = min((cw - 30) / max(x1 - x0, 0.5), (ch - 30) / max(y1 - y0, 0.5))
         self.ox = (cw - (x1 - x0) * self.zoom) / 2 - x0 * self.zoom
         self.oy = (ch - (y1 - y0) * self.zoom) / 2 - (H - y1) * self.zoom
         self.deseneaza()
@@ -196,64 +290,285 @@ class App:
         if not self.doc: return
         p = self.doc.pagini[self.chat.ip]; W, H = p.dimensiune()
         x0, y0 = self.ecran(0, H); x1, y1 = self.ecran(W, 0)
-        cv.create_rectangle(x0 + 4, y0 + 4, x1 + 4, y1 + 4, fill="#808080", outline=""); cv.create_rectangle(x0, y0, x1, y1, fill="white", outline="#606060")
-        try:
-            for f in p.forme(): self.forma(f)
-        except Exception:
-            self.status.config(text="Unele forme nu se pot arăta în previzualizare (în Visio apar normal).")
-        self.status.config(text=f"Pagina {self.chat.ip + 1}/{len(self.doc.pagini)} „{p.nume}” – rotița: zoom, trage cu mausul: mută vederea")
+        cv.create_rectangle(x0 + 3, y0 + 3, x1 + 3, y1 + 3, fill="#C9CED4", outline=""); cv.create_rectangle(x0, y0, x1, y1, fill="white", outline="#D0D4D9")
+        self.cutii = []                                          # (forma de sus, cutie) pentru selectare
+        err = 0
+        for f in p.forme():
+            try:
+                self.forma(f); self.cutii.append((f, f.cutie()))
+            except Exception:
+                err += 1
+        for f in self.selectie:
+            try:
+                b = f.cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
+                cv.create_rectangle(a[0] - 3, a[1] - 3, c[0] + 3, c[1] + 3, outline="#0078D7", dash=(4, 2), width=2)
+            except Exception: pass
+        n = len(self.selectie)
+        self.status.config(text=f"Pagina {self.chat.ip + 1}/{len(self.doc.pagini)} „{p.nume}”" + (f" – selectate: {n}" if n else "") +
+                           "   |  clic: selectează · trage: mută · trage pe gol: selectează zona · Ctrl+C/Ctrl+V · Delete · dublu-clic: text · "
+                           "Ctrl+Z · rotița: zoom · clic dreapta + trage: mută vederea" + (f"  ({err} forme neafișate)" if err else ""))
 
     def forma(self, f):
-        lc = culoare(f.cell("LineColor"), "#000000"); fc = culoare(f.cell("FillForegnd"), "")
-        lw = max(1, min(6, f.num("LineWeight", 0.01) * 72 * self.zoom / 50))
-        dash = (5, 3) if (f.cell("LinePattern") or "1") not in ("1", "0") else None
-        if f.cell("LinePattern") == "0": lc = ""
+        lp = f.cell("LinePattern", "1") or "1"
+        lc = "" if lp == "0" else culoare(f.cell("LineColor"), "#000000")
+        fp = f.cell("FillPattern", "1") or "1"
+        fc = "" if fp == "0" else culoare(f.cell("FillForegnd"), "#FFFFFF")
+        lw = max(1, min(8, f.num("LineWeight", 0.01) * self.zoom))
+        dash = None if lp in ("0", "1") else ((6, 3) if lp in ("2", "9", "10", "23") else (2, 2) if lp in ("3", "16") else (8, 3, 2, 3))
+        rot = f.num("Rounding", 0) * self.zoom
         for pts, plin in f.contur():
-            xy = [c for x, y in pts for c in self.ecran(x, y)]
-            if len(xy) < 4: continue
-            if plin and fc and len(pts) > 2 and f.cell("FillPattern") != "0":
-                self.cv.create_polygon(*xy, fill=fc, outline=lc or "", width=lw, dash=dash)
-            elif lc:
-                self.cv.create_line(*xy, fill=lc, width=lw, dash=dash)
+            xy = [self.ecran(x, y) for x, y in pts]
+            if len(xy) < 2: continue
+            inchis = len(xy) > 2 and abs(xy[0][0] - xy[-1][0]) < 0.5 and abs(xy[0][1] - xy[-1][1]) < 0.5
+            if inchis and rot > 1.5: xy = rotunjit(xy, rot)
+            flat = [c for p in xy for c in p]
+            if plin and inchis and fc:
+                self.cv.create_polygon(*flat, fill=fc, outline="")
+            if lc:
+                self.cv.create_line(*flat, fill=lc, width=lw, dash=dash, capstyle="butt")
         for c in f.copii: self.forma(c)
-        t = f.text
-        if t and self.zoom > 12:
-            if f.cell("TxtPinX") is not None and not f.e1d:
-                T = f.transforma(); x, y = T(f.num("TxtPinX"), f.num("TxtPinY"))
-            elif f.e1d:
-                x, y = (f.num("BeginX") + f.num("EndX")) / 2, (f.num("BeginY") + f.num("EndY")) / 2
-                if f.parinte: x, y = f.parinte.transforma()(x, y)
-            else: x, y = f.transforma()(f.num("Width") / 2, f.num("Height") / 2)
-            sz = 0.1111
-            ch = f.el.find(vsdx_doc.V + "Section[@N='Character']")
-            if ch is not None:
-                c = ch.find(vsdx_doc.V + "Row/" + vsdx_doc.V + "Cell[@N='Size']")
-                if c is not None: sz = vsdx_doc.fnum(c.get("V"), sz)
-            pt = max(6, min(28, int(sz * 72 * self.zoom / 72)))
-            col = "#000000"
-            if ch is not None:
-                c = ch.find(vsdx_doc.V + "Row/" + vsdx_doc.V + "Cell[@N='Color']")
-                if c is not None: col = culoare(c.get("V"), "#000000")
-            X, Y = self.ecran(x, y)
-            if f.e1d:
-                it = self.cv.create_text(X, Y, text=t, font=("Segoe UI", pt), fill=col if col != "#FFFFFF" else "#000000")
-                b = self.cv.bbox(it)
-                if b: self.cv.tag_lower(self.cv.create_rectangle(b[0] - 1, b[1], b[2] + 1, b[3], fill="white", outline=""), it)
-            else: self.cv.create_text(X, Y, text=t, font=("Segoe UI", pt), fill=col, justify="center")
+        self.text(f)
 
+    def text(self, f):
+        t = f.text
+        if not t: return
+        px = f.sectiune("Character", "Size", "0.1111"); px = vsdx_doc.fnum(px, 0.1111) * self.zoom
+        if px < 3.5: return                                       # prea mic la zoomul acesta
+        T = f.transforma(); w, h = f.num("Width"), f.num("Height")
+        if f.e1d:
+            bx, by, ex, ey = f.num("BeginX"), f.num("BeginY"), f.num("EndX"), f.num("EndY")
+            x, y = (bx + ex) / 2, (by + ey) / 2
+            if f.parinte: x, y = f.parinte.transforma()(x, y)
+            ang = 0.0
+        else:
+            tx = f.cell("TxtPinX"); ty = f.cell("TxtPinY")
+            x, y = T(vsdx_doc.fnum(tx, w / 2) if tx is not None else w / 2, vsdx_doc.fnum(ty, h / 2) if ty is not None else h / 2)
+            ang, g = 0.0, f                                         # unghiul textului: rotirile formei și ale grupurilor (oglindirea nu întoarce textul)
+            while g is not None: ang += math.degrees(g.num("Angle", 0)); g = g.parinte
+            ang += math.degrees(f.num("TxtAngle", 0))
+        ang = (ang + 180) % 360 - 180
+        col = culoare(f.sectiune("Character", "Color"), "#000000")
+        stl = int(vsdx_doc.fnum(f.sectiune("Character", "Style", "0"), 0))
+        font = ("Arial", -max(4, int(round(px))), ("bold " if stl & 1 else "") + ("italic" if stl & 2 else ""))
+        X, Y = self.ecran(x, y)
+        al = f.sectiune("Paragraph", "HorzAlign", "1") or "1"
+        lat = max(w, f.num("TxtWidth", w)) * self.zoom
+        kw = dict(text=t, font=font, fill=col, justify={"0": "left", "2": "right"}.get(al, "center"), angle=ang)
+        if abs(ang) < 1 and lat > 20 and not f.e1d and "\n" not in t: kw["width"] = lat
+        it = self.cv.create_text(X, Y, **kw)
+        bk = f.cell("TextBkgnd", "0")
+        if bk and bk not in ("0",) and abs(ang) < 1:
+            b = self.cv.bbox(it)
+            if b: self.cv.tag_lower(self.cv.create_rectangle(b[0] - 1, b[1], b[2] + 1, b[3], fill=culoare(bk, "#FFFFFF"), outline=""), it)
+
+    # ---------- vederea ----------
     def roata(self, e): self.zoom_la(e, 1.15 if e.delta > 0 else 1 / 1.15)
 
     def zoom_la(self, e, k):
         self.ox = e.x - (e.x - self.ox) * k; self.oy = e.y - (e.y - self.oy) * k; self.zoom *= k; self.deseneaza()
 
-    def start_drag(self, e): self.dx, self.dy = e.x, e.y
+    def pan_start(self, e): self.px, self.py = e.x, e.y
 
-    def drag(self, e):
-        self.ox += e.x - self.dx; self.oy += e.y - self.dy; self.dx, self.dy = e.x, e.y; self.deseneaza()
+    def pan(self, e):
+        self.ox += e.x - self.px; self.oy += e.y - self.py; self.px, self.py = e.x, e.y; self.deseneaza()
+
+    # ---------- editare cu mausul ----------
+    def forma_la(self, X, Y):
+        """forma de sus de sub maus (cea mai mică care conține punctul; liniile – după distanță)"""
+        if not self.doc: return None
+        x, y = self.pagina_xy(X, Y); tol = 5 / self.zoom; best, ba = None, 1e18
+        for f, (x0, y0, x1, y1) in getattr(self, "cutii", []):
+            if not (x0 - tol <= x <= x1 + tol and y0 - tol <= y <= y1 + tol): continue
+            if f.e1d:
+                bx, by, ex, ey = f.num("BeginX"), f.num("BeginY"), f.num("EndX"), f.num("EndY")
+                d = dist_seg(x, y, bx, by, ex, ey)
+                if d <= tol and d * d < ba: best, ba = f, d * d * 0.01
+                continue
+            a = max(x1 - x0, 0.01) * max(y1 - y0, 0.01)
+            if a < ba: best, ba = f, a
+        return best
+
+    def clic(self, e):
+        self.cv.focus_set()
+        if not self.doc: return
+        f = self.forma_la(e.x, e.y); ids = [s.id for s in self.selectie]
+        self.mouse0 = (e.x, e.y); self.mod = None
+        if f is not None:
+            if e.state & 0x0001:                                   # Shift: adaugă / scoate din selecție
+                self.selectie = [s for s in self.selectie if s.id != f.id] if f.id in ids else self.selectie + [f]
+            elif f.id not in ids: self.selectie = [f]
+            self.mod = "muta"
+        else:
+            if not e.state & 0x0001: self.selectie = []
+            self.mod = "zona"
+        self.deseneaza()
+
+    def trage(self, e):
+        if not self.doc or self.mod is None: return
+        self.cv.delete("tras")
+        if self.mod == "zona":
+            self.cv.create_rectangle(self.mouse0[0], self.mouse0[1], e.x, e.y, outline="#0078D7", dash=(3, 2), tags="tras")
+        elif self.mod == "muta" and self.selectie:
+            dx, dy = e.x - self.mouse0[0], e.y - self.mouse0[1]
+            for f in self.selectie:
+                b = f.cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
+                self.cv.create_rectangle(a[0] + dx, a[1] + dy, c[0] + dx, c[1] + dy, outline="#0078D7", width=2, tags="tras")
+
+    def elibereaza(self, e):
+        if not self.doc or self.mod is None: return
+        self.cv.delete("tras"); mod, self.mod = self.mod, None
+        if mod == "zona":
+            if abs(e.x - self.mouse0[0]) < 3 and abs(e.y - self.mouse0[1]) < 3: return
+            a = self.pagina_xy(min(e.x, self.mouse0[0]), max(e.y, self.mouse0[1])); b = self.pagina_xy(max(e.x, self.mouse0[0]), min(e.y, self.mouse0[1]))
+            noi = [f for f, (x0, y0, x1, y1) in self.cutii if x0 >= a[0] and x1 <= b[0] and y0 >= a[1] and y1 <= b[1]]
+            ids = {s.id for s in self.selectie}; self.selectie += [f for f in noi if f.id not in ids]; self.deseneaza()
+        elif mod == "muta":
+            dx, dy = (e.x - self.mouse0[0]) / self.zoom, -(e.y - self.mouse0[1]) / self.zoom
+            if abs(dx) * self.zoom < 2 and abs(dy) * self.zoom < 2: return
+            self.muta_selectia(dx, dy)
+
+    def inainte_de_modificare(self):
+        self.chat.istoric.append(self.doc.instantaneu()); self.chat.istoric = self.chat.istoric[-50:]; self.modificat = True
+
+    def reselecteaza(self):
+        ids = [s.id for s in self.selectie]; toate = {f.id: f for f in self.doc.pagini[self.chat.ip].forme()}
+        self.selectie = [toate[i] for i in ids if i in toate]
+
+    def muta_selectia(self, dx, dy):
+        if not self.selectie: return
+        self.inainte_de_modificare(); self.reselecteaza(); S = self.chat.schema
+        for f in self.selectie: muta_forma(S, f, dx, dy)
+        self.reselecteaza(); self.deseneaza()
+
+    def sageti(self, e):
+        if not self.selectie or self.focus_in_chat(): return
+        pas = (1 / 2.54) if e.state & 0x0001 else (0.1 / 2.54)
+        dx, dy = {"Left": (-pas, 0), "Right": (pas, 0), "Up": (0, pas), "Down": (0, -pas)}[e.keysym]
+        self.muta_selectia(dx, dy); return "break"
+
+    def focus_in_chat(self):
+        return self.root.focus_get() in (self.ent, self.txt)
+
+    def copiaza(self, e=None):
+        if self.focus_in_chat() or not self.selectie: return
+        self.clipboard = [copy.deepcopy(f.el) for f in self.selectie]
+        b = [f.cutie() for f in self.selectie]; self.clip_centru = ((min(x[0] for x in b) + max(x[2] for x in b)) / 2, (min(x[1] for x in b) + max(x[3] for x in b)) / 2)
+        self.status.config(text=f"Copiat: {len(self.clipboard)} forme. Du mausul unde vrei și apasă Ctrl+V.")
+        return "break"
+
+    def lipeste(self, e=None):
+        if self.focus_in_chat() or not getattr(self, "clipboard", None) or not self.doc: return
+        self.inainte_de_modificare(); p = self.doc.pagini[self.chat.ip]; sh = p.shapes_el()
+        X = self.cv.winfo_pointerx() - self.cv.winfo_rootx(); Y = self.cv.winfo_pointery() - self.cv.winfo_rooty()
+        if 0 <= X <= self.cv.winfo_width() and 0 <= Y <= self.cv.winfo_height(): tx, ty = self.pagina_xy(X, Y)
+        else: tx, ty = self.clip_centru[0] + 0.3, self.clip_centru[1] - 0.3
+        dx, dy = tx - self.clip_centru[0], ty - self.clip_centru[1]; nid = p.id_nou(); noi = []
+        for el in self.clipboard:
+            el = copy.deepcopy(el)
+            for s in el.iter(vsdx_doc.V + "Shape"): s.set("ID", str(nid)); nid += 1
+            for s in el.iter(vsdx_doc.V + "Shape"):
+                for a in ("UniqueID",):
+                    if a in s.attrib: del s.attrib[a]
+            sh.append(el); noi.append(int(el.get("ID")))
+        toate = {f.id: f for f in p.forme()}; S = self.chat.schema
+        for i in noi: muta_forma(S, toate[i], dx, dy, lipit=False)
+        toate = {f.id: f for f in p.forme()}; self.selectie = [toate[i] for i in noi]
+        self.deseneaza(); self.status.config(text=f"Lipit: {len(noi)} forme.")
+        return "break"
+
+    def sterge_selectia(self, e=None):
+        if self.focus_in_chat() or not self.selectie: return
+        self.inainte_de_modificare(); self.reselecteaza(); S = self.chat.schema
+        for f in self.selectie: S.sterge(f)
+        n = len(self.selectie); self.selectie = []; self.deseneaza(); self.status.config(text=f"Șters: {n} forme.")
+        return "break"
+
+    def anuleaza_chat(self):
+        if not self.chat.istoric: self.scrie("Nu am ce anula.", "prog"); return
+        self.doc.restaureaza(self.chat.istoric.pop()); self.selectie = []; self.actualizeaza_pagini(); self.deseneaza()
+        self.modificat = True; self.scrie("Am anulat ultima modificare.", "prog")
+
+    def anuleaza(self, e=None):
+        if self.focus_in_chat() or not self.doc: return
+        if not self.chat.istoric: self.status.config(text="Nu am ce anula."); return "break"
+        self.doc.restaureaza(self.chat.istoric.pop()); self.selectie = []; self.actualizeaza_pagini(); self.deseneaza()
+        return "break"
+
+    def editeaza_text(self, e):
+        f = self.forma_la(e.x, e.y)
+        if f is None: return
+        vechi = f.text
+        nou = editor_text(self.root, vechi)
+        if nou is None or nou == vechi: return
+        self.inainte_de_modificare()
+        toate = {g.id: g for g in self.doc.pagini[self.chat.ip].forme()}; desen._text(toate[f.id].el, nou)
+        self.selectie = [toate[f.id]]; self.deseneaza()
+
+    def selecteaza_tot(self, e=None):
+        if self.focus_in_chat() or not self.doc: return
+        self.selectie = self.doc.pagini[self.chat.ip].forme(); self.deseneaza(); return "break"
+
+
+def dist_seg(x, y, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay; L = dx * dx + dy * dy
+    t = 0 if L == 0 else max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L))
+    return math.hypot(x - ax - t * dx, y - ay - t * dy)
+
+
+def rotunjit(pts, r):
+    """colțuri rotunjite (celula Rounding din Visio) pentru un contur închis, în pixeli"""
+    p = pts[:-1]; out = []; n = len(p)
+    for i in range(n):
+        a, b, c = p[i - 1], p[i], p[(i + 1) % n]
+        l1 = math.hypot(b[0] - a[0], b[1] - a[1]); l2 = math.hypot(c[0] - b[0], c[1] - b[1])
+        rr = min(r, l1 / 2, l2 / 2)
+        if rr < 1: out.append(b); continue
+        p1 = (b[0] + (a[0] - b[0]) * rr / l1, b[1] + (a[1] - b[1]) * rr / l1); p2 = (b[0] + (c[0] - b[0]) * rr / l2, b[1] + (c[1] - b[1]) * rr / l2)
+        for k in range(7):
+            t = k / 6; out.append(((1 - t) ** 2 * p1[0] + 2 * (1 - t) * t * b[0] + t * t * p2[0], (1 - t) ** 2 * p1[1] + 2 * (1 - t) * t * b[1] + t * t * p2[1]))
+    return out + [out[0]]
+
+
+def muta_forma(S, f, dx, dy, lipit=True):
+    """mută o formă: 2D – Pin (și cablurile lipite de ea); 1D – capetele (dezlipite de alte forme)"""
+    V = vsdx_doc.V
+    if f.e1d:
+        for c in ("BeginX", "EndX", "PinX"):
+            el = f.el.find(V + "Cell[@N='%s']" % c)
+            if el is not None:
+                el.set("V", "%.10g" % (vsdx_doc.fnum(el.get("V")) + dx))
+                if c != "PinX" and "F" in el.attrib and "Sheet." in el.get("F"): del el.attrib["F"]
+        for c in ("BeginY", "EndY", "PinY"):
+            el = f.el.find(V + "Cell[@N='%s']" % c)
+            if el is not None:
+                el.set("V", "%.10g" % (vsdx_doc.fnum(el.get("V")) + dy))
+                if c != "PinY" and "F" in el.attrib and "Sheet." in el.get("F"): del el.attrib["F"]
+        con = S.p.connects()
+        for c in list(con):
+            if c.get("FromSheet") == str(f.id): con.remove(c)
+        return
+    if lipit: S.muta(f, dx, dy)
+    else:
+        desen._cell(f.el, "PinX", f.num("PinX") + dx); desen._cell(f.el, "PinY", f.num("PinY") + dy)
+
+
+def editor_text(root, vechi):
+    """fereastră mică pentru textul unei forme (mai multe rânduri)"""
+    w = tk.Toplevel(root); w.title("Text"); w.transient(root); w.grab_set(); rez = {"t": None}
+    t = tk.Text(w, width=50, height=6, font=("Arial", 11)); t.pack(padx=8, pady=8, fill="both", expand=True); t.insert("1.0", vechi); t.focus_set()
+    b = ttk.Frame(w); b.pack(pady=(0, 8))
+    def ok(e=None): rez["t"] = t.get("1.0", "end").rstrip("\n"); w.destroy(); return "break"
+    ttk.Button(b, text="OK", command=ok).pack(side="left", padx=4); ttk.Button(b, text="Renunță", command=w.destroy).pack(side="left")
+    t.bind("<Control-Return>", ok); root.wait_window(w)
+    return rez["t"]
 
 
 def main():
-    root = tk.Tk()
+    try:
+        from tkinterdnd2 import TkinterDnD                                     # fereastră care primește fișiere trase cu mausul
+        root = TkinterDnD.Tk()
+    except Exception:
+        root = tk.Tk()
     try: root.tk.call("tk", "scaling", 1.25)
     except Exception: pass
     app = App(root)
