@@ -113,7 +113,7 @@ class Schema:
             if best is None and tip_din_nume(t) == tip and re.fullmatch(r"[A-Z]+\d+[A-Z]?", norm(t)) and prefix(t) == p: best = f
         return best
 
-    def cabluri(self):
+    def cabluri(self, doar_lipite=False):
         """cablurile (forme 1D): (forma, id început, id sfârșit) – din lipiri (Connects) sau după capete"""
         lip = {}
         for c in self.p.connects().findall(V + "Connect"):
@@ -132,8 +132,8 @@ class Schema:
         for f in self.p.forme():
             if not f.e1d: continue
             l = lip.get(str(f.id), {})
-            a = l.get("b") or langa(f.num("BeginX"), f.num("BeginY"))
-            b = l.get("e") or langa(f.num("EndX"), f.num("EndY"))
+            a = l.get("b") or (None if doar_lipite else langa(f.num("BeginX"), f.num("BeginY")))
+            b = l.get("e") or (None if doar_lipite else langa(f.num("EndX"), f.num("EndY")))
             out.append((f, a, b))
         return out
 
@@ -270,8 +270,9 @@ class Schema:
 
     # ---------- mutare / ștergere / redenumire ----------
     def muta(self, f, dx, dy):
+        """mută forma; capetele de cablu lipite de ea (în Visio: Connects) o urmează – liniile doar apropiate rămân pe loc"""
         _cell(f.el, "PinX", f.num("PinX") + dx); _cell(f.el, "PinY", f.num("PinY") + dy)
-        for c, a, b in self.cabluri():
+        for c, a, b in self.cabluri(doar_lipite=True):
             for capat, idc in (("Begin", a), ("End", b)):
                 if idc == f.id:
                     x, y = c.num(capat + "X") + dx, c.num(capat + "Y") + dy

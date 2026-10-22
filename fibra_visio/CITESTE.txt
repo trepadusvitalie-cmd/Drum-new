@@ -41,6 +41,7 @@ Editare cu mausul
   Ctrl+C / Ctrl+V – copiază și lipește (unde e mausul) · Delete – șterge
   dublu-clic pe text sau F2 – editezi textul pe loc (Enter = gata, Shift+Enter = rând nou, Esc = renunță)
   clic dreapta – meniu (editează textul, copiază, lipește, șterge, înapoi / înainte)
+  panoul „Text” (sub bara de sus): mărime (pt), A+ / A−, B / I / U, culoare, aliniere – pentru formele selectate
   pătrățelele albe de pe marginea formei selectate – tragi de ele și schimbi mărimea (chenar de text, manșon, CTA…)
   săgeți – mută 1 mm (Shift: 1 cm) · Ctrl+Z – anulează · rotița – zoom · clic dreapta + trage – mută vederea
   Mai multe comenzi deodată: câte una pe rând (Shift+Enter = rând nou).

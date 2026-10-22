@@ -49,6 +49,26 @@ class App:
         st.configure("Sag.TButton", font=("Segoe UI", 15), padding=(10, 0))
         ttk.Button(bar, text="→", width=3, style="Sag.TButton", command=self.inainte).pack(side="right", padx=(4, 10))
         ttk.Button(bar, text="←", width=3, style="Sag.TButton", command=self.anuleaza_chat).pack(side="right")
+        # --- panoul de text (pentru formele selectate) ---
+        bt = ttk.Frame(root, padding=(10, 0, 10, 6)); bt.pack(fill="x"); self.bara_text = bt
+        ttk.Label(bt, text="Text", style="Mic.TLabel").pack(side="left", padx=(0, 6))
+        self.cb_size = ttk.Combobox(bt, width=5, values=[4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48])
+        self.cb_size.pack(side="left"); self.cb_size.bind("<<ComboboxSelected>>", lambda e: self.aplica_text(size=self.cb_size.get()))
+        self.cb_size.bind("<Return>", lambda e: (self.aplica_text(size=self.cb_size.get()), "break")[1])
+        ttk.Label(bt, text="pt", style="Mic.TLabel").pack(side="left", padx=(2, 6))
+        ttk.Button(bt, text="A−", width=3, command=lambda: self.aplica_text(delta=-1)).pack(side="left")
+        ttk.Button(bt, text="A+", width=3, command=lambda: self.aplica_text(delta=+1)).pack(side="left", padx=(2, 10))
+        for txt, bit in (("B", 1), ("I", 2), ("U", 4)):
+            ttk.Button(bt, text=txt, width=3, command=lambda b=bit: self.aplica_text(stil=b)).pack(side="left", padx=1)
+        ttk.Label(bt, text="  Culoare", style="Mic.TLabel").pack(side="left", padx=(8, 4))
+        for c in ("#000000", "#FF0000", "#0000FF", "#00A050", "#FF8C00"):
+            b = tk.Label(bt, bg=c, width=2, relief="solid", bd=1, cursor="hand2"); b.pack(side="left", padx=1)
+            b.bind("<Button-1>", lambda e, c=c: self.aplica_text(culoare=c))
+        ttk.Button(bt, text="…", width=2, command=self.alege_culoare).pack(side="left", padx=(2, 10))
+        ttk.Label(bt, text="Aliniere", style="Mic.TLabel").pack(side="left", padx=(4, 4))
+        for txt, al in (("⯇ stânga", "0"), ("centru", "1"), ("dreapta ⯈", "2")):
+            ttk.Button(bt, text=txt, command=lambda a=al: self.aplica_text(aliniere=a)).pack(side="left", padx=1)
+        self.lbl_text = ttk.Label(bt, text="  (selectează o formă cu text)", style="Mic.TLabel"); self.lbl_text.pack(side="left", padx=10)
         # --- schema | chat ---
         pw = ttk.PanedWindow(root, orient="horizontal"); pw.pack(fill="both", expand=True, padx=8, pady=(0, 4)); self.pw = pw
         stg = ttk.Frame(pw); pw.add(stg, weight=3)
@@ -452,6 +472,8 @@ class App:
                 b = f.cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
                 cv.create_rectangle(a[0] - 3, a[1] - 3, c[0] + 3, c[1] + 3, outline="#0078D7", dash=(4, 2), width=2)
             except Exception: pass
+        try: self.actualizeaza_bara_text()
+        except Exception: pass
         self.manere = []
         if len(self.selectie) == 1 and not self.selectie[0].e1d:
             try:
@@ -596,6 +618,64 @@ class App:
             dx, dy = (e.x - self.mouse0[0]) / self.zoom, -(e.y - self.mouse0[1]) / self.zoom
             if abs(dx) * self.zoom < 2 and abs(dy) * self.zoom < 2: return
             self.muta_selectia(dx, dy)
+
+    # ---------- panoul de text ----------
+    def forme_text_selectate(self):
+        out = []
+        for f in self.selectie:
+            g = self.cu_text(f)
+            if g.text: out.append(g)
+        return out
+
+    def actualizeaza_bara_text(self):
+        ft = self.forme_text_selectate() if self.doc else []
+        if not ft: self.lbl_text.config(text="  (selectează o formă cu text)"); return
+        f = ft[0]; pt = vsdx_doc.fnum(f.sectiune("Character", "Size", "0.1111"), 0.1111) * 72
+        self.cb_size.set(f"{pt:.0f}" if abs(pt - round(pt)) < 0.05 else f"{pt:.1f}")
+        st = int(vsdx_doc.fnum(f.sectiune("Character", "Style", "0"), 0))
+        self.lbl_text.config(text=f"  {len(ft)} text{'e' if len(ft) > 1 else ''} selectat{'e' if len(ft) > 1 else ''}"
+                                  + ("  · îngroșat" if st & 1 else "") + ("  · cursiv" if st & 2 else ""))
+
+    def alege_culoare(self):
+        from tkinter import colorchooser
+        c = colorchooser.askcolor(title="Culoarea textului")
+        if c and c[1]: self.aplica_text(culoare=c[1].upper())
+
+    def aplica_text(self, size=None, delta=None, stil=None, culoare=None, aliniere=None):
+        """schimbă mărimea / stilul / culoarea / alinierea textului la formele selectate"""
+        if not self.doc: return
+        ft = self.forme_text_selectate()
+        if not ft: self.status.config(text="Selectează întâi o formă cu text (clic pe ea)."); return
+        V = vsdx_doc.V; self.inainte_de_modificare()
+        for f in ft:
+            sec = f.el.find(V + "Section[@N='Character']")
+            if sec is None: sec = ET.SubElement(f.el, V + "Section", {"N": "Character"})
+            randuri = sec.findall(V + "Row") or [ET.SubElement(sec, V + "Row", {"IX": "0"})]
+            pt0 = vsdx_doc.fnum(f.sectiune("Character", "Size", "0.1111"), 0.1111) * 72
+            st0 = int(vsdx_doc.fnum(f.sectiune("Character", "Style", "0"), 0))
+            for r in randuri:
+                def pune(n, v):
+                    c = r.find(V + "Cell[@N='%s']" % n)
+                    if c is None: c = ET.SubElement(r, V + "Cell", {"N": n})
+                    c.set("V", v)
+                    if "F" in c.attrib: del c.attrib["F"]
+                    if n == "Size": c.set("U", "PT")
+                if size is not None or delta is not None:
+                    try: pt = float(str(size).replace(",", ".")) if size is not None else max(2, round(pt0) + delta)
+                    except ValueError: continue
+                    pune("Size", "%.10g" % (pt / 72))
+                if stil is not None: pune("Style", str(st0 ^ stil))
+                if culoare is not None: pune("Color", culoare)
+            if aliniere is not None:
+                ps = f.el.find(V + "Section[@N='Paragraph']")
+                if ps is None: ps = ET.SubElement(f.el, V + "Section", {"N": "Paragraph"})
+                rows = ps.findall(V + "Row") or [ET.SubElement(ps, V + "Row", {"IX": "0"})]
+                for r in rows:
+                    c = r.find(V + "Cell[@N='HorzAlign']")
+                    if c is None: c = ET.SubElement(r, V + "Cell", {"N": "HorzAlign"})
+                    c.set("V", aliniere)
+                    if "F" in c.attrib: del c.attrib["F"]
+        self.reselecteaza(); self.deseneaza(); self.actualizeaza_bara_text()
 
     def cutie_noua(self, e):
         """dreptunghiul nou (pe ecran) când tragi de mânerul (i, j): 0 = stânga/sus, 2 = dreapta/jos, 1 = neschimbat"""
