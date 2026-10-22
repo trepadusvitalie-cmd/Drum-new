@@ -39,9 +39,9 @@ Scheme cu benzi de porturi (CTA / ODF / BTS cu banda galbenă 1…N)
 Editare cu mausul
   clic – selectează · Shift+clic – mai multe · trage pe gol – selectează zona · trage – mută
   Ctrl+C / Ctrl+V – copiază și lipește (unde e mausul) · Delete – șterge
-  dublu-clic pe text sau F2 – editezi textul pe loc (Enter = gata, Shift+Enter = rând nou, Esc = renunță)
+  dublu-clic pe text sau F2 – editezi textul pe loc (Enter = rând nou, ca în Word; Ctrl+Enter sau clic în afară = gata; Esc = renunță)
   clic dreapta – meniu (editează textul, copiază, lipește, șterge, înapoi / înainte)
-  panoul „Text” (sub bara de sus): mărime (pt), A+ / A−, B / I / U, culoare, aliniere – pentru formele selectate
+  sus, ca în Word: Fișier · Acasă (Clipboard, Font: font / mărime / A+ A− / B I U / culoare, Paragraf: aliniere, Schemă) · Inserare (Tabel – alegi rânduri × coloane pe grilă, Casetă text) · Vizualizare (zoom)
   pătrățelele albe de pe marginea formei selectate – tragi de ele și schimbi mărimea (chenar de text, manșon, CTA…)
   săgeți – mută 1 mm (Shift: 1 cm) · Ctrl+Z – anulează · rotița – zoom · clic dreapta + trage – mută vederea
   Mai multe comenzi deodată: câte una pe rând (Shift+Enter = rând nou).

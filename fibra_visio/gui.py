@@ -34,41 +34,84 @@ class App:
         st = ttk.Style(); FONT = ("Segoe UI", 10)
         st.configure(".", font=FONT); st.configure("Titlu.TLabel", font=("Segoe UI Semibold", 14), foreground=ACCENT)
         st.configure("Mic.TLabel", font=("Segoe UI", 9), foreground="#606060")
-        # --- bara de sus ---
-        bar = ttk.Frame(root, padding=(10, 8)); bar.pack(fill="x")
-        ttk.Label(bar, text="◈ Fibra Visio", style="Titlu.TLabel").pack(side="left", padx=(0, 16))
-        for txt, cmd in (("📂  Deschide", self.deschide), ("＋  Schemă nouă", self.nou), ("💾  Salvează", self.salveaza), ("Salvează ca…", self.salveaza_ca)):
-            ttk.Button(bar, text=txt, command=cmd).pack(side="left", padx=3)
-        ttk.Separator(bar, orient="vertical").pack(side="left", fill="y", padx=12)
-        ttk.Label(bar, text="Pagina", style="Mic.TLabel").pack(side="left", padx=(0, 4))
-        self.cb_pag = ttk.Combobox(bar, state="readonly", width=26); self.cb_pag.pack(side="left"); self.cb_pag.bind("<<ComboboxSelected>>", self.alege_pagina)
-        ttk.Label(bar, text="Cablu nou", style="Mic.TLabel").pack(side="left", padx=(14, 4))
-        self.cb_stil = ttk.Combobox(bar, state="readonly", width=17, values=["roșu", "linie întreruptă", "roșu întrerupt", "ca cele existente"])
-        self.cb_stil.current(0); self.cb_stil.pack(side="left"); self.cb_stil.bind("<<ComboboxSelected>>", self.stil_cablu)
-        ttk.Button(bar, text="⤢  Potrivește", command=self.potriveste).pack(side="right")
-        st.configure("Sag.TButton", font=("Segoe UI", 15), padding=(10, 0))
-        ttk.Button(bar, text="→", width=3, style="Sag.TButton", command=self.inainte).pack(side="right", padx=(4, 10))
-        ttk.Button(bar, text="←", width=3, style="Sag.TButton", command=self.anuleaza_chat).pack(side="right")
-        # --- panoul de text (pentru formele selectate) ---
-        bt = ttk.Frame(root, padding=(10, 0, 10, 6)); bt.pack(fill="x"); self.bara_text = bt
-        ttk.Label(bt, text="Text", style="Mic.TLabel").pack(side="left", padx=(0, 6))
-        self.cb_size = ttk.Combobox(bt, width=5, values=[4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48])
-        self.cb_size.pack(side="left"); self.cb_size.bind("<<ComboboxSelected>>", lambda e: self.aplica_text(size=self.cb_size.get()))
+        # --- panglica (ca în Word): titlu + săgeți, apoi filele Fișier / Acasă / Inserare / Vizualizare ---
+        sus = tk.Frame(root, bg=ACCENT); sus.pack(fill="x")
+        tk.Label(sus, text="◈ Fibra Visio", bg=ACCENT, fg="white", font=("Segoe UI Semibold", 11)).pack(side="left", padx=(10, 14), pady=4)
+        for txt, cmd in (("💾", lambda: self.salveaza()), ("←", lambda: self.anuleaza_chat()), ("→", lambda: self.inainte())):
+            b = tk.Label(sus, text=txt, bg=ACCENT, fg="white", font=("Segoe UI", 12), padx=8, cursor="hand2"); b.pack(side="left")
+            b.bind("<Button-1>", lambda e, c=cmd: c())
+            b.bind("<Enter>", lambda e, b=b: b.config(bg="#2B88D8")); b.bind("<Leave>", lambda e, b=b: b.config(bg=ACCENT))
+        self.lbl_fisier = tk.Label(sus, text="", bg=ACCENT, fg="white", font=("Segoe UI", 10)); self.lbl_fisier.pack(side="left", padx=20)
+        st.configure("Ribbon.TNotebook", tabmargins=(8, 2, 8, 0)); st.configure("Ribbon.TNotebook.Tab", padding=(14, 4), font=("Segoe UI", 10))
+        nb = ttk.Notebook(root, style="Ribbon.TNotebook"); nb.pack(fill="x", padx=0); self.ribbon = nb
+
+        def fila(nume):
+            f = ttk.Frame(nb, padding=(6, 4)); nb.add(f, text=nume); return f
+
+        def grup(fila_, titlu):
+            g = ttk.Frame(fila_); g.pack(side="left", fill="y", padx=(2, 4))
+            corp = ttk.Frame(g); corp.pack(side="top", fill="both", expand=True)
+            ttk.Label(g, text=titlu, style="Mic.TLabel", anchor="center").pack(side="bottom", fill="x", pady=(2, 0))
+            ttk.Separator(fila_, orient="vertical").pack(side="left", fill="y", padx=4)
+            return corp
+
+        def mare(parinte, simbol, text, cmd):
+            b = ttk.Button(parinte, text=f"{simbol}\n{text}", command=cmd, width=9); b.pack(side="left", padx=2, fill="y"); return b
+
+        # Fișier
+        ff = fila("Fișier"); g = grup(ff, "Fișier")
+        mare(g, "📂", "Deschide", self.deschide); mare(g, "＋", "Nouă", self.nou); mare(g, "💾", "Salvează", self.salveaza); mare(g, "🖫", "Salvează ca", self.salveaza_ca)
+        # Acasă
+        fa = fila("Acasă")
+        g = grup(fa, "Clipboard")
+        mare(g, "📋", "Lipește", lambda: self.lipeste()); col = ttk.Frame(g); col.pack(side="left")
+        ttk.Button(col, text="⧉ Copiază", command=lambda: self.copiaza()).pack(fill="x", pady=1)
+        ttk.Button(col, text="✕ Șterge", command=lambda: self.sterge_selectia()).pack(fill="x", pady=1)
+        g = grup(fa, "Font")
+        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3)); r2 = ttk.Frame(g); r2.pack(fill="x")
+        try:
+            import tkinter.font as tkf
+            fonturi = sorted({f for f in tkf.families() if not f.startswith("@")})
+        except Exception: fonturi = ["Arial", "Calibri", "Times New Roman"]
+        self.cb_font = ttk.Combobox(r1, width=18, values=fonturi); self.cb_font.set("Arial"); self.cb_font.pack(side="left")
+        self.cb_font.bind("<<ComboboxSelected>>", lambda e: self.aplica_text(font=self.cb_font.get()))
+        self.cb_font.bind("<Return>", lambda e: (self.aplica_text(font=self.cb_font.get()), "break")[1])
+        self.cb_size = ttk.Combobox(r1, width=4, values=[4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72])
+        self.cb_size.pack(side="left", padx=4); self.cb_size.bind("<<ComboboxSelected>>", lambda e: self.aplica_text(size=self.cb_size.get()))
         self.cb_size.bind("<Return>", lambda e: (self.aplica_text(size=self.cb_size.get()), "break")[1])
-        ttk.Label(bt, text="pt", style="Mic.TLabel").pack(side="left", padx=(2, 6))
-        ttk.Button(bt, text="A−", width=3, command=lambda: self.aplica_text(delta=-1)).pack(side="left")
-        ttk.Button(bt, text="A+", width=3, command=lambda: self.aplica_text(delta=+1)).pack(side="left", padx=(2, 10))
-        for txt, bit in (("B", 1), ("I", 2), ("U", 4)):
-            ttk.Button(bt, text=txt, width=3, command=lambda b=bit: self.aplica_text(stil=b)).pack(side="left", padx=1)
-        ttk.Label(bt, text="  Culoare", style="Mic.TLabel").pack(side="left", padx=(8, 4))
-        for c in ("#000000", "#FF0000", "#0000FF", "#00A050", "#FF8C00"):
-            b = tk.Label(bt, bg=c, width=2, relief="solid", bd=1, cursor="hand2"); b.pack(side="left", padx=1)
+        ttk.Button(r1, text="A⁺", width=3, command=lambda: self.aplica_text(delta=+1)).pack(side="left")
+        ttk.Button(r1, text="A⁻", width=3, command=lambda: self.aplica_text(delta=-1)).pack(side="left", padx=(2, 0))
+        st.configure("B.TButton", font=("Segoe UI", 10, "bold")); st.configure("I.TButton", font=("Segoe UI", 10, "italic"))
+        st.configure("U.TButton", font=("Segoe UI", 10, "underline"))
+        for txt, bit, sty in (("B", 1, "B.TButton"), ("I", 2, "I.TButton"), ("U", 4, "U.TButton")):
+            ttk.Button(r2, text=txt, width=3, style=sty, command=lambda b=bit: self.aplica_text(stil=b)).pack(side="left", padx=1)
+        ttk.Label(r2, text="  A", font=("Segoe UI", 11, "bold")).pack(side="left")
+        for c in ("#000000", "#FF0000", "#0000FF", "#00A050", "#FF8C00", "#7030A0"):
+            b = tk.Label(r2, bg=c, width=2, relief="solid", bd=1, cursor="hand2"); b.pack(side="left", padx=1)
             b.bind("<Button-1>", lambda e, c=c: self.aplica_text(culoare=c))
-        ttk.Button(bt, text="…", width=2, command=self.alege_culoare).pack(side="left", padx=(2, 10))
-        ttk.Label(bt, text="Aliniere", style="Mic.TLabel").pack(side="left", padx=(4, 4))
-        for txt, al in (("⯇ stânga", "0"), ("centru", "1"), ("dreapta ⯈", "2")):
-            ttk.Button(bt, text=txt, command=lambda a=al: self.aplica_text(aliniere=a)).pack(side="left", padx=1)
-        self.lbl_text = ttk.Label(bt, text="  (selectează o formă cu text)", style="Mic.TLabel"); self.lbl_text.pack(side="left", padx=10)
+        ttk.Button(r2, text="…", width=2, command=self.alege_culoare).pack(side="left", padx=(2, 0))
+        g = grup(fa, "Paragraf")
+        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3))
+        for txt, al in (("☰⯇", "0"), ("☰", "1"), ("⯈☰", "2")):
+            ttk.Button(r1, text=txt, width=4, command=lambda a=al: self.aplica_text(aliniere=a)).pack(side="left", padx=1)
+        self.lbl_text = ttk.Label(g, text="selectează o formă cu text", style="Mic.TLabel"); self.lbl_text.pack(fill="x")
+        g = grup(fa, "Schemă")
+        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3)); r2 = ttk.Frame(g); r2.pack(fill="x")
+        ttk.Label(r1, text="Pagina ", style="Mic.TLabel").pack(side="left")
+        self.cb_pag = ttk.Combobox(r1, state="readonly", width=24); self.cb_pag.pack(side="left"); self.cb_pag.bind("<<ComboboxSelected>>", self.alege_pagina)
+        ttk.Label(r2, text="Cablu nou ", style="Mic.TLabel").pack(side="left")
+        self.cb_stil = ttk.Combobox(r2, state="readonly", width=20, values=["roșu", "linie întreruptă", "roșu întrerupt", "ca cele existente"])
+        self.cb_stil.current(0); self.cb_stil.pack(side="left"); self.cb_stil.bind("<<ComboboxSelected>>", self.stil_cablu)
+        # Inserare
+        fi = fila("Inserare"); g = grup(fi, "Tabele")
+        self.btn_tabel = mare(g, "▦", "Tabel ▾", self.meniu_tabel)
+        g = grup(fi, "Text")
+        mare(g, "A", "Casetă text", self.caseta_text)
+        # Vizualizare
+        fv = fila("Vizualizare"); g = grup(fv, "Zoom")
+        mare(g, "⤢", "Potrivește", self.potriveste)
+        mare(g, "＋", "Mărește", lambda: self.zoom_centru(1.25)); mare(g, "－", "Micșorează", lambda: self.zoom_centru(1 / 1.25))
+        nb.select(1)
         # --- schema | chat ---
         pw = ttk.PanedWindow(root, orient="horizontal"); pw.pack(fill="both", expand=True, padx=8, pady=(0, 4)); self.pw = pw
         stg = ttk.Frame(pw); pw.add(stg, weight=3)
@@ -348,7 +391,7 @@ class App:
             except Exception as e:
                 messagebox.showerror(TITLU, f"Nu pot deschide fișierul:\n{e}"); return
         self.chat = comenzi.Chat(self.doc); self.modificat = False; self.backup_facut = False; self.selectie = []
-        self.root.title(f"{TITLU} – {os.path.basename(p)}"); self.actualizeaza_pagini(); self.potriveste()
+        self.root.title(f"{TITLU} – {os.path.basename(p)}"); self.lbl_fisier.config(text=os.path.basename(p)); self.actualizeaza_pagini(); self.potriveste()
         self.termeni = []; self.analizeaza(); self.ghideaza()
 
     def nou(self):
@@ -531,7 +574,9 @@ class App:
         ang = (ang + 180) % 360 - 180
         col = culoare(f.sectiune("Character", "Color"), "#000000")
         stl = int(vsdx_doc.fnum(f.sectiune("Character", "Style", "0"), 0))
-        font = ("Arial", -max(4, int(round(px))), ("bold " if stl & 1 else "") + ("italic" if stl & 2 else ""))
+        fn = f.sectiune("Character", "Font", "Arial") or "Arial"
+        if fn.isdigit(): fn = "Arial"
+        font = (fn, -max(4, int(round(px))), ("bold " if stl & 1 else "") + ("italic " if stl & 2 else "") + ("underline" if stl & 4 else ""))
         X, Y = self.ecran(x, y)
         al = f.sectiune("Paragraph", "HorzAlign", "1") or "1"
         lat = max(w, f.num("TxtWidth", w)) * self.zoom
@@ -619,6 +664,65 @@ class App:
             if abs(dx) * self.zoom < 2 and abs(dy) * self.zoom < 2: return
             self.muta_selectia(dx, dy)
 
+    # ---------- tabel (ca în Word) ----------
+    def meniu_tabel(self):
+        """grila de alegere: treci cu mausul peste pătrățele (rânduri × coloane), clic = inserează"""
+        if not self.doc: self.status.config(text="Deschide întâi o schemă."); return
+        w = tk.Toplevel(self.root); w.overrideredirect(True); w.configure(bg="#C7CDD4")
+        x = self.btn_tabel.winfo_rootx(); y = self.btn_tabel.winfo_rooty() + self.btn_tabel.winfo_height() + 2; w.geometry(f"+{x}+{y}")
+        fr = tk.Frame(w, bg="white", padx=8, pady=8); fr.pack(padx=1, pady=1)
+        lbl = tk.Label(fr, text="Inserează tabel", bg="white", font=("Segoe UI", 9)); lbl.grid(row=0, column=0, columnspan=10, sticky="w")
+        R, C = 8, 10; cel = {}
+        def lumina(r0, c0):
+            for (r, c), b in cel.items(): b.config(bg="#CFE3FA" if r <= r0 and c <= c0 else "white")
+            lbl.config(text=f"Tabel {r0} × {c0}  (rânduri × coloane)")
+        for r in range(1, R + 1):
+            for c in range(1, C + 1):
+                b = tk.Label(fr, bg="white", width=2, height=1, relief="solid", bd=1); b.grid(row=r, column=c - 1, padx=1, pady=1); cel[(r, c)] = b
+                b.bind("<Enter>", lambda e, r=r, c=c: lumina(r, c))
+                b.bind("<Button-1>", lambda e, r=r, c=c: (w.destroy(), self.insereaza_tabel(r, c)))
+        alt = tk.Label(fr, text="Altă mărime…", bg="white", fg=ACCENT, font=("Segoe UI", 9, "underline"), cursor="hand2")
+        alt.grid(row=R + 1, column=0, columnspan=10, sticky="w", pady=(6, 0)); alt.bind("<Button-1>", lambda e: (w.destroy(), self.dialog_tabel()))
+        w.bind("<FocusOut>", lambda e: w.destroy()); w.bind("<Escape>", lambda e: w.destroy()); w.focus_force()
+
+    def dialog_tabel(self):
+        w = tk.Toplevel(self.root); w.title("Inserează tabel"); w.transient(self.root); w.grab_set(); w.resizable(False, False)
+        fr = ttk.Frame(w, padding=14); fr.pack()
+        v = {}
+        for i, (et, imp, de, la) in enumerate((("Rânduri", 3, 1, 60), ("Coloane", 3, 1, 30), ("Lățime coloană (cm)", 3.0, 0.5, 30), ("Înălțime rând (cm)", 0.7, 0.3, 10))):
+            ttk.Label(fr, text=et).grid(row=i, column=0, sticky="w", pady=3)
+            sp = ttk.Spinbox(fr, from_=de, to=la, increment=1 if i < 2 else 0.1, width=8); sp.set(imp); sp.grid(row=i, column=1, padx=(10, 0)); v[i] = sp
+        def ok():
+            try: r, c, lw, lh = int(v[0].get()), int(v[1].get()), float(v[2].get().replace(",", ".")), float(v[3].get().replace(",", "."))
+            except ValueError: return
+            w.destroy(); self.insereaza_tabel(r, c, lw / 2.54, lh / 2.54)
+        b = ttk.Frame(fr); b.grid(row=5, column=0, columnspan=2, pady=(10, 0))
+        ttk.Button(b, text="Inserează", command=ok).pack(side="left", padx=4); ttk.Button(b, text="Renunță", command=w.destroy).pack(side="left")
+
+    def insereaza_tabel(self, randuri, coloane, lw=3.0 / 2.54, lh=0.7 / 2.54):
+        """tabel din celule (dreptunghiuri cu text), în mijlocul vederii; celulele rămân selectate ca să-l poți muta"""
+        p = self.doc.pagini[self.chat.ip]; sh = p.shapes_el(); V = vsdx_doc.V
+        cx, cy = self.pagina_xy(self.cv.winfo_width() / 2, self.cv.winfo_height() / 2)
+        x0, y0 = cx - coloane * lw / 2, cy + randuri * lh / 2
+        self.inainte_de_modificare(); noi = []; nid = p.id_nou()
+        for r in range(randuri):
+            for c in range(coloane):
+                el = ET.SubElement(sh, V + "Shape", {"ID": str(nid), "NameU": f"Tabel.{nid}", "Name": f"Tabel.{nid}", "Type": "Shape",
+                                                    "LineStyle": "0", "FillStyle": "0", "TextStyle": "0"}); nid += 1
+                for n, val in (("PinX", x0 + (c + 0.5) * lw), ("PinY", y0 - (r + 0.5) * lh), ("Width", lw), ("Height", lh),
+                               ("LocPinX", lw / 2), ("LocPinY", lh / 2), ("Angle", 0.0)):
+                    desen._cell(el, n, float(val))
+                desen._cell(el, "LineWeight", "0.01"); desen._cell(el, "LineColor", "#000000"); desen._cell(el, "FillPattern", "0")
+                desen._cell(el, "VerticalAlign", "1")
+                ch = ET.SubElement(el, V + "Section", {"N": "Character"}); rr = ET.SubElement(ch, V + "Row", {"IX": "0"})
+                for n, val in (("Font", "Arial"), ("Size", "%.10g" % (10 / 72)), ("Color", "#000000"), ("Style", "1" if r == 0 else "0")):
+                    ET.SubElement(rr, V + "Cell", {"N": n, "V": val})
+                desen._geom(el, [("RelMoveTo", {"X": 0, "Y": 0}), ("RelLineTo", {"X": 1, "Y": 0}), ("RelLineTo", {"X": 1, "Y": 1}),
+                                 ("RelLineTo", {"X": 0, "Y": 1}), ("RelLineTo", {"X": 0, "Y": 0})])
+                desen._text(el, ""); noi.append(int(el.get("ID")))
+        toate = {f.id: f for f in p.forme()}; self.selectie = [toate[i] for i in noi]; self.deseneaza()
+        self.status.config(text=f"Tabel {randuri} × {coloane} inserat – îl muți trăgând de el; dublu-clic pe o celulă = scrii în ea.")
+
     # ---------- panoul de text ----------
     def forme_text_selectate(self):
         out = []
@@ -629,10 +733,12 @@ class App:
 
     def actualizeaza_bara_text(self):
         ft = self.forme_text_selectate() if self.doc else []
-        if not ft: self.lbl_text.config(text="  (selectează o formă cu text)"); return
+        if not ft: self.lbl_text.config(text="selectează o formă cu text"); return
         f = ft[0]; pt = vsdx_doc.fnum(f.sectiune("Character", "Size", "0.1111"), 0.1111) * 72
         self.cb_size.set(f"{pt:.0f}" if abs(pt - round(pt)) < 0.05 else f"{pt:.1f}")
         st = int(vsdx_doc.fnum(f.sectiune("Character", "Style", "0"), 0))
+        fn = f.sectiune("Character", "Font")
+        if fn and not fn.isdigit(): self.cb_font.set(fn)
         self.lbl_text.config(text=f"  {len(ft)} text{'e' if len(ft) > 1 else ''} selectat{'e' if len(ft) > 1 else ''}"
                                   + ("  · îngroșat" if st & 1 else "") + ("  · cursiv" if st & 2 else ""))
 
@@ -641,7 +747,18 @@ class App:
         c = colorchooser.askcolor(title="Culoarea textului")
         if c and c[1]: self.aplica_text(culoare=c[1].upper())
 
-    def aplica_text(self, size=None, delta=None, stil=None, culoare=None, aliniere=None):
+    def zoom_centru(self, k):
+        class E: pass
+        e = E(); e.x, e.y = self.cv.winfo_width() / 2, self.cv.winfo_height() / 2; self.zoom_la(e, k)
+
+    def caseta_text(self):
+        """casetă de text nouă în mijlocul vederii, gata de scris"""
+        if not self.doc: return
+        self.insereaza_tabel(1, 1, 4 / 2.54, 0.8 / 2.54)
+        if self.selectie:
+            f = self.selectie[0]; desen._cell(f.el, "LinePattern", "0"); self.deseneaza(); self.editor_pe_schema(self.selectie[0])
+
+    def aplica_text(self, size=None, delta=None, stil=None, culoare=None, aliniere=None, font=None):
         """schimbă mărimea / stilul / culoarea / alinierea textului la formele selectate"""
         if not self.doc: return
         ft = self.forme_text_selectate()
@@ -666,6 +783,7 @@ class App:
                     pune("Size", "%.10g" % (pt / 72))
                 if stil is not None: pune("Style", str(st0 ^ stil))
                 if culoare is not None: pune("Color", culoare)
+                if font: pune("Font", font)
             if aliniere is not None:
                 ps = f.el.find(V + "Section[@N='Paragraph']")
                 if ps is None: ps = ET.SubElement(f.el, V + "Section", {"N": "Paragraph"})
@@ -854,13 +972,14 @@ class App:
                                            height=min(lin, 8) * 22 + 12)
         self.ed_txt, self.ed_forma = t, f
         t.focus_set()
-        t.bind("<Return>", lambda e: (self.inchide_editor(True), "break")[1])
-        t.bind("<KP_Enter>", lambda e: (self.inchide_editor(True), "break")[1])
-        t.bind("<Shift-Return>", lambda e: (t.insert("insert", "\n"), t.configure(height=int(t.cget("height")) + 1),
-                                            self.cv.itemconfigure(self.ed_win, height=(int(t.cget("height"))) * 22 + 12), "break")[3])
+        def rand_nou(e=None):
+            t.insert("insert", "\n"); h = min(12, int(float(t.index("end-1c").split(".")[0])))
+            t.configure(height=h); self.cv.itemconfigure(self.ed_win, height=h * 22 + 12); return "break"
+        t.bind("<Return>", rand_nou); t.bind("<KP_Enter>", rand_nou)                       # ca în Word: Enter = rând nou
+        t.bind("<Control-Return>", lambda e: (self.inchide_editor(True), "break")[1])
         t.bind("<Escape>", lambda e: (self.inchide_editor(False), "break")[1])
         t.bind("<FocusOut>", lambda e: self.root.after(50, lambda: self.inchide_editor(True) if getattr(self, "ed_win", None) else None))
-        self.status.config(text="Editezi textul: Enter = gata · Shift+Enter = rând nou · Esc = renunță")
+        self.status.config(text="Editezi textul: Enter = rând nou · Ctrl+Enter sau clic în afară = gata · Esc = renunță")
 
     def inchide_editor(self, pastreaza):
         if not getattr(self, "ed_win", None): return
