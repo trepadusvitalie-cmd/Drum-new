@@ -45,7 +45,9 @@ class App:
         self.cb_stil = ttk.Combobox(bar, state="readonly", width=17, values=["roșu", "linie întreruptă", "roșu întrerupt", "ca cele existente"])
         self.cb_stil.current(0); self.cb_stil.pack(side="left"); self.cb_stil.bind("<<ComboboxSelected>>", self.stil_cablu)
         ttk.Button(bar, text="⤢  Potrivește", command=self.potriveste).pack(side="right")
-        ttk.Button(bar, text="↶  Anulează", command=lambda: self.trimite_text("anuleaza")).pack(side="right", padx=4)
+        st.configure("Sag.TButton", font=("Segoe UI", 15), padding=(10, 0))
+        ttk.Button(bar, text="→", width=3, style="Sag.TButton", command=self.inainte).pack(side="right", padx=(4, 10))
+        ttk.Button(bar, text="←", width=3, style="Sag.TButton", command=self.anuleaza_chat).pack(side="right")
         # --- schema | chat ---
         pw = ttk.PanedWindow(root, orient="horizontal"); pw.pack(fill="both", expand=True, padx=8, pady=(0, 4)); self.pw = pw
         stg = ttk.Frame(pw); pw.add(stg, weight=3)
@@ -58,7 +60,7 @@ class App:
         self.cv.bind("<Configure>", lambda e: self.deseneaza())
         self.selectie = []; self.mod = None; self.clipboard = []
         for k, fn in (("<Control-c>", self.copiaza), ("<Control-C>", self.copiaza), ("<Control-v>", self.lipeste), ("<Control-V>", self.lipeste),
-                      ("<Delete>", self.sterge_selectia), ("<Control-z>", self.anuleaza), ("<Control-Z>", self.anuleaza), ("<Control-a>", self.selecteaza_tot),
+                      ("<Delete>", self.sterge_selectia), ("<Control-z>", self.anuleaza), ("<Control-Z>", self.anuleaza), ("<Control-y>", self.inainte_tasta), ("<Control-Y>", self.inainte_tasta), ("<Control-a>", self.selecteaza_tot),
                       ("<Control-s>", lambda e: self.salveaza()), ("<Control-o>", lambda e: self.deschide())):
             root.bind(k, fn)
         for k in ("<Left>", "<Right>", "<Up>", "<Down>"): self.cv.bind(k, self.sageti)
@@ -71,7 +73,7 @@ class App:
                                  highlightbackground="#C7CDD4", selectbackground=ACCENT, selectforeground="white")
         self.lb_sug.bind("<ButtonRelease-1>", lambda e: self.accepta_sugestie()); self.sug_vizibil = False; self.termeni = []
         chips = tk.Frame(jos, bg=PANOU); chips.pack(fill="x", pady=(0, 6)); self.chips = chips
-        for c in ("porturi", "lista", "cabluri", "anuleaza", "ajutor"):
+        for c in ("porturi", "lista", "cabluri", "inapoi", "inainte", "ajutor"):
             b = tk.Label(chips, text=c, bg="#EEF2F6", fg="#334155", font=("Segoe UI", 9), padx=10, pady=3, cursor="hand2")
             b.pack(side="left", padx=(0, 6)); b.bind("<Button-1>", lambda e, c=c: self.trimite_text(c))
         cad = tk.Frame(jos, bg="#C7CDD4", padx=1, pady=1); cad.pack(fill="x")
@@ -134,8 +136,12 @@ class App:
         if not m: return
         self.ent.delete("1.0", "end"); self.istoric_cmd.append(m); self.ih = len(self.istoric_cmd)
         self.scrie(m, "eu")
-        if comenzi.fara_diacritice(m).lower().strip(" .!") in ("anuleaza", "undo") and self.doc is not None:
-            self.anuleaza_chat(); return
+        cm = comenzi.fara_diacritice(m).lower().strip(" .!")
+        if cm in ("anuleaza", "undo", "inapoi", "reface", "redo", "inainte") and self.doc is not None:
+            r, sch = self.chat.inapoi() if cm in ("anuleaza", "undo", "inapoi") else self.chat.inainte()
+            self.scrie(r, "prog")
+            if sch: self.selectie = []; self.termeni = []; self.actualizeaza_pagini(); self.deseneaza(); self.modificat = True
+            return
         if comenzi.fara_diacritice(m).lower().strip(" .!") in ("salveaza", "salveaza schema", "save"):
             self.salveaza(); return
         if self.doc is None:
@@ -381,7 +387,7 @@ class App:
         n = len(self.selectie)
         self.status.config(text=f"Pagina {self.chat.ip + 1}/{len(self.doc.pagini)} „{p.nume}”" + (f" – selectate: {n}" if n else "") +
                            "   |  clic: selectează · trage: mută · trage pe gol: selectează zona · Ctrl+C/Ctrl+V · Delete · dublu-clic: text · "
-                           "Ctrl+Z · rotița: zoom · clic dreapta + trage: mută vederea" + (f"  ({err} forme neafișate)" if err else ""))
+                           "Ctrl+Z / Ctrl+Y · rotița: zoom · clic dreapta + trage: mută vederea" + (f"  ({err} forme neafișate)" if err else ""))
 
     def forma(self, f):
         lp = f.cell("LinePattern", "1") or "1"
@@ -503,7 +509,7 @@ class App:
             self.muta_selectia(dx, dy)
 
     def inainte_de_modificare(self):
-        self.chat.istoric.append(self.doc.instantaneu()); self.chat.istoric = self.chat.istoric[-50:]; self.modificat = True
+        self.chat.istoric.append(self.doc.instantaneu()); self.chat.istoric = self.chat.istoric[-50:]; self.chat.refacere = []; self.modificat = True
 
     def reselecteaza(self):
         ids = [s.id for s in self.selectie]; toate = {f.id: f for f in self.doc.pagini[self.chat.ip].forme()}
@@ -559,15 +565,22 @@ class App:
         return "break"
 
     def anuleaza_chat(self):
-        if not self.chat.istoric: self.scrie("Nu am ce anula.", "prog"); return
-        self.doc.restaureaza(self.chat.istoric.pop()); self.selectie = []; self.actualizeaza_pagini(); self.deseneaza()
-        self.modificat = True; self.scrie("Am anulat ultima modificare.", "prog")
+        if not self.doc: return
+        r, sch = self.chat.inapoi(); self.status.config(text=r)
+        if sch: self.selectie = []; self.termeni = []; self.actualizeaza_pagini(); self.deseneaza(); self.modificat = True
+
+    def inainte(self):
+        if not self.doc: return
+        r, sch = self.chat.inainte(); self.status.config(text=r)
+        if sch: self.selectie = []; self.termeni = []; self.actualizeaza_pagini(); self.deseneaza(); self.modificat = True
 
     def anuleaza(self, e=None):
         if self.focus_in_chat() or not self.doc: return
-        if not self.chat.istoric: self.status.config(text="Nu am ce anula."); return "break"
-        self.doc.restaureaza(self.chat.istoric.pop()); self.selectie = []; self.actualizeaza_pagini(); self.deseneaza()
-        return "break"
+        self.anuleaza_chat(); return "break"
+
+    def inainte_tasta(self, e=None):
+        if self.focus_in_chat() or not self.doc: return
+        self.inainte(); return "break"
 
     def editeaza_text(self, e):
         f = self.forma_la(e.x, e.y)

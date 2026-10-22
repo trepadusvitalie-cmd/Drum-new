@@ -51,7 +51,7 @@ def curat(n): return n.strip().strip('"').strip()
 
 class Chat:
     def __init__(self, doc):
-        self.doc = doc; self.ip = 0; self.istoric = []
+        self.doc = doc; self.ip = 0; self.istoric = []; self.refacere = []
 
     @property
     def schema(self): return Schema(self.doc, self.doc.pagini[self.ip])
@@ -64,10 +64,8 @@ class Chat:
         t = re.sub(r"\s+", " ", t).rstrip(".!")
         if not t: return "", False
         if t in ("ajutor", "help", "?", "comenzi", "ce poti face"): return AJUTOR, False
-        if re.fullmatch(r"(anuleaza|undo|inapoi)( tot)?", t):
-            if not self.istoric: return "Nu am ce anula.", False
-            self.doc.restaureaza(self.istoric.pop()); self.ip = min(self.ip, len(self.doc.pagini) - 1)
-            return "Am anulat ultima modificare.", True
+        if re.fullmatch(r"(anuleaza|undo|inapoi)( tot)?", t): return self.inapoi()
+        if re.fullmatch(r"(reface|refa|redo|inainte)", t): return self.inainte()
         if re.fullmatch(r"(lista|listă|elemente|ce (e|este) pe (pagina|schema)|arata tot)", t): return self.lista(), False
         if t in ("cabluri", "lista cabluri", "arata cablurile"): return self.lista_cabluri(), False
         if t in ("pagini", "lista pagini"):
@@ -84,8 +82,18 @@ class Chat:
             self.doc.restaureaza(stare); return f"N-am reușit: {e}", True
         if r is None:
             return "Nu am înțeles comanda. Scrie „ajutor” ca să vezi exemple.", False
-        if r[1]: self.istoric.append(stare); self.istoric = self.istoric[-50:]
+        if r[1]: self.istoric.append(stare); self.istoric = self.istoric[-50:]; self.refacere = []
         return r
+
+    def inapoi(self):
+        if not self.istoric: return "Nu am ce anula.", False
+        self.refacere.append(self.doc.instantaneu()); self.doc.restaureaza(self.istoric.pop())
+        self.ip = min(self.ip, len(self.doc.pagini) - 1); return "Înapoi: am anulat ultima modificare.", True
+
+    def inainte(self):
+        if not self.refacere: return "Nu am ce reface.", False
+        self.istoric.append(self.doc.instantaneu()); self.doc.restaureaza(self.refacere.pop())
+        self.ip = min(self.ip, len(self.doc.pagini) - 1); return "Înainte: am refăcut modificarea.", True
 
     def gaseste(self, nume):
         f = self.schema.gaseste(curat(nume))
