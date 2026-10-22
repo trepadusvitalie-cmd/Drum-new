@@ -198,7 +198,7 @@ def _gaseste_aprox(cheie, tc, ocupat, limite=None):
     for m in re.finditer(re.escape(cheie), tc):
         if not any(o[0] < m.end() and m.start() < o[1] for o in ocupat): rez.append((m.start(), m.end(), 1.0))
     if rez or L < 3: return rez
-    for k in range(L - 1, max(3, (L + 1) // 2) - 1, -1):                        # incomplet: „popov”, „raut”
+    for k in range(L - 1, 2, -1):                        # incomplet: „popov”, „raut”
         for m in re.finditer(re.escape(cheie[:k]), tc):
             if not any(o[0] < m.end() and m.start() < o[1] for o in ocupat) and ok(m.start(), m.end()):
                 rez.append((m.start(), m.end(), 0.6 + 0.3 * k / L))

@@ -51,13 +51,16 @@ def curat(n): return n.strip().strip('"').strip()
 
 class Chat:
     def __init__(self, doc):
-        self.doc = doc; self.ip = 0; self.istoric = []; self.refacere = []
+        self.doc = doc; self.ip = 0; self.istoric = []; self.refacere = []; self.variante = []
 
     @property
     def schema(self): return Schema(self.doc, self.doc.pagini[self.ip])
 
     def raspunde(self, mesaj):
         """-> (răspuns, s-a schimbat desenul)"""
+        prec, self.variante = self.variante, []
+        if re.fullmatch(r"\s*[1-6]\s*", mesaj) and prec and int(mesaj) <= len(prec):     # a ales o variantă propusă
+            mesaj = prec[int(mesaj) - 1]
         mesaj = re.sub(r"^[\s•\-*·>]+", "", mesaj.strip())                 # fără buline / liniuțe copiate din ajutor
         mesaj = re.sub(r"\s{2,}\(.*\)\s*$", "", mesaj)                       # fără explicația din paranteză
         t = fara_diacritice(mesaj.strip()).lower()
@@ -79,9 +82,11 @@ class Chat:
         try:
             r = self.executa(mesaj, t)
         except Exception as e:
-            self.doc.restaureaza(stare); return f"N-am reușit: {e}", True
+            self.doc.restaureaza(stare); self.variante = self.propune(mesaj, str(e))
+            return f"N-am reușit: {e}" + ("\nAi vrut să scrii:" if self.variante else ""), True
         if r is None:
-            return "Nu am înțeles comanda. Scrie „ajutor” ca să vezi exemple.", False
+            self.variante = self.propune(mesaj, "")
+            return "Nu am înțeles comanda." + (" Ai vrut să scrii:" if self.variante else " Scrie „ajutor” ca să vezi exemple."), False
         if r[1]: self.istoric.append(stare); self.istoric = self.istoric[-50:]; self.refacere = []
         return r
 
@@ -94,6 +99,58 @@ class Chat:
         if not self.refacere: return "Nu am ce reface.", False
         self.istoric.append(self.doc.instantaneu()); self.doc.restaureaza(self.refacere.pop())
         self.ip = min(self.ip, len(self.doc.pagini) - 1); return "Înainte: am refăcut modificarea.", True
+
+    # ---------- variante corecte când comanda e greșită ----------
+    VOCAB = ["adauga", "trage", "leaga", "cablu", "cablul", "elementul", "manson", "stalp", "odf", "splitter", "camin", "bloc", "cutie", "port", "porturile",
+             "la", "de", "din", "cu", "prin", "sudura", "in", "rosu", "albastru", "verde", "intrerupt", "sterge", "muta", "redenumeste",
+             "schimba", "lungimea", "fibra", "fibrele", "dreapta", "stanga", "sus", "jos", "langa", "lista", "cabluri", "porturi",
+             "pagini", "pagina", "anuleaza", "inapoi", "inainte", "salveaza", "ajutor", "sudeaza"]
+
+    def propune(self, mesaj, eroare):
+        import difflib, porturi
+        S = self.schema; t = fara_diacritice(mesaj).strip(); out = []
+        try: noduri = [n.nume for n in porturi.noduri(S)]
+        except Exception: noduri = []
+        try: nume = [x for x, _ in porturi._candidati(S)] + [x.split("\n")[0] for x, _ in S.elemente()]
+        except Exception: nume = noduri[:]
+        # 1) nume ambiguu: „cta” poate fi: CTA Popovca, CTA Rautel
+        m = re.search(r"„(.+?)” (?:poate fi|se potrivește la mai multe): (.+?)(?:\. |$)", eroare)
+        if m:
+            for opt in [x.strip() for x in m.group(2).split(",")][:4]:
+                out.append(re.sub(re.escape(m.group(1)), opt, t, count=1, flags=re.I))
+        # 2) cuvinte scrise greșit -> cel mai apropiat cuvânt de comandă / nume din schemă
+        cuv = re.findall(r"[\w\-.]+|\S", t); corect = []; schimbat = False
+        dict_n = {norm(x).lower(): x for x in nume if x}
+        for w in cuv:
+            wl = w.lower()
+            if not re.search(r"[a-z]", wl) or len(wl) < 3 or wl in self.VOCAB or norm(w).lower() in dict_n: corect.append(w); continue
+            g = difflib.get_close_matches(wl, self.VOCAB, n=1, cutoff=0.75) or \
+                [dict_n[x] for x in difflib.get_close_matches(norm(w).lower(), list(dict_n), n=1, cutoff=0.72)]
+            if g: corect.append(g[0]); schimbat = True
+            else: corect.append(w)
+        if schimbat: out.append(re.sub(r"\s+([,.])", r"\1", " ".join(corect)))
+        # 3) comanda de fibră incompletă: completează cu nodurile existente
+        nr = re.findall(r"\d+", t)
+        if noduri and nr:
+            try: men = [x[2] for x in porturi.mentiuni(S, t.lower()) if x[3] is not None]
+            except Exception: men = []
+            a = men[0] if men else None
+            for b in noduri:
+                if len(out) >= 4: break
+                if a and b == a: continue
+                pa, pb = nr[0], (nr[1] if len(nr) > 1 else nr[0])
+                out.append(f"{a or noduri[0]} port {pa} la {b if a else (noduri[1] if len(noduri) > 1 else b)} port {pb}")
+                if not a: break
+        # 4) nimic: exemple cu numele reale
+        if not out:
+            if len(noduri) >= 2: out += [f"{noduri[0]} port 1 la {noduri[1]} port 1", "porturi", "ajutor"]
+            else:
+                el = [x.split("\n")[0] for x, _ in S.elemente()][:2]
+                out += ([f"adauga manson M9 langa {el[0]}", f"adauga cablu 12FO de la {el[0]} la {el[1] if len(el) > 1 else 'S9'}, 50 m"] if el else []) + ["lista", "ajutor"]
+        vaz = []; 
+        for x in out:
+            if x and x.strip().lower() != t.lower() and x not in vaz: vaz.append(x)
+        return vaz[:5]
 
     def gaseste(self, nume):
         f = self.schema.gaseste(curat(nume))

@@ -73,6 +73,8 @@ class App:
                                  highlightbackground="#C7CDD4", selectbackground=ACCENT, selectforeground="white")
         self.lb_sug.bind("<ButtonRelease-1>", lambda e: self.accepta_sugestie()); self.sug_vizibil = False; self.termeni = []
         chips = tk.Frame(jos, bg=PANOU); chips.pack(fill="x", pady=(0, 6)); self.chips = chips
+        self.ghid = tk.Label(jos, text="", bg=PANOU, fg="#5B6470", font=("Segoe UI", 9), anchor="w", justify="left", wraplength=400)
+        self.ghid.pack(fill="x", pady=(0, 4))
         for c in ("porturi", "lista", "cabluri", "inapoi", "inainte", "ajutor"):
             b = tk.Label(chips, text=c, bg="#EEF2F6", fg="#334155", font=("Segoe UI", 9), padx=10, pady=3, cursor="hand2")
             b.pack(side="left", padx=(0, 6)); b.bind("<Button-1>", lambda e, c=c: self.trimite_text(c))
@@ -97,6 +99,7 @@ class App:
         self.txt.tag_config("err", background=BULA_ERR, foreground="#A4262C", lmargin1=6, lmargin2=6, rmargin=50, spacing1=6, spacing3=6)
         self.txt.tag_config("cine", foreground="#808080", font=("Segoe UI", 8), spacing1=8)
         self.txt.tag_config("cine_eu", justify="right", rmargin=8)
+        self.txt.tag_config("var", foreground=ACCENT, font=("Segoe UI", 10, "underline"), lmargin1=14, lmargin2=14, spacing1=3)
         self.status = ttk.Label(root, text="Deschide o schemă .vsdx / .vsd (sau trage fișierul aici) ori începe una nouă.", anchor="w",
                                 style="Mic.TLabel", padding=(10, 3)); self.status.pack(fill="x")
         root.protocol("WM_DELETE_WINDOW", self.inchide)
@@ -120,6 +123,18 @@ class App:
         fis = [f for f in fis if f.lower().endswith((".vsdx", ".vsd"))]
         if not fis: self.scrie("Trage un fișier Visio (.vsdx sau .vsd).", "err"); return
         if self.intreaba_salvare(): self.deschide_cale(fis[0])
+
+    def scrie_variante(self, var):
+        """variantele corecte, ca butoane în chat: clic (sau cifra) și se execută"""
+        self.txt.configure(state="normal")
+        for i, v in enumerate(var, 1):
+            tg = f"var_{id(var)}_{i}"
+            self.txt.insert("end", f"  {i}.  {v}  \n", ("var", tg))
+            self.txt.tag_bind(tg, "<Button-1>", lambda e, v=v: self.trimite_text(v))
+            self.txt.tag_bind(tg, "<Enter>", lambda e, tg=tg: (self.txt.tag_config(tg, background="#CFE3FA"), self.txt.config(cursor="hand2")))
+            self.txt.tag_bind(tg, "<Leave>", lambda e, tg=tg: (self.txt.tag_config(tg, background=""), self.txt.config(cursor="")))
+        self.txt.insert("end", "  (apasă pe variantă sau scrie cifra ei)\n", ("cine",))
+        self.txt.configure(state="disabled"); self.txt.see("end")
 
     def trimite_text(self, s):
         self.ent.delete("1.0", "end"); self.ent.insert("1.0", s); self.trimite()
@@ -153,6 +168,7 @@ class App:
             for linie in [x for x in re.split(r"\n+", m) if x.strip()]:             # mai multe comenzi, câte una pe rând
                 r, sch = self.chat.raspunde(linie)
                 self.scrie(r, "err" if r.startswith(("N-am", "Nu am înțeles", "Nu găsesc")) else "prog")
+                if self.chat.variante: self.scrie_variante(self.chat.variante)
                 if sch and not r.startswith("N-am"): self.modificat = True
         except Exception:
             self.scrie("Eroare: " + traceback.format_exc(limit=2), "err")
@@ -186,7 +202,43 @@ class App:
         m = re.search(r"([\w\-.ăâîșşțţĂÂÎȘŞȚŢ]+(?: [\w\-.ăâîșşțţĂÂÎȘŞȚŢ]+)?)$", inainte)
         return inainte, m
 
+    def ghideaza(self):
+        """rândul de ajutor de deasupra căsuței: ce urmează de scris"""
+        if not self.doc: self.ghid.config(text="Deschide întâi o schemă (📂 Deschide sau trage fișierul aici)."); return
+        import porturi
+        t = comenzi.fara_diacritice(self.ent.get("1.0", "end")).strip().lower()
+        S = self.chat.schema
+        try: noduri = porturi.noduri(S)
+        except Exception: noduri = []
+        nume = ", ".join(n.nume for n in noduri[:4])
+        if not t:
+            self.ghid.config(text=(f"Exemplu: {noduri[0].nume} port 1 la {noduri[1].nume} port 2   ·   " if len(noduri) > 1 else "")
+                             + "adauga manson M5 langa M2   ·   lista   ·   ajutor"); return
+        if re.match(r"(adauga|pune) (manson|stalp|odf|splitter|camin|bloc|cutie)\b", t):
+            self.ghid.config(text="→ nume (ex. M5) + unde: langa M2 / la dreapta de M2 / sub M2"); return
+        if re.match(r"(adauga|trage|pune) cablu", t):
+            self.ghid.config(text="→ tip + capete + lungime:  24FO de la M1 la S5, 120 m   (optional: intrerupt)"); return
+        if re.match(r"(sterge|muta|redenumeste|schimba)", t):
+            self.ghid.config(text="→ sterge M5 · sterge cablul de la M1 la S5 · muta M5 la dreapta cu 2 cm · redenumeste M5 in M6 · schimba lungimea de la M1 la S5 in 80 m"); return
+        if not noduri: self.ghid.config(text="Scrie „ajutor” pentru comenzi."); return
+        try: men = porturi.mentiuni(S, t)
+        except ValueError as e: self.ghid.config(text=f"⚠ {e}", fg="#A4262C"); return
+        self.ghid.config(fg="#5B6470")
+        cap = [m for m in men if m[3] is not None]
+        if not cap: self.ghid.config(text=f"→ scrie nodul de pornire: {nume}…"); return
+        A = cap[0][3]; dupa_a = t[cap[0][1]:]
+        if len(cap) == 1:
+            if not re.search(r"\d", t): self.ghid.config(text=f"→ portul la {A.nume}: port 1…{A.n}"); return
+            alt = ", ".join(n.nume for n in noduri if n.nume != A.nume)[:80]
+            self.ghid.config(text=f"→ „la” + nodul de destinație: {alt}"); return
+        B = cap[1][3]
+        if not re.search(r"\d", t[cap[1][1]:]) and not re.search(r"\d", t[:cap[0][0]]):
+            self.ghid.config(text=f"→ portul la {B.nume}: port 1…{B.n}"); return
+        self.ghid.config(text=f"✔ Gata – Enter: fibră {A.nume} → {B.nume}.  Opțional: rosu / albastru / intrerupt / prin M1 (sudură)", fg="#107C10")
+
     def sugereaza(self, e=None):
+        try: self.ghideaza()
+        except Exception: pass
         if e is not None and e.keysym in ("Up", "Down", "Return", "Tab", "Escape", "Shift_L", "Shift_R", "Control_L", "Control_R"): return
         if not self.doc: return
         if not self.termeni: self.actualizeaza_termeni()
@@ -266,7 +318,7 @@ class App:
             try: self.doc = vsdx_doc.Document(tmp)
             except Exception as e:
                 messagebox.showerror(TITLU, f"Nu pot deschide fișierul:\n{e}"); return
-            self.doc.path = os.path.splitext(p)[0] + ".vsdx"                 # „Salvează” scrie .vsdx alături (originalul .vsd rămâne)
+            self.doc.path = None                                           # „Salvează” scrie înapoi în .vsd (prin Visio)
         else:
             try:
                 self.doc = vsdx_doc.Document(p)
@@ -274,7 +326,7 @@ class App:
                 messagebox.showerror(TITLU, f"Nu pot deschide fișierul:\n{e}"); return
         self.chat = comenzi.Chat(self.doc); self.modificat = False; self.backup_facut = False; self.selectie = []
         self.root.title(f"{TITLU} – {os.path.basename(p)}"); self.actualizeaza_pagini(); self.potriveste()
-        self.termeni = []; self.analizeaza()
+        self.termeni = []; self.analizeaza(); self.ghideaza()
 
     def nou(self):
         if not self.intreaba_salvare(): return
@@ -283,24 +335,35 @@ class App:
         self.scrie("Am început o schemă nouă (A3 culcat). Exemplu: „adaugă ODF ODF-1 48 porturi”.", "prog")
 
     def salveaza(self):
+        """salvează în același format în care a fost deschis (.vsdx → .vsdx, .vsd → .vsd); originalul se păstrează o dată ca …_original"""
         if self.doc is None: return False
-        if not self.doc.path: return self.salveaza_ca()
+        if not self.doc.path and not self.orig_vsd: return self.salveaza_ca()
+        tinta = self.orig_vsd or self.doc.path
         try:
-            if not getattr(self, "backup_facut", False) and os.path.exists(self.doc.path):   # copia originalului, o singură dată
-                b = os.path.splitext(self.doc.path)[0] + "_original.vsdx"
-                if not os.path.exists(b): shutil.copy2(self.doc.path, b)
+            if not getattr(self, "backup_facut", False) and os.path.exists(tinta):
+                b = os.path.splitext(tinta)[0] + "_original" + os.path.splitext(tinta)[1]
+                if not os.path.exists(b): shutil.copy2(tinta, b)
                 self.backup_facut = True
-            self.doc.salveaza(self.doc.path)
+            if self.orig_vsd:                                         # .vsd: îl scrie Visio-ul de pe calculator
+                import tempfile, vsd_convert
+                self.status.config(text="Salvez ca .vsd prin Visio…"); self.root.update()
+                tmp = os.path.join(tempfile.mkdtemp(prefix="fibra_visio_"), "schema.vsdx"); self.doc.salveaza(tmp, pastreaza_cale=True)
+                vsd_convert.converteste(tmp, tinta)
+            else:
+                self.doc.salveaza(tinta)
         except PermissionError:
             messagebox.showerror(TITLU, "Nu pot scrie fișierul – probabil e deschis în Visio. Închide-l acolo sau folosește „Salvează ca…”."); return False
-        self.modificat = False; self.status.config(text=f"Salvat: {self.doc.path}")
-        self.scrie(f"Am salvat „{os.path.basename(self.doc.path)}”. (Originalul e păstrat ca …_original.vsdx)", "prog")
+        except Exception as e:
+            messagebox.showerror(TITLU, f"Nu am putut salva:\n{e}"); return False
+        self.modificat = False; self.status.config(text=f"Salvat: {tinta}")
+        self.scrie(f"Am salvat „{os.path.basename(tinta)}” (același format). Originalul e păstrat ca …_original{os.path.splitext(tinta)[1]}.", "prog")
         return True
 
     def salveaza_ca(self):
         if self.doc is None: return False
-        p = filedialog.asksaveasfilename(title="Salvează schema", defaultextension=".vsdx", filetypes=[("Visio (.vsdx)", "*.vsdx"), ("Visio 2003-2010 (.vsd)", "*.vsd")],
-                                         initialfile=os.path.basename(self.doc.path) if self.doc.path else "schema_fibra.vsdx")
+        p = filedialog.asksaveasfilename(title="Salvează schema", filetypes=[("Visio (.vsdx)", "*.vsdx"), ("Visio 2003-2010 (.vsd)", "*.vsd")],
+                                         initialfile=os.path.basename(self.orig_vsd or self.doc.path or "schema_fibra.vsdx"),
+                                         defaultextension=os.path.splitext(self.orig_vsd)[1] if self.orig_vsd else ".vsdx")
         if not p: return False
         if p.lower().endswith(".vsd"):                                   # .vsd: salvez .vsdx temporar și îl convertește Visio
             try:
@@ -309,8 +372,9 @@ class App:
                 vsd_convert.converteste(tmp, p)
             except Exception as e:
                 messagebox.showerror(TITLU, f"Nu pot salva ca .vsd (am nevoie de Visio pe calculator):\n{e}"); return False
+            self.orig_vsd = p; self.backup_facut = True
             self.modificat = False; self.status.config(text=f"Salvat: {p}"); self.scrie(f"Am salvat „{os.path.basename(p)}” (format .vsd).", "prog"); return True
-        try: self.doc.salveaza(p)
+        try: self.doc.salveaza(p); self.orig_vsd = None
         except PermissionError:
             messagebox.showerror(TITLU, "Nu pot scrie fișierul – probabil e deschis în Visio."); return False
         self.modificat = False; self.backup_facut = True; self.root.title(f"{TITLU} – {os.path.basename(p)}")
@@ -337,7 +401,7 @@ class App:
     def analizeaza(self):
         """la deschidere / schimbarea paginii: ce e pe schemă, ce nume pot folosi în chat"""
         import porturi
-        try: self.scrie(porturi.analiza(self.chat.schema, os.path.basename(self.doc.path or "schemă nouă")), "prog")
+        try: self.scrie(porturi.analiza(self.chat.schema, os.path.basename(self.orig_vsd or self.doc.path or "schemă nouă")), "prog")
         except Exception as e: self.scrie(f"Am deschis schema ({len(self.doc.pagini)} pagini). Gata de lucru. (analiza: {e})", "prog")
 
     # ---------- desen (ca în Visio) ----------
