@@ -128,6 +128,9 @@ class App:
         # --- schema | chat ---
         pw = ttk.PanedWindow(root, orient="horizontal"); pw.pack(fill="both", expand=True, padx=8, pady=(0, 4)); self.pw = pw
         stg = ttk.Frame(pw); pw.add(stg, weight=3)
+        # bara paginilor, ca în Visio: filele paginilor, „All ▴”, ⊕ pagină nouă
+        self.bara_pag = tk.Frame(stg, bg="#F0F0F0", height=30, highlightthickness=1, highlightbackground="#D6D6D6")
+        self.bara_pag.pack(side="bottom", fill="x")
         self.cv = tk.Canvas(stg, bg="#E6E8EB", highlightthickness=0); self.cv.pack(fill="both", expand=True)
         self.cv.bind("<MouseWheel>", self.roata); self.cv.bind("<Button-4>", lambda e: self.zoom_la(e, 1.15)); self.cv.bind("<Button-5>", lambda e: self.zoom_la(e, 1 / 1.15))
         self.cv.bind("<ButtonPress-1>", self.clic); self.cv.bind("<B1-Motion>", self.trage); self.cv.bind("<ButtonRelease-1>", self.elibereaza)
@@ -187,8 +190,20 @@ class App:
         self.txt.bind("<Control-c>", self.copiaza_din_chat); self.txt.bind("<Control-C>", self.copiaza_din_chat)
         self.txt.bind("<ButtonRelease-3>", self.meniu_chat)
         self.txt.tag_config("var", foreground=ACCENT, font=("Segoe UI", 10, "underline"), lmargin1=14, lmargin2=14, spacing1=3)
-        self.status = ttk.Label(root, text="Deschide o schemă .vsdx / .vsd (sau trage fișierul aici) ori începe una nouă.", anchor="w",
-                                style="Mic.TLabel", padding=(10, 3)); self.status.pack(fill="x")
+        # bara de stare, ca în Visio: „Pagina 2 din 2 · Română … ⤢ − ▬▬▬ + 212%”
+        sb_ = tk.Frame(root, bg="#F3F3F3", highlightthickness=1, highlightbackground="#DADADA"); sb_.pack(fill="x", side="bottom", before=self.pw)
+        self.lbl_pagina = tk.Label(sb_, text="", bg="#F3F3F3", fg="#444", font=("Segoe UI", 9), padx=10); self.lbl_pagina.pack(side="left")
+        tk.Label(sb_, text="Română", bg="#F3F3F3", fg="#444", font=("Segoe UI", 9), padx=10).pack(side="left")
+        self.lbl_zoom = tk.Label(sb_, text="100%", bg="#F3F3F3", fg="#444", font=("Segoe UI", 9), width=6); self.lbl_zoom.pack(side="right", padx=(0, 8))
+        for txt, cmd in (("＋", lambda: self.zoom_centru(1.1)),):
+            b = tk.Label(sb_, text=txt, bg="#F3F3F3", fg="#444", font=("Segoe UI", 10), cursor="hand2"); b.pack(side="right"); b.bind("<Button-1>", lambda e, c=cmd: c())
+        self.sc_zoom = ttk.Scale(sb_, from_=10, to=400, orient="horizontal", length=130, command=self.zoom_din_bara); self.sc_zoom.pack(side="right", padx=4)
+        b = tk.Label(sb_, text="－", bg="#F3F3F3", fg="#444", font=("Segoe UI", 10), cursor="hand2"); b.pack(side="right")
+        b.bind("<Button-1>", lambda e: self.zoom_centru(1 / 1.1))
+        b = tk.Label(sb_, text="⤢", bg="#F3F3F3", fg="#444", font=("Segoe UI", 11), cursor="hand2", padx=8); b.pack(side="right")
+        b.bind("<Button-1>", lambda e: self.potriveste())
+        self.status = ttk.Label(sb_, text="Deschide o schemă .vsdx / .vsd (sau trage fișierul aici) ori începe una nouă.", anchor="w",
+                                style="Mic.TLabel", padding=(10, 3), background="#F3F3F3"); self.status.pack(side="left", fill="x", expand=True)
         root.protocol("WM_DELETE_WINDOW", self.inchide)
         self.scrie("Bună! Deschide o schemă Visio (.vsdx sau .vsd) – sau trage fișierul peste fereastră – apoi scrie aici ce să fac.\n"
                    "Scrie „ajutor” ca să vezi exemple.", "prog")
@@ -796,10 +811,75 @@ class App:
             self.scrie(f"N-am reușit să tipăresc: {e}", "err")
         finally: self.root.config(cursor="")
 
+    # ---------- filele paginilor și zoomul, ca în Visio ----------
+    def file_pagini(self):
+        b = self.bara_pag
+        for w in b.winfo_children(): w.destroy()
+        if not self.doc: return
+        tk.Frame(b, width=40, bg="#F0F0F0").pack(side="left")
+        for i, p in enumerate(self.doc.pagini):
+            act = i == self.chat.ip
+            l = tk.Label(b, text=p.nume, bg="white" if act else "#F0F0F0", fg=ACCENT if act else "#333333", padx=14, pady=4, cursor="hand2",
+                         font=("Segoe UI", 9, "bold") if act else ("Segoe UI", 9))
+            l.pack(side="left")
+            l.bind("<Button-1>", lambda e, i=i: self.mergi_la_pagina(i))
+            l.bind("<Double-Button-1>", lambda e, i=i: self.redenumeste_pagina(i))
+            l.bind("<ButtonRelease-3>", lambda e, i=i: self.meniu_pagina(e, i))
+        tot = tk.Label(b, text="All ▴", bg="#F0F0F0", fg="#333", padx=10, cursor="hand2", font=("Segoe UI", 9)); tot.pack(side="left")
+        tot.bind("<Button-1>", lambda e: self.meniu_toate_paginile(e))
+        plus = tk.Label(b, text="⊕", bg="#F0F0F0", fg="#333", padx=8, cursor="hand2", font=("Segoe UI", 13)); plus.pack(side="left")
+        plus.bind("<Button-1>", lambda e: self.pagina_noua())
+        self.lbl_pagina.config(text=f"Pagina {self.chat.ip + 1} din {len(self.doc.pagini)}")
+
+    def mergi_la_pagina(self, i):
+        if not self.doc or not 0 <= i < len(self.doc.pagini): return
+        self.chat.ip = i; self.selectie = []; self.actualizeaza_pagini(); self.potriveste()
+
+    def meniu_toate_paginile(self, e):
+        m = tk.Menu(self.root, tearoff=0)
+        for i, p in enumerate(self.doc.pagini): m.add_command(label=("✔ " if i == self.chat.ip else "   ") + p.nume, command=lambda i=i: self.mergi_la_pagina(i))
+        m.tk_popup(e.x_root, e.y_root)
+
+    def meniu_pagina(self, e, i):
+        m = tk.Menu(self.root, tearoff=0)
+        m.add_command(label="Redenumește…", command=lambda: self.redenumeste_pagina(i))
+        m.add_command(label="Pagină nouă", command=self.pagina_noua)
+        m.tk_popup(e.x_root, e.y_root)
+
+    def pagina_noua(self):
+        if not self.doc: return
+        k = len(self.doc.pagini) + 1
+        while any(p.nume == f"Pagina-{k}" for p in self.doc.pagini): k += 1
+        with self.chat.lacat:
+            self.inainte_de_modificare(); p = self.doc.pagina_noua(f"Pagina-{k}")
+        self.modificat = True; self.mergi_la_pagina(self.doc.pagini.index(p))
+
+    def redenumeste_pagina(self, i):
+        from tkinter import simpledialog
+        p = self.doc.pagini[i]
+        n = simpledialog.askstring(TITLU, "Numele paginii:", initialvalue=p.nume, parent=self.root)
+        if not n or n == p.nume: return
+        self.inainte_de_modificare(); p.nume = n; p.el_page.set("NameU", n); p.el_page.set("Name", n)
+        self.modificat = True; self.actualizeaza_pagini()
+
+    def zoom_din_bara(self, v):
+        if getattr(self, "_zoom_bara_ocupat", False) or not self.doc: return
+        z = float(v) / 100 * 96
+        if abs(z - self.zoom) < 0.5: return
+        self.zoom_centru(z / self.zoom)
+
+    def arata_zoom(self):
+        try:
+            pr = self.zoom / 96 * 100; self.lbl_zoom.config(text=f"{pr:.0f}%")
+            self._zoom_bara_ocupat = True; self.sc_zoom.set(max(10, min(400, pr)))
+        except Exception: pass
+        finally: self._zoom_bara_ocupat = False
+
     def actualizeaza_pagini(self):
         if not self.doc: return
         self.cb_pag["values"] = [f"{i + 1}. {p.nume}" for i, p in enumerate(self.doc.pagini)]
         self.cb_pag.current(self.chat.ip)
+        self.file_pagini()
         try:
             fmt, culcat = tiparire.recunoaste(*self.doc.pagini[self.chat.ip].dimensiune())
             self.cb_format.set(fmt or "altul"); self.cb_orient.set("culcat" if culcat else "în picioare")
@@ -852,6 +932,7 @@ class App:
 
     def _deseneaza(self):
         if getattr(self, "ed_win", None): self.inchide_editor(True); return     # întâi termină editarea textului
+        self.arata_zoom()
         cv = self.cv; cv.delete("all")
         if not self.doc: return
         p = self.doc.pagini[self.chat.ip]; W, H = p.dimensiune()
