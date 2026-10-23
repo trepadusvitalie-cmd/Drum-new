@@ -291,9 +291,10 @@ class App:
             try: self.scrie(comenzi.vorbeste_fara_schema(m), "prog")
             except Exception: self.scrie("Întâi deschide o schemă (butonul „Deschide schema…”) sau apasă „Schemă nouă”.", "prog")
             return
-        rs = self.comanda_selectie(cm)
+        rs = self.comanda_selectie(cm, m)
         if rs:
             self.scrie(rs, "err" if rs.startswith(("Selectează", "Nu am")) else "prog")
+            if rs.startswith("Ce scriu"): self.scrie_variante(self.chat.variante)
             try: self.chat.memorie.noteaza(m, rs, not rs.startswith(("Selectează", "Nu am")))
             except Exception: pass
             return
@@ -533,8 +534,36 @@ class App:
     STIL_CUV = r"\b(rosu|rosie|albastr\w*|verde|negru|neagra|galben\w*|portocali\w*|mov|violet|gri|sur|alb|alba|maro|roz|intrerupt\w*|punctat\w*|continu\w*|" \
                r"plin\w*|gros\w*|ingroas\w*|subtir\w*|bold|aldin|mai mare|mai mic|mareste|micsoreaza|culoare|coloreaza|umple|fundal|sterge)"
 
-    def comanda_selectie(self, cm):
+    def eticheta_selectie(self, cm, orig):
+        """„pune nr 5”, „eticheta FO-12”, „scrie 120 m”: o etichetă lângă linia / obiectul selectat"""
+        m = re.match(r"(?:pune|adauga|scrie|fa|da)?\s*(?:o |un )?(?:nr|numar\w*|numerot\w*|eticheta|etichete|text\w*|inscriptie|denumire|cifra)\b\s*(.*)$", cm)
+        if not m and self.selectie: m = re.match(r"(?:scrie|pune)\s+(\d[\w\s.,\-/]*|fo[\s\-]?\d+\w*)$", cm)   # „scrie 120 m”, „pune FO-12”
+        if not m: return None
+        if not self.selectie: return "Selectează întâi linia / obiectul (clic pe el), apoi scrie „pune nr 5” sau „eticheta FO-12”."
+        txt = orig.strip()[len(orig.strip()) - len(m.group(1)):].strip(" „”\"") if m.group(1) else ""
+        if not txt:
+            self.chat.variante = ["pune nr 1", "eticheta FO-12", "eticheta 120 m"]
+            return "Ce scriu pe etichetă? Scrie, de ex., „pune nr 5”, „eticheta FO-12” sau „eticheta 120 m”."
+        import porturi
+        S = self.chat.schema
+        with self.chat.lacat:
+            self.inainte_de_modificare()
+            for f in self.selectie:
+                if f.e1d:
+                    bx, by, ex, ey = f.num("BeginX"), f.num("BeginY"), f.num("EndX"), f.num("EndY")
+                    if f.parinte: (bx, by), (ex, ey) = f.parinte.transforma()(bx, by), f.parinte.transforma()(ex, ey)
+                    vert = abs(ey - by) > abs(ex - bx)
+                    x, y = (bx + ex) / 2 + (0.09 if vert else 0), (by + ey) / 2 + (0 if vert else 0.09)
+                else:
+                    b = f.cutie(); vert = False; x, y = (b[0] + b[2]) / 2, b[3] + 0.15
+                porturi.eticheta(S, x, y, txt, vertical=vert)
+        self.modificat = True; self.deseneaza()
+        return f"Am pus eticheta „{txt}” la {len(self.selectie)} {'obiect selectat' if len(self.selectie) == 1 else 'obiecte selectate'}. (O poți muta cu mausul.)"
+
+    def comanda_selectie(self, cm, orig=""):
         """„obiectul selectat fă roșu”, „asta întrerupt”, „textul mai mare”… -> mesaj sau None dacă nu e pentru selecție"""
+        r = self.eticheta_selectie(cm, orig or cm)
+        if r: return r
         if not re.search(self.STIL_CUV, cm): return None
         if re.match(r"(sterge|muta|redenumeste|adauga|trage|cablu)\b", cm) and not re.search(r"\b(selectat\w*|selectia|asta|acesta|aceasta)\b", cm) \
                 and cm not in ("sterge", "sterge-l", "sterge-o"): return None          # „șterge M5”, „adaugă cablu … roșu”: comenzi pe schemă
