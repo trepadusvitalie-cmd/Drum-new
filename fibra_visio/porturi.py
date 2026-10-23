@@ -78,6 +78,13 @@ def noduri(S):
             a = f.cutie(); d = math.hypot((a[0] + a[2]) / 2 - cx, (a[1] + a[3]) / 2 - cy)
             if d < bd: best, bd = f, d
         nume = best.text_tot().split("\n")[0].strip() if best else f"Bandă {len(out) + 1}"
+        if not best or re.fullmatch(r"(?i)adresa|bandă \d+", nume):            # titlu general („ADRESA”): caut numele ODF-ului (SUBINEL/R ODF…)
+            sp, sd = None, 1.3
+            for f, t in txt:
+                if not re.search(r"(?i)subinel|odb|odf|client|cta|bts", t) or re.fullmatch(r"[\d\s|…]+", t): continue
+                a = f.cutie(); d = math.hypot((a[0] + a[2]) / 2 - cx, (a[1] + a[3]) / 2 - cy)
+                if d < sd: sp, sd = f, d
+            if sp is not None: best = sp; nume = " ".join(sp.text_tot().split())
         out.append(Nod(nume, best, b, numere, n))
     return out
 
@@ -419,12 +426,18 @@ def comanda(S, t):
             + (f", cu sudură în {sud}." if sud else "."))
 
 
+def _nu_e_manson(nume):
+    """cuvintele din cartușul foii sau titluri generale – nu sunt manșoane"""
+    return bool(re.fullmatch(r"(?i)foaie|foi|coala.*|pe|ре|/?\d{2,4}|data|denumirea.*|adresa|\W*", nume.strip()))
+
+
 @_tine_minte
 def mansoane(S):
     """manșoanele / chenarele cu nume care nu au bandă de porturi (M1, M2…)"""
     ns = {norm(n.nume) for n in noduri(S)}; out = []
     for nume, nod in _candidati(S):
         if nod is not None or norm(nume) in ns: continue
+        if _nu_e_manson(nume): continue
         try: cutie_nod(S, nume); out.append(nume)
         except Exception: pass
     return out
@@ -436,7 +449,7 @@ def analiza(S, nume_fisier=""):
     ns = noduri(S); nume_noduri = {norm(n.nume) for n in ns}; lin = []
     mans = []
     for nume, nod in _candidati(S):
-        if nod is not None or norm(nume) in nume_noduri: continue
+        if nod is not None or norm(nume) in nume_noduri or _nu_e_manson(nume): continue
         try: cutie_nod(S, nume); mans.append(nume)
         except Exception: pass
     cab = Counter()

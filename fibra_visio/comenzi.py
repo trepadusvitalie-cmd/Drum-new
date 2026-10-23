@@ -142,6 +142,22 @@ class Chat:
             m.invata_din_istoric(); return m.ultimele(12) + "\n\nAm recitit discuțiile și am reînvățat din ele.\n" + m.rezumat()
         if re.fullmatch(r"(uita tot|sterge memoria|goleste memoria)", t): m.uita(); return "Am uitat tot ce am învățat (memoria e goală)."
         if re.search(r"\b(ce (fac|lucreaza) agentii|agenti|ce faci acum|cat mai (dureaza|ai)|e gata\??|status)\b", t): return self.stare_agenti()
+        if re.search(r"\b(analiz\w*|rezum\w*|descrie\w*|ce (e|este|contine|vezi|ai) (pe|in) (schema|pagina)|ce (poti|potis|stii|sti|ai) (sa )?(spui|spune|zice)\w*|"
+                     r"spune(-mi)? (ceva )?despre (schema|pagina)|ce vezi)\b", t) and hasattr(self, "doc"):
+            import porturi, os as _os
+            try:
+                r = porturi.analiza(self.schema, "")
+                S = self.schema
+                try:
+                    import traseu
+                    nd = max(porturi.noduri(S), key=lambda n: (n.nume.upper().startswith("ODF"), n.n))
+                    ocup = len(porturi.porturi_ocupate(S, nd))
+                    r += f"\n• ODF principal: {nd.nume}, {nd.n} porturi ({ocup} ocupate, {nd.n - ocup} libere)."
+                    r += "\nPoți scrie, de ex.: „arata pentru port 21”, „porturi libere”, „cate suduri sunt”, „gaseste sudurile”."
+                except Exception: pass
+                return r
+            except Exception as e:
+                return f"N-am reușit să analizez schema: {e}"
         if re.search(r"\bporturi\w* (libere|ocupate|goale|folosite)|\b(cate|ce) porturi\b|\bunde (am|e|sunt) (loc|porturi)", t):
             import porturi
             S = self.schema; out = []
