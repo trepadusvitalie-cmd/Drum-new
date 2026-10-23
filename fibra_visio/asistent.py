@@ -149,6 +149,17 @@ class Agent:
             return (r if isinstance(r, str) else r[0]), True, ip
         return (f"Agentul trage fibra: {cmd}.", False, [], (f"fibra {s['A']} → {s['B']}", lucreaza))
 
+    def _nod_din(self, o, t):
+        """nodul pomenit în răspuns, oricum ar fi scris („FL_X port liber trage-l la clădire”)"""
+        S = self.chat.schema
+        try: return porturi.gaseste_nod(S, re.sub(r"\s*\(.*$", "", re.sub(r"^(de la|din|la)\s+", "", o, flags=re.I)))
+        except Exception: pass
+        try:
+            for a, b, nume, nd in porturi.mentiuni(S, t):
+                if nd is not None: return nd
+        except Exception: pass
+        return None
+
     def _nume_manson(self, nm):
         """numele așa cum e scris pe schemă (M2, nu m2)"""
         for m in porturi.mansoane(self.chat.schema):
@@ -265,9 +276,10 @@ class Agent:
         elif q == "sursa":
             if re.search(r"^(fara|nu\b|deocamdata|niciun|nimic)", t): s["sursa"] = None
             else:
-                try: s["sursa"] = porturi.gaseste_nod(self.chat.schema, re.sub(r"\s*\(.*$", "", re.sub(r"^(de la|din|la)\s+", "", o, flags=re.I))).nume
-                except Exception:
-                    return self.neinteles("Nu găsesc nodul ăsta. Alege de la ce nod pornesc fibrele:")
+                nd = self._nod_din(o, t)
+                if nd is None: return self.neinteles("Nu găsesc nodul ăsta. Alege de la ce nod pornesc fibrele:")
+                if self._libere(nd) == 0: return self.neinteles(f"{nd.nume} nu mai are porturi libere. Alege alt nod:")
+                s["sursa"] = nd.nume
         elif q == "fibre":
             if "toate" in t: s["fibre"] = "toate"
             else:

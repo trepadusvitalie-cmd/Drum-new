@@ -177,14 +177,14 @@ class Chat:
             v = None if ales else self.vorbeste(t1)
             if v:                                                          # o întrebare pe lângă: răspund și țin dialogul deschis
                 self.variante = ag.optiuni; return v + "\n\n(Încă aștept răspunsul la: " + getattr(ag, "text_intrebare", q or "") + ")", False
-            if q != "nume" and dictionar.intentie(t1):                     # cere altceva nou: pun dialogul deoparte, încep altul
+            if q != "nume" and dictionar.intentie(t1) and dictionar.intentie(t1) != ag.intentie:   # aceeași lucrare = răspuns, nu una nouă                     # cere altceva nou: pun dialogul deoparte, încep altul
                 self.amanate = (getattr(self, "amanate", None) or []) + [ag]; self.agent = asistent.Agent(self)
                 r = self.agent.porneste(t0, mesaj)
                 if r is not None:
                     self.variante = r[2]
                     return f"(Am pus deoparte „{ag.sloturi.get('nume', ag.intentie)}” – scrie „continua” ca s-o reiau.)\n" + r[0], False
                 self.agent = self.amanate.pop()
-            if re.search(r"\bport\w*\b.*\bla\b|\bp\d+\b.*\bla\b", t1) and q not in ("nume",):      # comandă de fibră în timpul dialogului
+            if re.search(r"\bport\w*\b.*\bla\b|\bp\d+\b.*\bla\b", t1) and q not in ("nume", "sursa", "A", "B") and dictionar.intentie(t1) != ag.intentie:      # comandă de fibră în timpul dialogului
                 self.agent = asistent.Agent(self)
                 try: r, sch = self._raspunde(mesaj, traduce=False)
                 finally: self.agent = ag
