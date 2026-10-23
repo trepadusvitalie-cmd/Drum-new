@@ -67,8 +67,16 @@ Tipărire și format foaie
   PDF: alege imprimanta „Microsoft Print to PDF”.
   Formatul paginii schemei: Fișier → Pagină → Format (A1…A5, implicit A3) și Orientare; sau în chat „format A4”, „A3 in picioare”.
 
-Găsește și selectează, din chat
-  „gaseste sudurile si coloreaza cu galben”, „selecteaza fibrele rosii”, „arata fibrele albastre”, „selecteaza fibrele noi”.
+Găsește, selectează, numără, șterge, mută – din chat, cu orice formulare
+  „gaseste sudurile si coloreaza cu galben”, „selecteaza fibrele rosii”, „fibrele albastre fa rosii”, „selecteaza fibrele noi”
+  „cate suduri sunt”, „cati mansoane sunt”, „cate fibre rosii sunt”
+  „arata M2”, „unde e CTA Sud” (îl găsește, îl selectează și îl aduce în mijlocul ecranului), „M2 fa rosu”
+  „sterge sudurile”, „muta-le la dreapta 1 cm”, „selecteaza textele”, „selecteaza tot”, „deselecteaza”
+  Dacă nu înțelege, îți propune comenzile cele mai apropiate; ce alegi ține minte pentru data viitoare.
+
+Copiere din chat
+  Sub fiecare mesaj, în dreapta: „⧉ Copiază” – copiază mesajul. Poți și selecta textul cu mausul → Ctrl+C,
+  sau clic dreapta în chat → „Copiază selecția” / „Copiază toată discuția”.
 
 Obiectul selectat, din chat
   Selectezi pe schemă (clic, Shift+clic) și scrii: „obiectul selectat fa rosu”, „asta intrerupt”, „mai gros”, „subtire”,

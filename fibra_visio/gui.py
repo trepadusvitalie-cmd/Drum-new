@@ -3,7 +3,7 @@ import copy, math, os, queue, re, shutil, sys, threading, traceback
 import xml.etree.ElementTree as ET
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import vsdx_doc, desen, comenzi, tiparire
+import vsdx_doc, desen, comenzi, tiparire, actiuni
 
 TITLU = "Fibra Visio"
 CUL_INDEX = {0: "#000000", 1: "#FFFFFF", 2: "#FF0000", 3: "#00FF00", 4: "#0000FF", 5: "#FFFF00", 6: "#FF00FF", 7: "#00FFFF",
@@ -181,6 +181,11 @@ class App:
         self.txt.tag_config("err", background=BULA_ERR, foreground="#A4262C", lmargin1=6, lmargin2=6, rmargin=50, spacing1=6, spacing3=6)
         self.txt.tag_config("cine", foreground="#808080", font=("Segoe UI", 8), spacing1=8)
         self.txt.tag_config("cine_eu", justify="right", rmargin=8)
+        self.txt.tag_config("copybtn", justify="right", foreground="#6B7785", font=("Segoe UI", 8), rmargin=8, spacing1=1)
+        self.txt.configure(exportselection=True, inactiveselectbackground="#CFE3FA", selectbackground="#9CC3F0")
+        self.txt.bind("<Button-1>", lambda e: self.txt.focus_set())                     # textul din chat se poate selecta cu mausul
+        self.txt.bind("<Control-c>", self.copiaza_din_chat); self.txt.bind("<Control-C>", self.copiaza_din_chat)
+        self.txt.bind("<ButtonRelease-3>", self.meniu_chat)
         self.txt.tag_config("var", foreground=ACCENT, font=("Segoe UI", 10, "underline"), lmargin1=14, lmargin2=14, spacing1=3)
         self.status = ttk.Label(root, text="Deschide o schemă .vsdx / .vsd (sau trage fișierul aici) ori începe una nouă.", anchor="w",
                                 style="Mic.TLabel", padding=(10, 3)); self.status.pack(fill="x")
@@ -268,7 +273,39 @@ class App:
         self.txt.configure(state="normal")
         self.txt.insert("end", ("Tu" if tag == "eu" else "Fibra Visio") + "\n", ("cine", "cine_eu") if tag == "eu" else ("cine",))
         self.txt.insert("end", " " + s.strip() + " \n", tag)
+        self.nr_mesaj = getattr(self, "nr_mesaj", 0) + 1; tg = f"copy_{self.nr_mesaj}"         # „⧉ Copiază” în dreapta, sub fiecare mesaj
+        self.txt.insert("end", "⧉ Copiază\n", ("copybtn", tg))
+        self.txt.tag_bind(tg, "<Button-1>", lambda e, t=s.strip(), tg=tg: self.copiaza_text(t, tg))
+        self.txt.tag_bind(tg, "<Enter>", lambda e: self.txt.config(cursor="hand2")); self.txt.tag_bind(tg, "<Leave>", lambda e: self.txt.config(cursor=""))
         self.txt.configure(state="disabled"); self.txt.see("end")
+
+    def copiaza_text(self, t, tg=None):
+        """textul mesajului în clipboard (îl lipești unde vrei cu Ctrl+V)"""
+        self.root.clipboard_clear(); self.root.clipboard_append(t); self.root.update()
+        try: self.status.config(text="Copiat în clipboard.")
+        except Exception: pass
+        if tg:
+            r = self.txt.tag_ranges(tg)
+            if r:
+                self.txt.configure(state="normal"); self.txt.delete(r[0], r[1]); self.txt.insert(r[0], "✔ Copiat\n", ("copybtn", tg)); self.txt.configure(state="disabled")
+                self.root.after(1500, lambda: self._revino_copy(tg))
+
+    def _revino_copy(self, tg):
+        r = self.txt.tag_ranges(tg)
+        if r:
+            self.txt.configure(state="normal"); self.txt.delete(r[0], r[1]); self.txt.insert(r[0], "⧉ Copiază\n", ("copybtn", tg)); self.txt.configure(state="disabled")
+
+    def copiaza_din_chat(self, e=None):
+        try: t = self.txt.get("sel.first", "sel.last")
+        except tk.TclError: t = ""
+        if t: self.copiaza_text(t)
+        return "break"
+
+    def meniu_chat(self, e):
+        m = tk.Menu(self.root, tearoff=0)
+        m.add_command(label="Copiază selecția", command=self.copiaza_din_chat)
+        m.add_command(label="Copiază toată discuția", command=lambda: self.copiaza_text(self.txt.get("1.0", "end").replace("⧉ Copiază\n", "")))
+        m.tk_popup(e.x_root, e.y_root)
 
     def trimite(self):
         m = self.ent.get("1.0", "end").strip()
@@ -297,7 +334,12 @@ class App:
         if re.fullmatch(r"(inca|inca o data|inca odata|inca o daca|mai|si mai|repeta|la fel|din nou|again|again pls|tot asa|inca putin|mai mult)", cm) \
                 and getattr(self, "ultima_sel", None) and self.selectie:
             cm, m = self.ultima_sel                                       # „încă”: repet ultima schimbare pe selecție
-        rs = self.gaseste_si_selecteaza(cm) or self.comanda_selectie(cm, m)
+        rs = self.cerere_gui(cm, m)
+        if rs is None:                                                          # am mai auzit asta? (memoria învățată din discuții)
+            tr = self.chat.memorie.traduce(m)
+            if tr:
+                rs = self.cerere_gui(comenzi.fara_diacritice(tr).lower().strip(" .!"), tr)
+                if rs: rs = f"(Am înțeles: „{tr}”)\n" + rs
         if rs and rs.startswith(("Gata", "Am pus")): self.ultima_sel = (cm, m)
         if rs:
             self.scrie(rs, "err" if rs.startswith(("Selectează", "Nu am")) else "prog")
@@ -310,6 +352,9 @@ class App:
             for linie in [x for x in re.split(r"\n+", m) if x.strip()]:             # mai multe comenzi, câte una pe rând
                 r, sch = self.chat.raspunde(linie)
                 self.scrie(r, "err" if r.startswith(("N-am", "Nu am înțeles", "Nu găsesc")) else "prog")
+                if r.startswith("Nu am înțeles"):                                   # variante și din comenzile pe schemă / selecție
+                    extra = [x for x in actiuni.propune(comenzi.fara_diacritice(linie).lower()) if x not in self.chat.variante]
+                    self.chat.variante = (extra + self.chat.variante)[:5]
                 if self.chat.variante: self.scrie_variante(self.chat.variante)
                 if sch and not r.startswith("N-am"): self.modificat = True
                 self.porneste_agenti()
@@ -552,36 +597,27 @@ class App:
         if not (0 < w < 0.12 and 0 < h < 0.12 and 0.6 < w / max(h, 1e-6) < 1.6): return False
         return (f.cell("FillPattern", "1") or "1") != "0"
 
-    def gaseste_si_selecteaza(self, cm):
-        """„găsește sudurile și selectează-le / colorează-le cu galben”, „selectează fibrele roșii” -> mesaj sau None"""
-        verb = re.search(r"\b(gas\w*|caut\w*|select\w*|arat\w*|marc\w*|evident\w*|colo\w*|toate|vopse\w*|fa|fa-le|pune)\b", cm)
-        culoare_ = any(re.search(r"\b" + k + r"\b", cm) for k in self.CULORI)
-        if re.search(r"\d|\bport", cm) or not (verb or culoare_): return None      # „… port 3 … sudura in M1” e comandă de fibră
-        p = self.doc.pagini[self.chat.ip]; forme = list(p.forme())
-        if re.search(r"\bsud(ur|ar)\w*|\bpunct\w*|\bjonctiun\w*", cm):
-            sel = [f for f in forme if self.e_punct(f)]; ce = "puncte de sudură"
-        elif re.search(r"\b(fibr\w*|lini\w*|cabl\w*)\b", cm):
-            cul = None
-            for k in sorted(self.CULORI, key=len, reverse=True):
-                if re.search(r"\b(fibr\w*|lini\w*|cabl\w*)\s+(\w+\s+)?" + k + r"\b", cm): cul = self.CULORI[k]; break
-            noi = bool(re.search(r"\bno(i|ua)\b", cm)); intr = bool(re.search(r"intrerupt", cm))
-            def ok(f):
-                if not f.e1d: return False
-                lc = (gui_culoare(f.cell("LineColor"), "#000000") or "").upper()
-                if noi: return lc == "#FF0000" or (f.cell("LinePattern", "1") or "1") not in ("0", "1")
-                if intr: return (f.cell("LinePattern", "1") or "1") not in ("0", "1")
-                return cul is None or lc == cul.upper()
-            sel = [f for f in forme if ok(f)]; ce = "linii"
-            if cul: cm = re.sub(r"\b(fibr\w*|lini\w*|cabl\w*)\s+(\w+\s+)?\w+", " ", cm, count=1)   # culoarea de căutare nu e și culoarea nouă
-        else: return None
-        if not sel: return f"Nu găsesc {ce} pe pagina asta."
-        self.selectie = sel; self.deseneaza()
-        msg = f"Am găsit și am selectat {len(sel)} {ce}."
-        rest = re.sub(r"\b(gas\w*|caut\w*|select\w*|arat\w*|marc\w*|evident\w*|colo\w*|vopse\w*|si|le|toate|sud\w*|punct\w*|de|cu|in)\b", " ", cm)
-        if re.search(self.STIL_CUV, rest):
-            r = self.comanda_selectie("selectate " + rest.strip())
-            if r: msg += " " + r
-        return msg
+    def cerere_gui(self, cm, m):
+        try: return actiuni.interpreteaza(self, cm, m) or self.comanda_selectie(cm, m)
+        except Exception as e: return f"N-am reușit: {e}"
+
+    def culoare_forma(self, f):
+        return gui_culoare(f.cell("LineColor"), "#000000")
+
+    def zoom_pe(self, forme):
+        """vederea pe obiectele date (le arată mari, în mijloc)"""
+        bs = []
+        for f in forme:
+            try: bs.append(f.cutie())
+            except Exception: pass
+        if not bs: self.deseneaza(); return
+        x0, y0 = min(b[0] for b in bs) - 0.6, min(b[1] for b in bs) - 0.6; x1, y1 = max(b[2] for b in bs) + 0.6, max(b[3] for b in bs) + 0.6
+        cw, ch = max(self.cv.winfo_width(), 200), max(self.cv.winfo_height(), 200)
+        H = self.doc.pagini[self.chat.ip].dimensiune()[1]
+        self.zoom = max(10, min(400, min(cw / (x1 - x0), ch / (y1 - y0))))
+        self.ox = (cw - (x1 - x0) * self.zoom) / 2 - x0 * self.zoom
+        self.oy = (ch - (y1 - y0) * self.zoom) / 2 - (H - y1) * self.zoom
+        self.deseneaza()
 
     def eticheta_selectie(self, cm, orig):
         dictionar_fd = lambda x: comenzi.fara_diacritice(x).lower().strip()
