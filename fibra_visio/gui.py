@@ -3,7 +3,7 @@ import copy, math, os, queue, re, shutil, sys, threading, traceback
 import xml.etree.ElementTree as ET
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import vsdx_doc, desen, comenzi
+import vsdx_doc, desen, comenzi, tiparire
 
 TITLU = "Fibra Visio"
 CUL_INDEX = {0: "#000000", 1: "#FFFFFF", 2: "#FF0000", 3: "#00FF00", 4: "#0000FF", 5: "#FFFF00", 6: "#FF00FF", 7: "#00FFFF",
@@ -38,7 +38,7 @@ class App:
         # --- panglica (ca în Word): titlu + săgeți, apoi filele Fișier / Acasă / Inserare / Vizualizare ---
         sus = tk.Frame(root, bg=ACCENT); sus.pack(fill="x")
         tk.Label(sus, text="◈ Fibra Visio", bg=ACCENT, fg="white", font=("Segoe UI Semibold", 11)).pack(side="left", padx=(10, 14), pady=4)
-        for txt, cmd in (("💾", lambda: self.salveaza()), ("←", lambda: self.anuleaza_chat()), ("→", lambda: self.inainte())):
+        for txt, cmd in (("💾", lambda: self.salveaza()), ("🖨", lambda: self.dialog_tiparire()), ("←", lambda: self.anuleaza_chat()), ("→", lambda: self.inainte())):
             b = tk.Label(sus, text=txt, bg=ACCENT, fg="white", font=("Segoe UI", 12), padx=8, cursor="hand2"); b.pack(side="left")
             b.bind("<Button-1>", lambda e, c=cmd: c())
             b.bind("<Enter>", lambda e, b=b: b.config(bg="#2B88D8")); b.bind("<Leave>", lambda e, b=b: b.config(bg=ACCENT))
@@ -62,6 +62,15 @@ class App:
         # Fișier
         ff = fila("Fișier"); g = grup(ff, "Fișier")
         mare(g, "📂", "Deschide", self.deschide); mare(g, "＋", "Nouă", self.nou); mare(g, "💾", "Salvează", self.salveaza); mare(g, "🖫", "Salvează ca", self.salveaza_ca)
+        g = grup(ff, "Tipărire"); mare(g, "🖨", "Tipărește", self.dialog_tiparire)
+        g = grup(ff, "Pagină")
+        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3)); r2 = ttk.Frame(g); r2.pack(fill="x")
+        ttk.Label(r1, text="Format    ", style="Mic.TLabel").pack(side="left")
+        self.cb_format = ttk.Combobox(r1, state="readonly", width=12, values=list(tiparire.FORMATE)); self.cb_format.set(tiparire.IMPLICIT)
+        self.cb_format.pack(side="left"); self.cb_format.bind("<<ComboboxSelected>>", lambda e: self.schimba_format())
+        ttk.Label(r2, text="Orientare ", style="Mic.TLabel").pack(side="left")
+        self.cb_orient = ttk.Combobox(r2, state="readonly", width=12, values=["culcat", "în picioare"]); self.cb_orient.set("culcat")
+        self.cb_orient.pack(side="left"); self.cb_orient.bind("<<ComboboxSelected>>", lambda e: self.schimba_format())
         # Acasă
         fa = fila("Acasă")
         g = grup(fa, "Clipboard")
@@ -128,7 +137,8 @@ class App:
         self.selectie = []; self.mod = None; self.clipboard = []
         for k, fn in (("<Control-c>", self.copiaza), ("<Control-C>", self.copiaza), ("<Control-v>", self.lipeste), ("<Control-V>", self.lipeste),
                       ("<Delete>", self.sterge_selectia), ("<Control-z>", self.anuleaza), ("<Control-Z>", self.anuleaza), ("<Control-y>", self.inainte_tasta), ("<Control-Y>", self.inainte_tasta), ("<Control-a>", self.selecteaza_tot),
-                      ("<Control-s>", lambda e: self.salveaza()), ("<Control-o>", lambda e: self.deschide())):
+                      ("<Control-s>", lambda e: self.salveaza()), ("<Control-o>", lambda e: self.deschide()),
+                      ("<Control-p>", lambda e: self.dialog_tiparire())):
             root.bind(k, fn)
         for k in ("<Left>", "<Right>", "<Up>", "<Down>"): self.cv.bind(k, self.sageti)
         dr = tk.Frame(pw, bg=PANOU, width=440); pw.add(dr, weight=1)
@@ -270,9 +280,22 @@ class App:
             return
         if comenzi.fara_diacritice(m).lower().strip(" .!") in ("salveaza", "salveaza schema", "save"):
             self.salveaza(); return
+        if re.fullmatch(r"(tipareste|printeaza|print|imprima|scoate la imprimanta|da la print)( schema| pagina| tot)?", cm):
+            self.dialog_tiparire(); return
+        mf = re.search(r"\b(format|foaie|foaia|pagina|pune|fa)\b.*\b(a[1-5])\b", cm) or re.fullmatch(r"(a[1-5])( culcat| in picioare| vertical| orizontal)?", cm)
+        if mf and self.doc is not None:
+            fmt = re.search(r"\ba[1-5]\b", cm).group().upper()
+            culcat = False if re.search(r"picioare|vertical|portret", cm) else True
+            self.schimba_format(fmt, culcat, toate=bool(re.search(r"toate", cm))); return
         if self.doc is None:                                                   # fără schemă: discuția merge, desenul așteaptă schema
             try: self.scrie(comenzi.vorbeste_fara_schema(m), "prog")
             except Exception: self.scrie("Întâi deschide o schemă (butonul „Deschide schema…”) sau apasă „Schemă nouă”.", "prog")
+            return
+        rs = self.comanda_selectie(cm)
+        if rs:
+            self.scrie(rs, "err" if rs.startswith(("Selectează", "Nu am")) else "prog")
+            try: self.chat.memorie.noteaza(m, rs, not rs.startswith(("Selectează", "Nu am")))
+            except Exception: pass
             return
         ip0 = self.chat.ip
         try:
@@ -502,10 +525,144 @@ class App:
         self.scrie(f"Cablurile noi le desenez: {v}.", "prog")
 
     # ---------- pagini ----------
+    # ---------- comenzi din chat pentru obiectul selectat ----------
+    CULORI = {"rosu": "#FF0000", "rosie": "#FF0000", "albastru": "#0000FF", "albastra": "#0000FF", "verde": "#00A050", "negru": "#000000",
+              "neagra": "#000000", "galben": "#FFD700", "galbena": "#FFD700", "portocaliu": "#FF8C00", "portocalie": "#FF8C00", "mov": "#7030A0",
+              "violet": "#7030A0", "gri": "#808080", "sur": "#808080", "alb": "#FFFFFF", "alba": "#FFFFFF", "maro": "#8B4513", "roz": "#FF66CC",
+              "albastru deschis": "#00B0F0", "verde deschis": "#92D050"}
+    STIL_CUV = r"\b(rosu|rosie|albastr\w*|verde|negru|neagra|galben\w*|portocali\w*|mov|violet|gri|sur|alb|alba|maro|roz|intrerupt\w*|punctat\w*|continu\w*|" \
+               r"plin\w*|gros\w*|ingroas\w*|subtir\w*|bold|aldin|mai mare|mai mic|mareste|micsoreaza|culoare|coloreaza|umple|fundal|sterge)"
+
+    def comanda_selectie(self, cm):
+        """„obiectul selectat fă roșu”, „asta întrerupt”, „textul mai mare”… -> mesaj sau None dacă nu e pentru selecție"""
+        if not re.search(self.STIL_CUV, cm): return None
+        if re.match(r"(sterge|muta|redenumeste|adauga|trage|cablu)\b", cm) and not re.search(r"\b(selectat\w*|selectia|asta|acesta|aceasta)\b", cm) \
+                and cm not in ("sterge", "sterge-l", "sterge-o"): return None          # „șterge M5”, „adaugă cablu … roșu”: comenzi pe schemă
+        numit = re.search(r"\b(selectat\w*|selectia|asta|acesta|aceasta|acest|obiect\w*|forma|formele|linia|liniile|textul|scrisul|el|ea|ele|ei|chenar\w*|cablul)\b", cm)
+        if not self.selectie:
+            return "Selectează întâi obiectul pe schemă (clic pe el; Shift+clic pentru mai multe), apoi scrie din nou." if numit or len(cm.split()) <= 3 else None
+        if not numit and len(cm.split()) > 4: return None                 # o comandă lungă fără „asta / selectat” e pentru schemă, nu pentru selecție
+        if re.search(r"\bsterge\b", cm): self.sterge_selectia(); return "Am șters ce era selectat."
+        V = vsdx_doc.V
+        def toate(f):
+            yield f
+            for c in f.copii: yield from toate(c)
+        def pune(el, n, v):
+            c = desen._cell(el, n, v)
+            if "F" in c.attrib: del c.attrib["F"]
+        culoare_ = None
+        for k in sorted(self.CULORI, key=len, reverse=True):
+            if re.search(r"\b" + k + r"\b", cm): culoare_ = self.CULORI[k]; break
+        doar_text = bool(re.search(r"\b(text\w*|scris\w*|litere|literele|font)\b", cm))
+        fundal = bool(re.search(r"\b(umple|fundal|umplut\w*|interior)\b", cm))
+        facut = []
+        with self.chat.lacat:
+            self.inainte_de_modificare()
+            for f0 in self.selectie:
+                for f in toate(f0):
+                    linie = (f.cell("LinePattern", "1") or "1") != "0" and (f.e1d or f.contur())
+                    if culoare_ and fundal and not f.e1d: pune(f.el, "FillForegnd", culoare_); pune(f.el, "FillPattern", "1"); facut.append("fundal")
+                    elif culoare_ and linie and not doar_text: pune(f.el, "LineColor", culoare_); facut.append("linie")
+                    if re.search(r"intrerupt|punctat", cm) and linie: pune(f.el, "LinePattern", "2"); facut.append("întrerupt")
+                    if re.search(r"continu|\bplin", cm) and linie: pune(f.el, "LinePattern", "1"); facut.append("continuu")
+                    if re.search(r"gros|ingroas", cm) and linie and not re.search(r"text|litere|scris", cm):
+                        pune(f.el, "LineWeight", "%.6g" % (max(f.num("LineWeight", 0.01), 0.01) * 1.6)); facut.append("gros")
+                    if re.search(r"subtir", cm) and linie: pune(f.el, "LineWeight", "%.6g" % (max(f.num("LineWeight", 0.01), 0.004) / 1.6)); facut.append("subțire")
+        cul_text = culoare_ and not fundal and (doar_text or not any(x == "linie" for x in facut))
+        if cul_text and self.forme_text_selectate(): self.aplica_text(culoare=culoare_); facut.append("text")
+        if re.search(r"mai mare|mareste", cm): self.aplica_text(delta=+2); facut.append("text mai mare")
+        if re.search(r"mai mic|micsoreaza", cm): self.aplica_text(delta=-2); facut.append("text mai mic")
+        if re.search(r"\b(bold|aldin)\b|ingroas\w* (text|scris|litere)", cm): self.aplica_text(stil=1); facut.append("bold")
+        if not facut:
+            self.chat.istoric.pop() if self.chat.istoric else None
+            return "Nu am ce schimba la obiectul selectat. Încearcă: „fă roșu”, „întrerupt”, „mai gros”, „textul mai mare”, „umple galben”."
+        self.reselecteaza(); self.deseneaza(); self.modificat = True
+        nume = {"linie": "culoarea liniei", "text": "culoarea textului", "fundal": "fundalul"}
+        ce = ", ".join(dict.fromkeys(nume.get(x, x) for x in facut))
+        return f"Gata: am schimbat la {len(self.selectie)} {'obiect selectat' if len(self.selectie) == 1 else 'obiecte selectate'}: {ce}."
+
+    # ---------- formatul foii și tipărirea ----------
+    def schimba_format(self, fmt=None, culcat=None, toate=None):
+        if not self.doc: return
+        fmt = fmt or self.cb_format.get(); culcat = (self.cb_orient.get() != "în picioare") if culcat is None else culcat
+        if fmt not in tiparire.FORMATE: return
+        if toate is None:
+            toate = len(self.doc.pagini) > 1 and messagebox.askyesno(TITLU, f"Pun {fmt} {'culcat' if culcat else 'în picioare'} la toate paginile?\n(Nu = doar la pagina deschisă)")
+        w, h = tiparire.marime(fmt, culcat); afara = 0
+        with self.chat.lacat:
+            self.inainte_de_modificare()
+            for i, p in enumerate(self.doc.pagini):
+                if not toate and i != self.chat.ip: continue
+                self.doc.format_pagina(p, w, h)
+                for f in p.forme():
+                    try:
+                        b = f.cutie()
+                        if b[2] > w + 0.05 or b[3] > h + 0.05: afara += 1
+                    except Exception: pass
+        self.modificat = True; self.actualizeaza_pagini(); self.potriveste()
+        msg = f"Foaia e acum {fmt} {'culcat' if culcat else 'în picioare'}" + (" (toate paginile)." if toate else ".")
+        if afara: msg += f" Atenție: {afara} forme ies din foaie – mută-le sau alege o foaie mai mare."
+        self.scrie(msg, "err" if afara else "prog"); return msg
+
+    def deseneaza_pe(self, rec, zoom, ox, oy, ip):
+        """desenează pagina ip pe altceva decât ecranul (pentru imprimantă)"""
+        vechi = (self.cv, self.zoom, self.ox, self.oy, self.chat.ip)
+        self.cv, self.zoom, self.ox, self.oy, self.chat.ip = rec, zoom, ox, oy, ip
+        try:
+            for f in self.doc.pagini[ip].forme():
+                try: self.forma(f)
+                except Exception: pass
+        finally: self.cv, self.zoom, self.ox, self.oy, self.chat.ip = vechi
+
+    def dialog_tiparire(self):
+        if not self.doc: self.scrie("Deschide întâi o schemă, apoi o tipăresc.", "err"); return
+        try: imp = tiparire.imprimante()
+        except Exception as e: messagebox.showerror(TITLU, f"Nu găsesc imprimantele ({e})."); return
+        if not imp: messagebox.showerror(TITLU, "Nu e nicio imprimantă instalată."); return
+        d = tk.Toplevel(self.root); d.title("Tipărește"); d.transient(self.root); d.resizable(False, False); d.grab_set()
+        fr = ttk.Frame(d, padding=16); fr.pack(fill="both")
+        def rand(r, et, w):
+            ttk.Label(fr, text=et).grid(row=r, column=0, sticky="w", pady=4, padx=(0, 10)); w.grid(row=r, column=1, sticky="we", pady=4)
+        cb_imp = ttk.Combobox(fr, state="readonly", width=34, values=imp); cb_imp.current(0); rand(0, "Imprimantă", cb_imp)
+        cb_f = ttk.Combobox(fr, state="readonly", width=10, values=list(tiparire.FORMATE)); cb_f.set(tiparire.IMPLICIT); rand(1, "Foaie", cb_f)
+        W, H = self.doc.pagini[self.chat.ip].dimensiune()
+        cb_o = ttk.Combobox(fr, state="readonly", width=10, values=["culcat", "în picioare"]); cb_o.set("culcat" if W >= H else "în picioare"); rand(2, "Orientare", cb_o)
+        cb_p = ttk.Combobox(fr, state="readonly", width=24, values=[f"pagina deschisă ({self.chat.ip + 1})", f"toate paginile ({len(self.doc.pagini)})"]); cb_p.current(0)
+        rand(3, "Ce tipăresc", cb_p)
+        sp = ttk.Spinbox(fr, from_=1, to=50, width=6); sp.set(1); rand(4, "Copii", sp)
+        ttk.Label(fr, text="Desenul se potrivește pe foaie. Pentru PDF alege imprimanta „Microsoft Print to PDF”.", style="Mic.TLabel",
+                  wraplength=330).grid(row=5, column=0, columnspan=2, sticky="w", pady=(6, 10))
+        def gata():
+            imprimanta, fmt, culcat = cb_imp.get(), cb_f.get(), cb_o.get() == "culcat"
+            ipuri = list(range(len(self.doc.pagini))) if cb_p.current() == 1 else [self.chat.ip]
+            try: copii = int(sp.get())
+            except Exception: copii = 1
+            d.destroy(); self.tipareste(imprimanta, fmt, culcat, ipuri, copii)
+        bt = ttk.Frame(fr); bt.grid(row=6, column=0, columnspan=2, sticky="e")
+        ttk.Button(bt, text="Renunță", command=d.destroy).pack(side="right")
+        ttk.Button(bt, text="🖨 Tipărește", command=gata).pack(side="right", padx=6)
+        d.bind("<Return>", lambda e: gata()); d.bind("<Escape>", lambda e: d.destroy())
+
+    def tipareste(self, imprimanta, fmt=tiparire.IMPLICIT, culcat=True, ipuri=None, copii=1):
+        ipuri = [self.chat.ip] if ipuri is None else ipuri
+        pag = [(*self.doc.pagini[i].dimensiune(), lambda rec, z, ox, oy, i=i: self.deseneaza_pe(rec, z, ox, oy, i)) for i in ipuri]
+        self.root.config(cursor="watch"); self.root.update_idletasks()
+        try:
+            with self.chat.lacat:
+                tiparire.tipareste(pag, imprimanta, fmt, culcat, copii, titlu=os.path.basename(self.orig_vsd or self.doc.path or "Fibra Visio"))
+            self.scrie(f"🖨 Am trimis la imprimantă „{imprimanta}”: {len(ipuri)} {'pagină' if len(ipuri) == 1 else 'pagini'}, foaie {fmt} {'culcat' if culcat else 'în picioare'}, {copii} {'copie' if copii == 1 else 'copii'}.", "prog")
+        except Exception as e:
+            self.scrie(f"N-am reușit să tipăresc: {e}", "err")
+        finally: self.root.config(cursor="")
+
     def actualizeaza_pagini(self):
         if not self.doc: return
         self.cb_pag["values"] = [f"{i + 1}. {p.nume}" for i, p in enumerate(self.doc.pagini)]
         self.cb_pag.current(self.chat.ip)
+        try:
+            fmt, culcat = tiparire.recunoaste(*self.doc.pagini[self.chat.ip].dimensiune())
+            self.cb_format.set(fmt or "altul"); self.cb_orient.set("culcat" if culcat else "în picioare")
+        except Exception: pass
 
     def alege_pagina(self, e=None):
         self.chat.ip = self.cb_pag.current(); self.selectie = []; self.potriveste(); self.analizeaza()

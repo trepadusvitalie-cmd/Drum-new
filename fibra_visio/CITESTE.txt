@@ -61,6 +61,16 @@ Asistentul (v8) – vorbești liber, el te înțelege și lucrează în fundal
     • „încă unul” / „la fel” = încă un element ca ultimul desenat.
     „ce ai invatat” – ce știe despre tine · „analizeaza discutia precedenta” – recitește discuțiile și reînvață · „uita tot” – golește memoria.
 
+Tipărire și format foaie
+  🖨 sus (sau Fișier → Tipărește, sau Ctrl+P, sau scrie „tipareste” în chat): alegi imprimanta, foaia A1 / A2 / A3 / A4 / A5
+  (implicit A3), orientarea, pagina deschisă sau toate paginile, numărul de copii. Desenul se potrivește pe foaie.
+  PDF: alege imprimanta „Microsoft Print to PDF”.
+  Formatul paginii schemei: Fișier → Pagină → Format (A1…A5, implicit A3) și Orientare; sau în chat „format A4”, „A3 in picioare”.
+
+Obiectul selectat, din chat
+  Selectezi pe schemă (clic, Shift+clic) și scrii: „obiectul selectat fa rosu”, „asta intrerupt”, „mai gros”, „subtire”,
+  „textul albastru”, „textul mai mare”, „bold”, „umple galben”, „sterge asta”.
+
 Editare cu mausul
   clic – selectează · Shift+clic – mai multe · trage pe gol – selectează zona · trage – mută
   Ctrl+C / Ctrl+V – copiază și lipește (unde e mausul) · Delete – șterge
