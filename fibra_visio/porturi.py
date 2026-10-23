@@ -133,6 +133,31 @@ def porturi_ocupate(S, nd):
     return occ
 
 
+def port_fibra(S, f):
+    """fibra din care face parte linia f (urmăresc bucățile lipite cap la cap) -> [(nod, port)] la capetele ei"""
+    lin = [g for g in S.p.forme() if g.e1d]
+    cap = lambda g: ((g.num("BeginX"), g.num("BeginY")), (g.num("EndX"), g.num("EndY")))
+    vazut = {f.id}; coada = [f]; puncte = []
+    while coada:
+        g = coada.pop(); puncte += cap(g)
+        for p in cap(g):
+            for h in lin:
+                if h.id not in vazut and any(abs(p[0] - q[0]) < 0.01 and abs(p[1] - q[1]) < 0.01 for q in cap(h)):
+                    vazut.add(h.id); coada.append(h)
+    out = []
+    for nd in noduri(S):
+        vert, (x0, y0, x1, y1), poz = porturi_xy(S, nd)
+        for px, py in puncte:
+            if vert and min(abs(px - x0), abs(px - x1)) < 0.12 and y0 - 0.02 <= py <= y1 + 0.02:
+                k = min(range(len(poz)), key=lambda i: abs(poz[i] - py)); out.append((nd, k + 1))
+            if not vert and min(abs(py - y0), abs(py - y1)) < 0.12 and x0 - 0.02 <= px <= x1 + 0.02:
+                k = min(range(len(poz)), key=lambda i: abs(poz[i] - px)); out.append((nd, k + 1))
+    vaz = []
+    for nd, k in out:
+        if (nd.nume, k) not in [(a.nume, b) for a, b in vaz]: vaz.append((nd, k))
+    return vaz
+
+
 def eticheta(S, x, y, text, vertical=False):
     sh = S.p.shapes_el()
     el = ET.SubElement(sh, V + "Shape", {"ID": str(S.p.id_nou()), "Type": "Shape", "LineStyle": "0", "FillStyle": "0", "TextStyle": "0"})

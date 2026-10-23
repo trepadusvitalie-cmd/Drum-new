@@ -312,7 +312,7 @@ class App:
                 self.porneste_agenti()
         except Exception:
             self.scrie("Eroare: " + traceback.format_exc(limit=2), "err")
-        self.actualizeaza_pagini(); self.selectie = []; self.termeni = []; self.ascunde_sugestii()
+        self.actualizeaza_pagini(); self.reselecteaza(); self.termeni = []; self.ascunde_sugestii()   # selecția rămâne până dai clic în altă parte
         self.deseneaza() if self.chat.ip == ip0 else self.potriveste()
 
     # ---------- sugestii în timp ce scrii ----------
@@ -539,12 +539,31 @@ class App:
                r"plin\w*|gros\w*|ingroas\w*|subtir\w*|bold|aldin|mai mare|mai mic|mareste|micsoreaza|culoare|coloreaza|umple|fundal|sterge)"
 
     def eticheta_selectie(self, cm, orig):
+        dictionar_fd = lambda x: comenzi.fara_diacritice(x).lower().strip()
         """„pune nr 5”, „eticheta FO-12”, „scrie 120 m”: o etichetă lângă linia / obiectul selectat"""
         m = re.match(r"(?:pune|adauga|scrie|fa|da)?\s*(?:o |un )?(?:nr|numar\w*|numerot\w*|eticheta|etichete|text\w*|inscriptie|denumire|cifra)\b\s*(.*)$", cm)
         if not m and self.selectie: m = re.match(r"(?:scrie|pune)\s+(\d[\w\s.,\-/]*|fo[\s\-]?\d+\w*)$", cm)   # „scrie 120 m”, „pune FO-12”
         if not m: return None
         if not self.selectie: return "Selectează întâi linia / obiectul (clic pe el), apoi scrie „pune nr 5” sau „eticheta FO-12”."
         txt = orig.strip()[len(orig.strip()) - len(m.group(1)):].strip(" „”\"") if m.group(1) else ""
+        if re.fullmatch(r"(al |a |de la |la )?(portului|portul|porturilor|port)", dictionar_fd(txt)):   # „eticheta portului”: numărul portului, singur
+            import porturi
+            S = self.chat.schema; facut = []
+            with self.chat.lacat:
+                self.inainte_de_modificare()
+                for f in self.selectie:
+                    if not f.e1d: continue
+                    pp = porturi.port_fibra(S, f)
+                    if not pp: continue
+                    nd, k = pp[0]
+                    bx, by, ex, ey = f.num("BeginX"), f.num("BeginY"), f.num("EndX"), f.num("EndY"); vert = abs(ey - by) > abs(ex - bx)
+                    porturi.eticheta(S, (bx + ex) / 2 + (0.09 if vert else 0), (by + ey) / 2 + (0 if vert else 0.09), str(k), vertical=vert)
+                    facut.append(f"{k} ({nd.nume})")
+            if not facut:
+                if self.chat.istoric: self.chat.istoric.pop()
+                return "Nu găsesc de la ce port pleacă linia selectată. Scrie numărul: „pune nr 5”."
+            self.modificat = True; self.deseneaza()
+            return "Am pus numărul portului: " + ", ".join(facut) + "."
         if not txt:
             self.chat.variante = ["pune nr 1", "eticheta FO-12", "eticheta 120 m"]
             return "Ce scriu pe etichetă? Scrie, de ex., „pune nr 5”, „eticheta FO-12” sau „eticheta 120 m”."
