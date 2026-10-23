@@ -45,6 +45,7 @@ def tip_din_nume(nume):
 
 
 def _cell(el, n, v, f=None, u=None):
+    import vsdx_doc; vsdx_doc.EPOCA[0] += 1                     # forma s-a schimbat: conturul ținut minte nu mai e bun
     c = el.find(V + "Cell[@N='%s']" % n)
     if c is None:
         c = ET.Element(V + "Cell", {"N": n}); idx = 0

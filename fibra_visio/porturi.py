@@ -23,6 +23,22 @@ class Nod:
     def __repr__(self): return f"{self.nume} ({self.n} porturi)"
 
 
+from vsdx_doc import EPOCA          # crește la fiecare mesaj din chat și la fiecare modificare: atunci se recalculează
+
+
+def _tine_minte(fn):
+    """rezultatul (noduri, manșoane, nume) pe aceeași pagină, până la următoarea modificare – ca să nu frâneze"""
+    mem = {}
+    def f(S):
+        k = (id(S.p.root), len(S.p.shapes_el()), EPOCA[0])
+        if k not in mem:
+            if len(mem) > 20: mem.clear()
+            mem[k] = fn(S)
+        return list(mem[k])
+    f.__name__ = fn.__name__; f.__doc__ = fn.__doc__
+    return f
+
+
 def benzi(S):
     """benzile de porturi: dreptunghiuri subțiri, umplute cu galben"""
     out = []
@@ -40,6 +56,7 @@ def benzi(S):
     return out
 
 
+@_tine_minte
 def noduri(S):
     """CTA / ODF / BTS cu bandă de porturi, cu numele luat din eticheta cea mai apropiată"""
     forme = S.p.forme(); txt = [(f, f.text_tot()) for f in forme if not f.e1d and f.text_tot()]
@@ -272,6 +289,7 @@ def _gaseste_aprox(cheie, tc, ocupat, limite=None):
     return rez
 
 
+@_tine_minte
 def _candidati(S):
     """numele de pe pagină: noduri cu porturi + manșoane / chenare cu titlu"""
     ns = noduri(S); out = [(n.nume, n) for n in ns]; vazut = {norm(n.nume) for n in ns}
@@ -401,6 +419,7 @@ def comanda(S, t):
             + (f", cu sudură în {sud}." if sud else "."))
 
 
+@_tine_minte
 def mansoane(S):
     """manșoanele / chenarele cu nume care nu au bandă de porturi (M1, M2…)"""
     ns = {norm(n.nume) for n in noduri(S)}; out = []

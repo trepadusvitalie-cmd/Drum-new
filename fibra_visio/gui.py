@@ -241,6 +241,7 @@ class App:
     def trimite(self):
         m = self.ent.get("1.0", "end").strip()
         if not m: return
+        import porturi; porturi.EPOCA[0] += 1
         self.ent.delete("1.0", "end"); self.istoric_cmd.append(m); self.ih = len(self.istoric_cmd)
         self.scrie(m, "eu")
         cm = comenzi.fara_diacritice(m).lower().strip(" .!")
@@ -1228,6 +1229,7 @@ class App:
                 if stil is not None: pune("Style", str(st0 ^ stil))
                 if culoare is not None: pune("Color", culoare)
                 if font: pune("Font", font)
+            vsdx_doc.invalideaza(f.el)
             if aliniere is not None:
                 ps = f.el.find(V + "Section[@N='Paragraph']")
                 if ps is None: ps = ET.SubElement(f.el, V + "Section", {"N": "Paragraph"})
@@ -1237,6 +1239,7 @@ class App:
                     if c is None: c = ET.SubElement(r, V + "Cell", {"N": "HorzAlign"})
                     c.set("V", aliniere)
                     if "F" in c.attrib: del c.attrib["F"]
+            vsdx_doc.invalideaza(f.el)
         self.reselecteaza(); self.deseneaza(); self.actualizeaza_bara_text()
 
     def cutie_noua(self, e):
@@ -1292,8 +1295,10 @@ class App:
         nb = f.cutie()                                                          # mută ca să stea exact în dreptunghiul cerut
         desen._cell(f.el, "PinX", f.num("PinX") + X0 - nb[0]); desen._cell(f.el, "PinY", f.num("PinY") + Y0 - nb[1])
         self.reselecteaza(); self.deseneaza(); self.status.config(text=f"Mărime nouă: {X1 - X0:.2f} × {Y1 - Y0:.2f} inch")
+        vsdx_doc.EPOCA[0] += 1; self.deseneaza()
 
     def inainte_de_modificare(self):
+        import porturi; porturi.EPOCA[0] += 1
         self.chat.istoric.append(self.doc.instantaneu()); self.chat.istoric = self.chat.istoric[-50:]; self.chat.refacere = []; self.modificat = True
 
     def reselecteaza(self):
@@ -1304,6 +1309,7 @@ class App:
         if not self.selectie: return
         self.inainte_de_modificare(); self.reselecteaza(); S = self.chat.schema
         for f in self.selectie: muta_forma(S, f, dx, dy)
+        vsdx_doc.EPOCA[0] += 1
         self.reselecteaza(); self.deseneaza()
 
     def sageti(self, e):

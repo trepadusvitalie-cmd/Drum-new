@@ -187,7 +187,7 @@ def opriri(S, puncte, cur, nd, k, capat):
             if m not in vazute and b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3]: vazute.add(m); out.append(("manșon", m, None))
         for bf in benzi:
             b = bf.cutie()
-            if bf.id not in vazute and b[0] - 0.12 <= p[0] <= b[2] + 0.12 and b[1] - 0.12 <= p[1] <= b[3] + 0.12:
+            if bf.id not in vazute and b[0] - 0.16 <= p[0] <= b[2] + 0.16 and b[1] - 0.16 <= p[1] <= b[3] + 0.16:
                 vazute.add(bf.id); nume = _nume_aproape(tx, b, ("SUBINEL", "ODB", "CLIENT"), 1.3) or _nume_aproape(tx, b, ("ODF",), 1.0) or "ODF"
                 kk = None
                 n = noduri_.get(bf.id)

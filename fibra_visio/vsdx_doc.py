@@ -1,7 +1,7 @@
 """Citirea și modificarea fișierelor Visio (.vsdx) fără Visio.
 Un .vsdx e o arhivă zip cu XML: paginile (visio/pages/pageN.xml), formele de bază (visio/masters) etc.
 Desenul existent rămâne neatins; se adaugă / se schimbă doar formele cerute."""
-import copy, io, math, os, re, sys, zipfile
+import weakref, copy, io, math, os, re, sys, zipfile
 import xml.etree.ElementTree as ET
 
 NS = "http://schemas.microsoft.com/office/visio/2012/main"
@@ -34,6 +34,38 @@ def text_forma(sh):
     return "".join(t.itertext()).strip() if t is not None else ""
 
 
+_CACHE_C = weakref.WeakKeyDictionary(); _CACHE_S = weakref.WeakKeyDictionary(); _CACHE_K = weakref.WeakKeyDictionary()
+EPOCA = [0]           # crește la fiecare modificare / mesaj; conturul formelor ținut minte e valabil doar în aceeași epocă
+
+
+def _celule(el):
+    """celulele directe ale unui element, ca dicționar (refăcut doar când se adaugă / scot celule) – mult mai repede ca find()"""
+    k = len(el); c = _CACHE_C.get(el)
+    if c is None or c[0] != k:
+        c = (k, {x.get("N"): x for x in el if x.tag == V + "Cell"}); _CACHE_C[el] = c
+    return c[1]
+
+
+def invalideaza(el):
+    """după ce scrii în rândurile unei secțiuni (Character, Paragraph…), uită ce era ținut minte pentru forma asta"""
+    _CACHE_C.pop(el, None); _CACHE_S.pop(el, None)
+
+
+def _sectiuni(el):
+    """(secțiune, celulă) -> prima celulă din primul rând al secțiunii (ca find-ul de dinainte)"""
+    k = len(el); c = _CACHE_S.get(el)
+    if c is None or c[0] != k:
+        d = {}
+        for sec in el:
+            if sec.tag != V + "Section": continue
+            for r in sec:
+                if r.tag != V + "Row": continue
+                for x in r:
+                    if x.tag == V + "Cell": d.setdefault((sec.get("N"), x.get("N")), x)
+        c = (k, d); _CACHE_S[el] = c
+    return c[1]
+
+
 class Forma:
     """o formă de pe pagină (vedere peste elementul XML), cu moștenirea din forma de bază (master)"""
 
@@ -61,7 +93,7 @@ class Forma:
     def cell(self, n, d=None):
         """valoarea celulei: din formă, din forma de bază (master), apoi din stilul documentului"""
         for src in self._surse():
-            c = src.find(V + "Cell[@N='%s']" % n)
+            c = _celule(src).get(n)
             if c is not None: return c.get("V")
         tip = "LineStyle" if n.startswith(("Line", "Rounding", "BeginArrow", "EndArrow")) else \
               "FillStyle" if n.startswith(("Fill", "Shdw")) else "TextStyle"
@@ -71,7 +103,7 @@ class Forma:
     def sectiune(self, sec, n, d=None):
         """celula din rândul 0 al unei secțiuni (Character, Paragraph): formă, master, stil text"""
         for src in self._surse():
-            c = src.find(V + "Section[@N='%s']/%sRow/%sCell[@N='%s']" % (sec, V, V, n))
+            c = _sectiuni(src).get((sec, n))
             if c is not None: return c.get("V")
         v = self.doc.cell_stil(self._stil("TextStyle"), n, "TextStyle", sec)
         return d if v is None else v
@@ -128,7 +160,14 @@ class Forma:
         return f
 
     def contur(self):
-        """liniile formei pe pagină: listă de (puncte, umplut, cerc?)"""
+        """liniile formei pe pagină: listă de (puncte, umplut) – ținute minte până la următoarea modificare"""
+        k = (EPOCA[0], id(self.parinte.el) if self.parinte else None)
+        c = _CACHE_K.get(self.el)
+        if c is not None and c[0] == k: return c[1]
+        out = self._contur(); _CACHE_K[self.el] = (k, out)
+        return out
+
+    def _contur(self):
         w, h = self.num("Width"), self.num("Height"); T = self.transforma(); out = []
         if self.e1d and not self.geometrie():
             return [([(self.num("BeginX"), self.num("BeginY")), (self.num("EndX"), self.num("EndY"))], False)] if not self.parinte else []
@@ -160,7 +199,9 @@ class Forma:
     def cutie(self):
         """dreptunghiul formei pe pagină (x0, y0, x1, y1)"""
         pts = [p for c, _ in self.contur() for p in c]
-        for c in self.copii: pts += [(b[0], b[1]) for b in [c.cutie()] if b] + [(b[2], b[3]) for b in [c.cutie()] if b]
+        for c in self.copii:
+            b = c.cutie()
+            if b: pts += [(b[0], b[1]), (b[2], b[3])]
         if not pts:
             T = self.transforma(); pts = [T(0, 0), T(self.num("Width"), self.num("Height"))]
         xs, ys = [p[0] for p in pts], [p[1] for p in pts]
@@ -254,7 +295,15 @@ class Document:
             if rid in rel: self.pagini.append(Pagina(self, p.get("Name") or p.get("NameU"), rel[rid][1], p))
 
     def cell_stil(self, sid, n, tip, sec=None, adanc=0):
-        """celula dintr-o foaie de stil (cu moștenirea stilurilor părinte)"""
+        """celula dintr-o foaie de stil (cu moștenirea stilurilor părinte); rezultatul e ținut minte (stilurile nu se schimbă)"""
+        if sid is None or adanc > 10: return None
+        if adanc == 0:
+            mem = self.__dict__.setdefault("_stil_mem", {}); k = (sid, n, tip, sec)
+            if k not in mem: mem[k] = self._cell_stil(sid, n, tip, sec, 0)
+            return mem[k]
+        return self._cell_stil(sid, n, tip, sec, adanc)
+
+    def _cell_stil(self, sid, n, tip, sec=None, adanc=0):
         if sid is None or adanc > 10: return None
         if not hasattr(self, "_stiluri"):
             self._stiluri = {}
@@ -266,7 +315,7 @@ class Document:
         c = st.find(V + "Section[@N='%s']/%sRow/%sCell[@N='%s']" % (sec, V, V, n)) if sec else st.find(V + "Cell[@N='%s']" % n)
         if c is not None: return c.get("V")
         par = st.get(tip)
-        return None if par == sid else self.cell_stil(par, n, tip, sec, adanc + 1)
+        return None if par == sid else self._cell_stil(par, n, tip, sec, adanc + 1)
 
     def master_forma(self, mid, shape_id=None):
         if self._masters is None:
