@@ -67,7 +67,7 @@ def tinta(app, cm):
 
 
 def _nume(app, cm):
-    """un nume din schemă (M2, CTA Popovca…) -> forma lui"""
+    """un nume din schemă (M2, CTA Nord…) -> forma lui"""
     import porturi
     S = app.chat.schema
     try:
