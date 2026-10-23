@@ -87,7 +87,7 @@ class App:
         trim.bind("<Button-1>", lambda e: self.trimite())
         self.ent.bind("<Return>", self.enter); self.ent.bind("<Shift-Return>", lambda e: None)
         self.ent.bind("<Up>", self.cmd_sus); self.ent.bind("<Down>", self.cmd_jos)
-        self.ent.bind("<KeyRelease>", self.sugereaza); self.ent.bind("<Tab>", lambda e: self.accepta_sugestie() or "break")
+        self.ent.bind("<KeyRelease>", self.sugereaza_mai_tarziu); self.ent.bind("<Tab>", lambda e: self.accepta_sugestie() or "break")
         self.ent.bind("<Escape>", lambda e: self.ascunde_sugestii())
         corp = tk.Frame(dr, bg=PANOU); corp.pack(fill="both", expand=True, padx=(10, 4))
         self.txt = tk.Text(corp, wrap="word", state="disabled", font=("Segoe UI", 10), bg=PANOU, relief="flat", bd=0, padx=4, pady=4,
@@ -362,6 +362,12 @@ class App:
             self.ghid.config(text=f"→ portul la {B.nume}: port 1…{B.n}"); return
         self.ghid.config(text=f"✔ Gata – Enter: fibră {A.nume} → {B.nume}.  Opțional: rosu / albastru / intrerupt / prin M1 (sudură)", fg="#107C10")
 
+    def sugereaza_mai_tarziu(self, e=None):
+        """sugestiile și ghidul se calculează doar după o mică pauză în scris – tastarea nu mai frânează"""
+        if e is not None and e.keysym in ("Up", "Down", "Return", "Tab", "Escape"): return
+        if getattr(self, "_sug_job", None): self.root.after_cancel(self._sug_job)
+        self._sug_job = self.root.after(300, lambda: (setattr(self, "_sug_job", None), self.sugereaza(None)))
+
     def sugereaza(self, e=None):
         try: self.ghideaza()
         except Exception: pass
@@ -374,9 +380,10 @@ class App:
         for frag in ([m.group(0)] + ([m.group(0).split(" ")[-1]] if " " in m.group(0) else [])):
             q = vsdx_doc.norm(frag)
             if not q: continue
-            tot = self.termeni + self.VOCAB
-            inc = [x for x in tot if vsdx_doc.norm(x).startswith(q)]
-            cont = [x for x in tot if q in vsdx_doc.norm(x) and x not in inc]
+            if getattr(self, "_tot_norm_pentru", None) is not self.termeni:          # numele normalizate, o singură dată
+                self._tot_norm = [(x, vsdx_doc.norm(x)) for x in self.termeni + self.VOCAB]; self._tot_norm_pentru = self.termeni
+            inc = [x for x, nx in self._tot_norm if nx.startswith(q)]
+            cont = [x for x, nx in self._tot_norm if q in nx and x not in inc]
             for x in inc + cont:
                 if vsdx_doc.norm(x) != q and (x, frag) not in variante and x not in [v[0] for v in variante]: variante.append((x, frag))
             if variante: break
