@@ -372,7 +372,7 @@ def comanda(S, t):
 
 
 def mansoane(S):
-    """manșoanele / chenarele cu nume care nu au bandă de porturi (MRAM, M1, M2…)"""
+    """manșoanele / chenarele cu nume care nu au bandă de porturi (M1, M2…)"""
     ns = {norm(n.nume) for n in noduri(S)}; out = []
     for nume, nod in _candidati(S):
         if nod is not None or norm(nume) in ns: continue

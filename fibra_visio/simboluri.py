@@ -27,7 +27,7 @@ def invata(doc, forme, tip, nume_simbol):
     for f in forme:
         mn = doc.nume_master(f.el.get("Master")) if f.el.get("Master") is not None else ""
         shapes.append({"xml": ET.tostring(f.el, encoding="unicode"), "master": mn})
-    # eticheta = textul cel mai lung care nu e doar numere (ex. „MRAM CLO-1203”)
+    # eticheta = textul cel mai lung care nu e doar numere (ex. „M1 CLO-0001”)
     texte = [(len(f.text_tot()), i) for i, f in enumerate(forme) if f.text_tot() and not f.text_tot().replace("\n", "").strip().isdigit()]
     lib = incarca()
     lib.setdefault(tip, [])
