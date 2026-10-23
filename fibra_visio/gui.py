@@ -437,6 +437,9 @@ class App:
                 import vsd_convert
                 tmp = vsd_convert.vsd_in_vsdx(p)
             except Exception as e:
+                if "another instance" in str(e).lower() or "open for modifications" in str(e).lower():
+                    messagebox.showerror(TITLU, "Fișierul e deschis acum în Visio și Visio nu lasă să fie citit în paralel.\n\n"
+                                         "Închide-l în Visio (sau salvează-l acolo), apoi deschide-l din nou aici."); return
                 messagebox.showerror(TITLU, "Fișierul .vsd e formatul vechi al Visio. Ca să-l deschid, am nevoie de Visio instalat pe calculator.\n"
                                      f"({e})\n\nAltfel: deschide-l în Visio → Fișier → Salvare ca → Visio Drawing (.vsdx)."); return
             self.orig_vsd = p
@@ -479,6 +482,10 @@ class App:
         except PermissionError:
             messagebox.showerror(TITLU, "Nu pot scrie fișierul – probabil e deschis în Visio. Închide-l acolo sau folosește „Salvează ca…”."); return False
         except Exception as e:
+            import vsd_convert
+            if vsd_convert.e_deschis_in_visio(e):
+                messagebox.showerror(TITLU, "Fișierul e deschis acum în Visio, așa că nu-l pot înlocui.\n\n"
+                                     "Închide-l în Visio și apasă din nou Salvează – sau folosește „Salvează ca…” cu alt nume."); return False
             messagebox.showerror(TITLU, f"Nu am putut salva:\n{e}"); return False
         self.modificat = False; self.status.config(text=f"Salvat: {tinta}")
         self.scrie(f"Am salvat „{os.path.basename(tinta)}” (același format). Originalul e păstrat ca …_original{os.path.splitext(tinta)[1]}.", "prog")

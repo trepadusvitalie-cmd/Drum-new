@@ -1,6 +1,12 @@
 """Fișierele Visio vechi (.vsd): le convertește Visio-ul de pe calculator (invizibil, prin automatizare COM) în .vsdx și înapoi.
 Fără Visio instalat nu se poate (formatul .vsd e binar, închis)."""
-import os, tempfile
+import os, shutil, tempfile
+
+
+def e_deschis_in_visio(e):
+    """eroarea Visio „fișierul e deschis pentru modificări în altă instanță de Visio”"""
+    t = str(e).lower()
+    return "another instance" in t or "open for modifications" in t or "-2032466468" in t
 
 
 def _visio():
@@ -32,6 +38,10 @@ def converteste(src, dst):
 
 
 def vsd_in_vsdx(path):
-    """copie .vsdx într-un folder temporar"""
+    """copie .vsdx într-un folder temporar. Lucrez pe o copie a fișierului, ca să meargă și când e deschis în Visio."""
     d = tempfile.mkdtemp(prefix="fibra_visio_")
-    return converteste(path, os.path.join(d, os.path.splitext(os.path.basename(path))[0] + ".vsdx"))
+    nume = os.path.splitext(os.path.basename(path))[0]
+    copie = os.path.join(d, nume + "_copie.vsd")
+    try: shutil.copy2(path, copie); src = copie
+    except Exception: src = path                                  # nu se poate copia: încerc direct
+    return converteste(src, os.path.join(d, nume + ".vsdx"))
