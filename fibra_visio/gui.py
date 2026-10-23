@@ -334,6 +334,8 @@ class App:
         if re.fullmatch(r"(inca|inca o data|inca odata|inca o daca|mai|si mai|repeta|la fel|din nou|again|again pls|tot asa|inca putin|mai mult)", cm) \
                 and getattr(self, "ultima_sel", None) and self.selectie:
             cm, m = self.ultima_sel                                       # „încă”: repet ultima schimbare pe selecție
+        if re.fullmatch(r"\d", cm) and self.chat.variante and int(cm) <= len(self.chat.variante) and not self.chat.agent.activ:
+            m = self.chat.variante[int(cm) - 1]; cm = comenzi.fara_diacritice(m).lower().strip(" .!")   # a ales varianta după cifră
         rs = self.cerere_gui(cm, m)
         if rs is None:                                                          # am mai auzit asta? (memoria învățată din discuții)
             tr = self.chat.memorie.traduce(m)
@@ -344,6 +346,10 @@ class App:
         if rs:
             self.scrie(rs, "err" if rs.startswith(("Selectează", "Nu am")) else "prog")
             if rs.startswith("Ce scriu"): self.scrie_variante(self.chat.variante)
+            elif rs.startswith(("Selectează", "Nu am", "Nu găsesc", "Încotro", "N-am")):     # n-a mers: variante de ales
+                var = actiuni.propune(cm, 4)
+                if rs.startswith("Selectează"): var = ["gaseste sudurile", "selecteaza fibrele rosii", "selecteaza tot"] + [v for v in var if v.startswith(("fa", "pune", "eticheta"))][:1]
+                if var: self.chat.variante = var; self.scrie_variante(var)
             try: self.chat.memorie.noteaza(m, rs, not rs.startswith(("Selectează", "Nu am")))
             except Exception: pass
             return
