@@ -75,6 +75,29 @@ def _compact(nr):
     return ", ".join(out)
 
 
+def vorbeste_fara_schema(mesaj):
+    """chatul merge și înainte să deschizi o schemă: salut, memorie, „cum fac…”, ajutor"""
+    import dictionar
+    t = re.sub(r"\s+", " ", fara_diacritice(mesaj.strip()).lower()).strip(" .!?")
+    m = memorie_comuna()
+    if re.search(r"\bporturi\w* (libere|ocupate|goale|folosite)|\b(cate|ce) porturi\b", t):
+        r = "Deschide întâi o schemă și îți spun ce porturi sunt libere."
+    else:
+        class _D: pass
+        d = _D(); d.memorie = m; d.stare_agenti = lambda: "Niciun agent nu lucrează acum."
+        r = Chat.vorbeste(d, t)
+    if r and r.startswith("Salut"): r = "Salut! Deschide o schemă (butonul „Deschide schema…” sau trage fișierul peste fereastră) și spune-mi liber ce vrei – ex. „vreau un bloc nou cu 2 dulapuri de 12 porturi”."
+    if r is None:
+        if t in ("ajutor", "help", "?", "comenzi", "ce poti face"): r = AJUTOR
+        elif dictionar.intentie(t) or re.search(r"\bport", t):
+            r = "Te-am înțeles – ca să desenez, deschide întâi schema (butonul „Deschide schema…” sau trage fișierul peste fereastră) sau apasă „Schemă nouă”. Apoi scrie din nou."
+        else:
+            r = "Deschide o schemă (butonul „Deschide schema…”, trage fișierul peste fereastră sau „Schemă nouă”) și spune-mi liber ce vrei să fac pe ea."
+    try: m.noteaza(mesaj, r, True)
+    except Exception: pass
+    return r
+
+
 class Chat:
     def __init__(self, doc):
         import threading

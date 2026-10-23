@@ -270,9 +270,9 @@ class App:
             return
         if comenzi.fara_diacritice(m).lower().strip(" .!") in ("salveaza", "salveaza schema", "save"):
             self.salveaza(); return
-        if self.doc is None:
-            if comenzi.fara_diacritice(m).lower().strip() in ("ajutor", "help", "?"): self.scrie(comenzi.AJUTOR, "prog")
-            else: self.scrie("Întâi deschide o schemă (butonul „Deschide schema…”) sau apasă „Schemă nouă”.", "err")
+        if self.doc is None:                                                   # fără schemă: discuția merge, desenul așteaptă schema
+            try: self.scrie(comenzi.vorbeste_fara_schema(m), "prog")
+            except Exception: self.scrie("Întâi deschide o schemă (butonul „Deschide schema…”) sau apasă „Schemă nouă”.", "prog")
             return
         ip0 = self.chat.ip
         try:
