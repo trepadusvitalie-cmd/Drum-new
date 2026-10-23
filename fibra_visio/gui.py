@@ -539,7 +539,7 @@ class App:
               "violet": "#7030A0", "gri": "#808080", "sur": "#808080", "alb": "#FFFFFF", "alba": "#FFFFFF", "maro": "#8B4513", "roz": "#FF66CC",
               "albastru deschis": "#00B0F0", "verde deschis": "#92D050", "rosii": "#FF0000", "albastre": "#0000FF", "verzi": "#00A050",
               "negre": "#000000", "galbene": "#FFD700", "portocalii": "#FF8C00", "albe": "#FFFFFF"}
-    STIL_CUV = r"\b(rosu|rosie|albastr\w*|verde|negru|neagra|galben\w*|portocali\w*|mov|violet|gri|sur|alb|alba|maro|roz|intrerupt\w*|punctat\w*|continu\w*|" \
+    STIL_CUV = r"\b(rosu|rosie|rosii|verzi|negre|albe|albastr\w*|verde|negru|neagra|galben\w*|portocali\w*|mov|violet|gri|sur|alb|alba|maro|roz|intrerupt\w*|punctat\w*|continu\w*|" \
                r"plin\w*|gros\w*|ingroas\w*|subtir\w*|bold|aldin|mai mare|mai mic|mareste|micsoreaza|culoare|coloreaza|umple|fundal|sterge)"
 
     @staticmethod
@@ -554,7 +554,9 @@ class App:
 
     def gaseste_si_selecteaza(self, cm):
         """„găsește sudurile și selectează-le / colorează-le cu galben”, „selectează fibrele roșii” -> mesaj sau None"""
-        if not re.search(r"\b(gaseste|gasete|cauta|selecteaza|selecteazale|arata|marcheaza|evidentiaza|coloreaza|toate)\w*", cm): return None
+        verb = re.search(r"\b(gas\w*|caut\w*|select\w*|arat\w*|marc\w*|evident\w*|colo\w*|toate|vopse\w*|fa|fa-le|pune)\b", cm)
+        culoare_ = any(re.search(r"\b" + k + r"\b", cm) for k in self.CULORI)
+        if re.search(r"\d|\bport", cm) or not (verb or culoare_): return None      # „… port 3 … sudura in M1” e comandă de fibră
         p = self.doc.pagini[self.chat.ip]; forme = list(p.forme())
         if re.search(r"\bsud(ur|ar)\w*|\bpunct\w*|\bjonctiun\w*", cm):
             sel = [f for f in forme if self.e_punct(f)]; ce = "puncte de sudură"
@@ -575,8 +577,8 @@ class App:
         if not sel: return f"Nu găsesc {ce} pe pagina asta."
         self.selectie = sel; self.deseneaza()
         msg = f"Am găsit și am selectat {len(sel)} {ce}."
-        rest = re.sub(r"\b(gaseste|gasete|cauta|selecteaza\w*|arata|marcheaza|evidentiaza|si|le|toate|sudurile|suduri|punctele|de|sudura)\b", " ", cm)
-        if re.search(self.STIL_CUV, rest) or re.search(r"coloreaz", cm):
+        rest = re.sub(r"\b(gas\w*|caut\w*|select\w*|arat\w*|marc\w*|evident\w*|colo\w*|vopse\w*|si|le|toate|sud\w*|punct\w*|de|cu|in)\b", " ", cm)
+        if re.search(self.STIL_CUV, rest):
             r = self.comanda_selectie("selectate " + rest.strip())
             if r: msg += " " + r
         return msg
