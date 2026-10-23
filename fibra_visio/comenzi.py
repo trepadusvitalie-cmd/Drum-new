@@ -173,7 +173,8 @@ class Chat:
             return "Reiau de unde am rămas. " + r[0], False
         if ag.activ:
             q = ag.intrebare
-            v = self.vorbeste(t1)
+            ales = mesaj.strip() in (ag.optiuni or []) or re.fullmatch(r"\s*\d+\s*", mesaj)   # a apăsat o variantă: e răspunsul, nu o întrebare
+            v = None if ales else self.vorbeste(t1)
             if v:                                                          # o întrebare pe lângă: răspund și țin dialogul deschis
                 self.variante = ag.optiuni; return v + "\n\n(Încă aștept răspunsul la: " + getattr(ag, "text_intrebare", q or "") + ")", False
             if q != "nume" and dictionar.intentie(t1):                     # cere altceva nou: pun dialogul deoparte, încep altul
