@@ -22,6 +22,9 @@ def culoare(v, implicit):
 ACCENT = "#0F6CBD"; FUNDAL = "#F3F3F3"; PANOU = "#FFFFFF"; BULA_EU = "#DCEBFA"; BULA_PROG = "#F1F3F5"; BULA_ERR = "#FDE7E9"
 
 
+gui_culoare = culoare
+
+
 class App:
     def __init__(self, root):
         self.root = root; self.doc = None; self.chat = None; self.modificat = False; self.orig_vsd = None
@@ -294,7 +297,7 @@ class App:
         if re.fullmatch(r"(inca|inca o data|inca odata|inca o daca|mai|si mai|repeta|la fel|din nou|again|again pls|tot asa|inca putin|mai mult)", cm) \
                 and getattr(self, "ultima_sel", None) and self.selectie:
             cm, m = self.ultima_sel                                       # „încă”: repet ultima schimbare pe selecție
-        rs = self.comanda_selectie(cm, m)
+        rs = self.gaseste_si_selecteaza(cm) or self.comanda_selectie(cm, m)
         if rs and rs.startswith(("Gata", "Am pus")): self.ultima_sel = (cm, m)
         if rs:
             self.scrie(rs, "err" if rs.startswith(("Selectează", "Nu am")) else "prog")
@@ -534,9 +537,49 @@ class App:
     CULORI = {"rosu": "#FF0000", "rosie": "#FF0000", "albastru": "#0000FF", "albastra": "#0000FF", "verde": "#00A050", "negru": "#000000",
               "neagra": "#000000", "galben": "#FFD700", "galbena": "#FFD700", "portocaliu": "#FF8C00", "portocalie": "#FF8C00", "mov": "#7030A0",
               "violet": "#7030A0", "gri": "#808080", "sur": "#808080", "alb": "#FFFFFF", "alba": "#FFFFFF", "maro": "#8B4513", "roz": "#FF66CC",
-              "albastru deschis": "#00B0F0", "verde deschis": "#92D050"}
+              "albastru deschis": "#00B0F0", "verde deschis": "#92D050", "rosii": "#FF0000", "albastre": "#0000FF", "verzi": "#00A050",
+              "negre": "#000000", "galbene": "#FFD700", "portocalii": "#FF8C00", "albe": "#FFFFFF"}
     STIL_CUV = r"\b(rosu|rosie|albastr\w*|verde|negru|neagra|galben\w*|portocali\w*|mov|violet|gri|sur|alb|alba|maro|roz|intrerupt\w*|punctat\w*|continu\w*|" \
                r"plin\w*|gros\w*|ingroas\w*|subtir\w*|bold|aldin|mai mare|mai mic|mareste|micsoreaza|culoare|coloreaza|umple|fundal|sterge)"
+
+    @staticmethod
+    def e_punct(f):
+        """punct de sudură: formă mică, rotundă, plină"""
+        if f.e1d or f.text: return False
+        try: b = f.cutie()
+        except Exception: return False
+        w, h = b[2] - b[0], b[3] - b[1]
+        if not (0 < w < 0.12 and 0 < h < 0.12 and 0.6 < w / max(h, 1e-6) < 1.6): return False
+        return (f.cell("FillPattern", "1") or "1") != "0"
+
+    def gaseste_si_selecteaza(self, cm):
+        """„găsește sudurile și selectează-le / colorează-le cu galben”, „selectează fibrele roșii” -> mesaj sau None"""
+        if not re.search(r"\b(gaseste|gasete|cauta|selecteaza|selecteazale|arata|marcheaza|evidentiaza|coloreaza|toate)\w*", cm): return None
+        p = self.doc.pagini[self.chat.ip]; forme = list(p.forme())
+        if re.search(r"\bsud(ur|ar)\w*|\bpunct\w*|\bjonctiun\w*", cm):
+            sel = [f for f in forme if self.e_punct(f)]; ce = "puncte de sudură"
+        elif re.search(r"\b(fibr\w*|lini\w*|cabl\w*)\b", cm):
+            cul = None
+            for k in sorted(self.CULORI, key=len, reverse=True):
+                if re.search(r"\b(fibr\w*|lini\w*|cabl\w*)\s+(\w+\s+)?" + k + r"\b", cm): cul = self.CULORI[k]; break
+            noi = bool(re.search(r"\bno(i|ua)\b", cm)); intr = bool(re.search(r"intrerupt", cm))
+            def ok(f):
+                if not f.e1d: return False
+                lc = (gui_culoare(f.cell("LineColor"), "#000000") or "").upper()
+                if noi: return lc == "#FF0000" or (f.cell("LinePattern", "1") or "1") not in ("0", "1")
+                if intr: return (f.cell("LinePattern", "1") or "1") not in ("0", "1")
+                return cul is None or lc == cul.upper()
+            sel = [f for f in forme if ok(f)]; ce = "linii"
+            if cul: cm = re.sub(r"\b(fibr\w*|lini\w*|cabl\w*)\s+(\w+\s+)?\w+", " ", cm, count=1)   # culoarea de căutare nu e și culoarea nouă
+        else: return None
+        if not sel: return f"Nu găsesc {ce} pe pagina asta."
+        self.selectie = sel; self.deseneaza()
+        msg = f"Am găsit și am selectat {len(sel)} {ce}."
+        rest = re.sub(r"\b(gaseste|gasete|cauta|selecteaza\w*|arata|marcheaza|evidentiaza|si|le|toate|sudurile|suduri|punctele|de|sudura)\b", " ", cm)
+        if re.search(self.STIL_CUV, rest) or re.search(r"coloreaz", cm):
+            r = self.comanda_selectie("selectate " + rest.strip())
+            if r: msg += " " + r
+        return msg
 
     def eticheta_selectie(self, cm, orig):
         dictionar_fd = lambda x: comenzi.fara_diacritice(x).lower().strip()
@@ -613,6 +656,8 @@ class App:
             for f0 in self.selectie:
                 for f in toate(f0):
                     linie = (f.cell("LinePattern", "1") or "1") != "0" and (f.e1d or f.contur())
+                    if culoare_ and self.e_punct(f):                       # punct de sudură: se colorează tot punctul
+                        pune(f.el, "FillForegnd", culoare_); pune(f.el, "FillPattern", "1"); facut.append("punct"); continue
                     if culoare_ and fundal and not f.e1d: pune(f.el, "FillForegnd", culoare_); pune(f.el, "FillPattern", "1"); facut.append("fundal")
                     elif culoare_ and linie and not doar_text: pune(f.el, "LineColor", culoare_); facut.append("linie")
                     if re.search(r"intrerupt|punctat", cm) and linie: pune(f.el, "LinePattern", "2"); facut.append("întrerupt")
@@ -629,7 +674,7 @@ class App:
             self.chat.istoric.pop() if self.chat.istoric else None
             return "Nu am ce schimba la obiectul selectat. Încearcă: „fă roșu”, „întrerupt”, „mai gros”, „textul mai mare”, „umple galben”."
         self.reselecteaza(); self.deseneaza(); self.modificat = True
-        nume = {"linie": "culoarea liniei", "text": "culoarea textului", "fundal": "fundalul"}
+        nume = {"linie": "culoarea liniei", "text": "culoarea textului", "fundal": "fundalul", "punct": "culoarea punctelor"}
         ce = ", ".join(dict.fromkeys(nume.get(x, x) for x in facut))
         return f"Gata: am schimbat la {len(self.selectie)} {'obiect selectat' if len(self.selectie) == 1 else 'obiecte selectate'}: {ce}."
 

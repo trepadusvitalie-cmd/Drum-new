@@ -67,6 +67,9 @@ Tipărire și format foaie
   PDF: alege imprimanta „Microsoft Print to PDF”.
   Formatul paginii schemei: Fișier → Pagină → Format (A1…A5, implicit A3) și Orientare; sau în chat „format A4”, „A3 in picioare”.
 
+Găsește și selectează, din chat
+  „gaseste sudurile si coloreaza cu galben”, „selecteaza fibrele rosii”, „arata fibrele albastre”, „selecteaza fibrele noi”.
+
 Obiectul selectat, din chat
   Selectezi pe schemă (clic, Shift+clic) și scrii: „obiectul selectat fa rosu”, „asta intrerupt”, „mai gros”, „subtire”,
   „textul albastru”, „textul mai mare”, „bold”, „umple galben”, „sterge asta”.
