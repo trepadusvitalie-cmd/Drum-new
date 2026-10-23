@@ -71,6 +71,7 @@ Obiectul selectat, din chat
   Selectezi pe schemă (clic, Shift+clic) și scrii: „obiectul selectat fa rosu”, „asta intrerupt”, „mai gros”, „subtire”,
   „textul albastru”, „textul mai mare”, „bold”, „umple galben”, „sterge asta”.
   Etichetă / număr lângă linia selectată: „pune nr 5”, „eticheta FO-12”, „scrie 120 m”.
+  „inca” / „din nou” – repetă ultima schimbare (ex. după „fa mai gros”).
 
 Editare cu mausul
   clic – selectează · Shift+clic – mai multe · trage pe gol – selectează zona · trage – mută

@@ -291,7 +291,11 @@ class App:
             try: self.scrie(comenzi.vorbeste_fara_schema(m), "prog")
             except Exception: self.scrie("Întâi deschide o schemă (butonul „Deschide schema…”) sau apasă „Schemă nouă”.", "prog")
             return
+        if re.fullmatch(r"(inca|inca o data|inca odata|inca o daca|mai|si mai|repeta|la fel|din nou|again|again pls|tot asa|inca putin|mai mult)", cm) \
+                and getattr(self, "ultima_sel", None) and self.selectie:
+            cm, m = self.ultima_sel                                       # „încă”: repet ultima schimbare pe selecție
         rs = self.comanda_selectie(cm, m)
+        if rs and rs.startswith(("Gata", "Am pus")): self.ultima_sel = (cm, m)
         if rs:
             self.scrie(rs, "err" if rs.startswith(("Selectează", "Nu am")) else "prog")
             if rs.startswith("Ce scriu"): self.scrie_variante(self.chat.variante)
