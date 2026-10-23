@@ -30,8 +30,12 @@ def tinta(app, cm):
     p = app.doc.pagini[app.chat.ip]; forme = list(p.forme())
     if re.search(r"\b(asta|acesta|aceasta|astea|acestea|selectat\w*|selectia|el|ea|ele|ei|-l|-o|-le)\b", cm) and app.selectie:
         return list(app.selectie), "obiecte selectate"
-    if re.search(r"\b(sud(ur|ar)\w*|punct\w* de sud\w*|punctele|punctul)\b", cm):
-        return [f for f in forme if app.e_punct(f)], "puncte de sudură"
+    if re.search(r"\b(sud(ur|ar|at|ez|eaz)\w*|imbin\w*|jonctiun\w*|splice\w*|punct\w* de sud\w*|punctele|punctul)\b", cm):
+        pct = [f for f in forme if app.e_punct(f)]
+        if pct: return pct, "puncte de sudură"
+        # schema fără puncte: sudurile sunt notate cu etichete „M2=F”, „G=H” (cablul din stânga sudat cu cel din dreapta)
+        et = [f for f in forme if re.fullmatch(r"[A-Za-z0-9/-]{1,8}\s*=\s*[A-Za-z0-9/-]{1,8}", (f.text_tot() or "").strip())]
+        return et, "locuri de sudură (etichete „X=Y”)"
     if re.search(r"\b(fibr\w*|lini\w*|cabl\w*|fir\w*)\b", cm):
         cul = None
         for k in sorted(app.CULORI, key=len, reverse=True):
@@ -139,7 +143,7 @@ def interpreteaza(app, cm, orig=""):
         if not d: return f"Încotro să mut {ce}? Scrie, de ex., „mută-le la dreapta 2 cm” sau „sus 5 mm”."
         app.selectie = forme; app.muta_selectia(*d); return f"Am mutat {n} {ce} " + ("la dreapta" if d[0] > 0 else "la stânga" if d[0] < 0 else "în sus" if d[1] > 0 else "în jos") + "."
     app.selectie = forme
-    categorii = ("puncte de sudură", "texte", "manșoane", "benzi de porturi", "obiecte")
+    categorii = ("puncte de sudură", "texte", "manșoane", "benzi de porturi", "obiecte", "locuri de sudură (etichete „X=Y”)")
     msg = "" if ce == "obiecte selectate" else (f"Am găsit și am selectat {n} {ce}." if ce in categorii or ce.startswith("linii") else f"Am găsit și am selectat {ce}.")
     rest = re.sub(r"\b(gas\w*|caut\w*|select\w*|arat\w*|marc\w*|evident\w*|colo\w*|vopse\w*|si|le|toate|sud\w*|punct\w*|de|cu|in|fibr\w*|lini\w*|cabl\w*|"
                   r"text\w*|etichet\w*|manson\w*|muf\w*|no(i|ua)|exist\w*|vechi)\b", " ", cm)
