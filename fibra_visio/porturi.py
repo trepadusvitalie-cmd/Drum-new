@@ -26,8 +26,13 @@ class Nod:
 def benzi(S):
     """benzile de porturi: dreptunghiuri subțiri, umplute cu galben"""
     out = []
-    for f in S.p.forme():
-        if f.e1d or f.text_tot(): continue
+    def toate(fs):
+        for f in fs:
+            yield f
+            yield from toate(f.copii)
+    for f in toate(S.p.forme()):
+        if f.e1d: continue
+        if f.text_tot() and not re.fullmatch(r"[\d\s|….,]*", f.text_tot()): continue      # banda poate avea numerele porturilor scrise pe ea
         c = _rgb(f.cell("FillForegnd"))
         if f.cell("FillPattern", "1") == "0" or c is None or not (c[0] > 200 and c[1] > 190 and c[2] < 210): continue
         x0, y0, x1, y1 = f.cutie(); w, h = x1 - x0, y1 - y0

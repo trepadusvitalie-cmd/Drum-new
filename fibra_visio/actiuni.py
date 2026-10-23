@@ -111,6 +111,9 @@ def deplasare(cm):
 
 def interpreteaza(app, cm, orig=""):
     """cererea liberă -> mesaj, sau None dacă nu e despre grupuri de obiecte"""
+    import traseu
+    r = traseu.cerere(app, cm)                                        # „arată portul ODF 2 cum ajunge la client” (+ desen pe pagină nouă)
+    if r: return r
     if re.search(r"\bport\w*\b.*\bla\b|\bp\d+\b", cm): return None                  # comandă de fibră
     a = actiune(cm)
     if a == "deselect": app.selectie = []; app.deseneaza(); return "Am deselectat tot."
@@ -151,7 +154,7 @@ def interpreteaza(app, cm, orig=""):
 SABLOANE = ["gaseste sudurile si coloreaza cu galben", "selecteaza fibrele rosii", "selecteaza fibrele noi", "cate suduri sunt", "sterge sudurile",
             "arata M2", "selecteaza tot", "deselecteaza", "fa rosu", "fa mai gros", "fa intrerupt", "textul mai mare", "pune nr 5", "eticheta portului",
             "muta-le la dreapta 2 cm", "porturi libere", "tipareste", "format A3", "trage o fibra", "adauga manson nou", "adauga odf nou",
-            "adauga cladire noua", "inca", "salveaza", "ce ai invatat"]
+            "adauga cladire noua", "inca", "salveaza", "ce ai invatat", "arata portul ODF 2 cum ajunge la client", "deseneaza traseul pe pagina noua"]
 
 
 def propune(cm, n=3):
