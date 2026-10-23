@@ -111,6 +111,8 @@ def deplasare(cm):
 
 def interpreteaza(app, cm, orig=""):
     """cererea liberă -> mesaj, sau None dacă nu e despre grupuri de obiecte"""
+    r = verifica(app, cm)                                             # porturi libere pe schemă, neclarități, îmbunătățiri
+    if r: return r
     import traseu
     r = traseu.cerere(app, cm)                                        # „arată portul ODF 2 cum ajunge la client” (+ desen pe pagină nouă)
     if r: return r
@@ -148,6 +150,47 @@ def interpreteaza(app, cm, orig=""):
     if a == "arata" or a is None and n <= 3: app.zoom_pe(forme)
     else: app.deseneaza()
     return msg
+
+
+# ---------------------------------------------------------------- verificarea schemei
+def verifica(app, cm):
+    import verificare
+    S = app.chat.schema; ip = app.chat.ip
+    if re.search(r"\bport\w*\s+(libe|goal|neocup|nefolos)\w*", cm) and re.search(r"\b(select\w*|arat\w*|marc\w*|pe sch\w*|evident\w*|unde)\b", cm):
+        lib = verificare.porturi_libere(S)
+        if not lib: return "Nu sunt porturi libere pe pagina asta."
+        app.marcaje = [(ip,) + b for _, _, b in lib]; app.selectie = []
+        benzi = list({id(n): n.banda for n, _, _ in lib}.values())
+        app.zoom_pe(benzi) if len(benzi) <= 3 else app.deseneaza()
+        pe = {}
+        for nd, k, _ in lib: pe.setdefault(nd.nume, []).append(k)
+        import comenzi
+        return f"Am marcat cu portocaliu {len(lib)} porturi libere:\n" + "\n".join(f"  {n}: {comenzi._compact(sorted(v))}" for n, v in pe.items())
+    if re.search(r"\b(neclar\w*|problem\w*|greseli\w*|greseala|erori|eroare|verific\w* schema|controleaz\w*|ce e gresit|ce nu e bine)\b", cm):
+        r = verificare.raport(S); sel = []; L = []
+        if r["capete"]:
+            L.append(f"• {len(r['capete'])} capete de linie care nu ajung nicăieri (fibră „în aer”) – marcate cu portocaliu."); sel += [f for f, _ in r["capete"]]
+        if r["dublate"]: L.append(f"• {len(r['dublate'])} linii desenate de două ori, una peste alta."); sel += r["dublate"]
+        if r["texte"]:
+            L.append(f"• {len(r['texte'])} texte suprapuse (greu de citit): " + ", ".join(f"„{a}” peste „{b}”" for _, _, a, b in r["texte"][:4]))
+            sel += [f for f, g, _, _ in r["texte"]] + [g for f, g, _, _ in r["texte"]]
+        if r["rezerva"]: L.append(f"• {len(r['rezerva'])} fibre se opresc în manșon (rezervă) – e normal, doar ca informație.")
+        app.marcaje = [(ip, p[0] - 0.06, p[1] - 0.06, p[0] + 0.06, p[1] + 0.06) for _, p in r["capete"]]
+        if not sel:
+            app.deseneaza(); return "N-am găsit neclarități: toate liniile ajung undeva, nu sunt linii dublate și nici texte suprapuse." + ("\n" + "\n".join(L) if L else "")
+        ids = {}
+        for f in sel: ids.setdefault(f.id, f)
+        app.selectie = list(ids.values()); app.zoom_pe(app.selectie)
+        return "Neclarități găsite (le-am selectat pe schemă):\n" + "\n".join(L)
+    if re.search(r"\b(imbunat\w*|sfat\w*|recomand\w*|mai bun\w*|optimiz\w*)\b", cm):
+        r = verificare.raport(S); L = []
+        if r["capete"]: L.append(f"• Leagă sau șterge cele {len(r['capete'])} capete de linie „în aer” (scrie „vezi neclaritatile” ca să le vezi).")
+        if r["dublate"]: L.append(f"• Șterge {len(r['dublate'])} linii dublate – par una, dar la tipar și la numărat fibrele încurcă.")
+        if r["texte"]: L.append(f"• Mută {len(r['texte'])} texte care stau unul peste altul, ca să se poată citi.")
+        if r["libere"]: L.append(f"• Ai {len(r['libere'])} porturi libere – scrie „selecteaza porturile libere” ca să le vezi; le poți folosi la clienți noi.")
+        L.append("• Păstrează culoarea fibrei la fel de la un capăt la altul – așa o urmăresc corect („arata pentru port 21”).")
+        return "Ce se poate îmbunătăți la schemă:\n" + "\n".join(L)
+    return None
 
 
 # ---------------------------------------------------------------- variante când nu înțeleg (din comenzile pe care le știu)

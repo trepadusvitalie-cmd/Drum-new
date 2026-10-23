@@ -241,7 +241,7 @@ class App:
     def trimite(self):
         m = self.ent.get("1.0", "end").strip()
         if not m: return
-        import porturi; porturi.EPOCA[0] += 1
+        import porturi; porturi.EPOCA[0] += 1; self.marcaje = []
         self.ent.delete("1.0", "end"); self.istoric_cmd.append(m); self.ih = len(self.istoric_cmd)
         self.scrie(m, "eu")
         cm = comenzi.fara_diacritice(m).lower().strip(" .!")
@@ -274,6 +274,12 @@ class App:
             if tr:
                 rs = self.cerere_gui(comenzi.fara_diacritice(tr).lower().strip(" .!"), tr)
                 if rs: rs = f"(Am înțeles: „{tr}”)\n" + rs
+        if rs is None:                                                          # felul tău de a vorbi, învățat din discuțiile noastre
+            import fraze
+            tr = fraze.traduce(m)
+            if tr and comenzi.fara_diacritice(tr).lower() != cm:
+                rs = self.cerere_gui(comenzi.fara_diacritice(tr).lower().strip(" .!"), tr)
+                if not rs: m = tr; cm = comenzi.fara_diacritice(tr).lower().strip(" .!")
         if rs and rs.startswith(("Gata", "Am pus")): self.ultima_sel = (cm, m)
         if rs:
             self.scrie(rs, "err" if rs.startswith(("Selectează", "Nu am")) else "prog")
@@ -888,6 +894,10 @@ class App:
                 b = f.cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
                 cv.create_rectangle(a[0] - 3, a[1] - 3, c[0] + 3, c[1] + 3, outline="#0078D7", dash=(4, 2), width=2)
             except Exception: pass
+        for ip_, a0, b0, a1, b1 in getattr(self, "marcaje", []):           # porturi libere / neclarități marcate din chat
+            if ip_ != self.chat.ip: continue
+            A = self.ecran(a0, b1); C = self.ecran(a1, b0)
+            cv.create_rectangle(A[0] - 1, A[1] - 1, C[0] + 1, C[1] + 1, outline="#FF6A00", width=2)
         self.previz = []                                          # variantele de așezare propuse de asistent (punctat, numerotat)
         for ip, a0, b0, a1, b1, et in getattr(self.chat, "previzualizare", []) or []:
             if ip != self.chat.ip: continue

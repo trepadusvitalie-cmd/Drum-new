@@ -165,7 +165,8 @@ class Chat:
                 oc = set(porturi.porturi_ocupate(S, nd)); lib = [p for p in range(1, nd.n + 1) if p not in oc]
                 out.append(f"  {nd.nume}: {len(lib)} libere" + (f" ({_compact(lib)})" if lib else ""))
             return ("Porturi libere pe pagină:\n" + "\n".join(out)) if out else "Nu văd benzi de porturi pe pagina asta."
-        if re.match(r"(salut|buna|noroc|hei|alo|privet|привет|ce faci|ce mai faci|cum esti)\b", t) and len(t.split()) <= 6:
+        if re.search(r"\b(salut|buna|noroc|hei|alo|privet|привет|ce faci|ce mai faci|cum esti|cum iti merge|ce mai zici)\b", t) and len(t.split()) <= 6 \
+                and not re.search(r"\bport|\bfibr|\bsudur|\bcablu", t):
             return ("Bine, mersi! " if re.search(r"ce (mai )?faci|cum esti", t) else "Salut! ") + \
                 "Sunt gata de lucru – spune-mi liber ce vrei pe schemă (ex. „arata pentru port 21”, „gaseste sudurile”, „vreau un bloc nou cu 2 dulapuri de 12 porturi”)."
         if re.fullmatch(r"(multumesc|mersi|merci|bravo|super|ok|bine|spasibo|спасибо)", t): return "Cu plăcere! Ce mai facem?"
