@@ -124,6 +124,8 @@ def urmareste(S, nd, k):
                     dd = math.dist(pts[jj], cur)
                     if dd < tol and (cel is None or dd < cel[0]): cel = (dd, n, jj)
             if cel: break
+        if not cel and cul0 not in GRI:                               # banda unui ODF: fibra iese pe partea cealaltă, în ordinea culorii
+            cel = _prin_banda(B, cur, cul0, vazut, toate_benzi, pe_start, parcurse)
         bm = in_manson(cur) if not cel and cul0 not in GRI else None
         if bm:                                                        # în manșon: sudura continuă cu fibra de aceeași culoare din același manșon
             for n, (f, pts, c) in enumerate(B):
@@ -139,6 +141,32 @@ def urmareste(S, nd, k):
     puncte = [p for n in drum for p in B[n][1]]
     return {"bucati": [B[n] for n in drum], "puncte": puncte, "culoare": B[i][2], "capat": cur, "client": capat,
             "opriri": opriri(S, puncte, cur, nd, k, capat), "nod": nd, "port": k}
+
+
+def _prin_banda(B, cur, cul0, vazut, benzi, pe_start, parcurse):
+    """fibra a ajuns la o bandă (ODF de subinel): intră pe o parte, iese pe cealaltă. A câta fibră de culoarea asta intră
+    (în ordinea porturilor) = a câta fibră de aceeași culoare iese pe partea opusă."""
+    for bf in benzi:
+        x0, y0, x1, y1 = bf.cutie()
+        if not (x0 - 0.15 <= cur[0] <= x1 + 0.15 and y0 - 0.15 <= cur[1] <= y1 + 0.15): continue
+        oriz = (x1 - x0) >= (y1 - y0); cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        parte = (lambda p: p[1] > cy) if oriz else (lambda p: p[0] > cx)
+        de_a_lungul = (lambda p: p[0]) if oriz else (lambda p: -p[1])
+        pe_banda = lambda p: x0 - 0.15 <= p[0] <= x1 + 0.15 and y0 - 0.15 <= p[1] <= y1 + 0.15
+        intra, ies = [], []
+        for n, (f, pts, c) in enumerate(B):
+            if c != cul0 or pe_start(pts[0]) or pe_start(pts[-1]): continue
+            for jj in (0, -1):
+                q = pts[jj]; alt = pts[-1] if jj == 0 else pts[0]
+                if not pe_banda(q) or pe_banda(alt): continue
+                (intra if parte(q) == parte(cur) else ies).append((de_a_lungul(q), n, jj, q))
+        intra.sort(); ies.sort()
+        rang = min(range(len(intra)), key=lambda r: math.dist(intra[r][3], cur)) if intra else 0
+        libere = [x for x in ies if x[1] not in vazut]
+        if not libere: continue
+        _, n, jj, q = (ies[rang] if rang < len(ies) and ies[rang][1] not in vazut else libere[0])
+        return (math.dist(q, cur), n, jj)
+    return None
 
 
 def opriri(S, puncte, cur, nd, k, capat):
@@ -160,7 +188,7 @@ def opriri(S, puncte, cur, nd, k, capat):
         for bf in benzi:
             b = bf.cutie()
             if bf.id not in vazute and b[0] - 0.12 <= p[0] <= b[2] + 0.12 and b[1] - 0.12 <= p[1] <= b[3] + 0.12:
-                vazute.add(bf.id); nume = _nume_aproape(tx, b, ("SUBINEL", "ODB", "CLIENT", "ODF"), 0.8) or "ODF"
+                vazute.add(bf.id); nume = _nume_aproape(tx, b, ("SUBINEL", "ODB", "CLIENT"), 1.3) or _nume_aproape(tx, b, ("ODF",), 1.0) or "ODF"
                 kk = None
                 n = noduri_.get(bf.id)
                 if n is not None:
@@ -243,6 +271,9 @@ CERE = r"\b(arat\w*|urmar\w*|trase\w*|cum ajunge|unde (ajunge|merge|duce|iese)|d
 DESEN = r"\b(desen\w*|pagina noua|pagina nou|alta pagina|pe pagina|schema noua|fa schema|fa-mi schema)\b"
 
 
+ULTIMUL = {}
+
+
 def din_text(S, cm):
     """„arată portul ODF 2 cum ajunge la client” -> (Nod, 2)"""
     try: men = [m for m in porturi.mentiuni(S, cm) if m[3] is not None]
@@ -251,7 +282,13 @@ def din_text(S, cm):
         men = [(cm.find(n.nume.lower()), cm.find(n.nume.lower()) + len(n.nume), n.nume, n) for n in porturi.noduri(S)
                if n.nume.lower() in cuv or n.nume.lower() in cm]
         men = sorted([m for m in men if m[0] >= 0], key=lambda m: (-len(m[2]), m[0]))[:1]
-    if not men: return None
+    if not men:                                                       # „arată pentru port 21”: fără nume = ODF-ul de dinainte (sau cel mai mare)
+        m = re.search(r"(?:port\w*|p)\s*(\d+)", cm)
+        if not m: return None
+        ns = porturi.noduri(S)
+        nd = next((n for n in ns if n.nume == ULTIMUL.get("nod")), None) or max(ns, key=lambda n: (n.nume.upper().startswith("ODF"), n.n), default=None)
+        k = int(m.group(1))
+        return (nd, k) if nd and 1 <= k <= nd.n else None
     a, b, nume, nd = men[0]
     m = re.search(r"^\W*(?:port\w*\s*|p\s*)?(\d+)", cm[b:]) or re.search(r"port\w*\s*(\d+)", cm) or re.search(r"\b(\d+)\b", cm[b:])
     if not m: return None
@@ -279,7 +316,7 @@ def cerere(app, cm):
     nd, k = np_
     info = urmareste(S, nd, k)
     if info is None: return f"La {nd.nume} portul {k} e liber – nu pleacă nicio fibră din el."
-    app.ultim_traseu = (info, app.chat.ip)
+    app.ultim_traseu = (info, app.chat.ip); ULTIMUL["nod"] = nd.nume
     app.selectie = [f for f, _, _ in info["bucati"]]; app.zoom_pe(app.selectie)
     msg = descrie(info) + "."
     cab = cabluri(S, info["puncte"])
