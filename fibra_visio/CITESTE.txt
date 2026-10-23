@@ -84,6 +84,12 @@ Obiectul selectat, din chat
   Etichetă / număr lângă linia selectată: „pune nr 5”, „eticheta FO-12”, „scrie 120 m”.
   „inca” / „din nou” – repetă ultima schimbare (ex. după „fa mai gros”).
 
+Ce îmi poți cere în chat – scrie „ce pot sa te intreb” ca să vezi toată lista:
+  fibra unui port până la client („arata pentru port 21”, apoi „deseneaza-l pe pagina noua”), porturi libere pe schemă,
+  locurile sudate, fibră nouă cu sudură, clădire / ODF / manșon nou, verificarea schemei („vezi neclaritatile”,
+  „cum se poate imbunatati schema”), culori și grosimi, etichete, tabel („insereaza tabel 3 x 4”), copiaza / lipeste,
+  pagina noua, zoom 150, format A3, tipareste, cablul nou rosu / intrerupt.
+
 Editare cu mausul
   clic – selectează · Shift+clic – mai multe · trage pe gol – selectează zona · trage – mută
   Ctrl+C / Ctrl+V – copiază și lipește (unde e mausul) · Delete – șterge

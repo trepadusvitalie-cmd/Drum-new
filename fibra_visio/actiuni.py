@@ -115,6 +115,8 @@ def deplasare(cm):
 
 def interpreteaza(app, cm, orig=""):
     """cererea liberă -> mesaj, sau None dacă nu e despre grupuri de obiecte"""
+    r = program(app, cm)                                              # tabel, copiere, pagini, zoom, salvare, stilul cablului nou, ce poți cere
+    if r: return r
     r = verifica(app, cm)                                             # porturi libere pe schemă, neclarități, îmbunătățiri
     if r: return r
     import traseu
@@ -154,6 +156,45 @@ def interpreteaza(app, cm, orig=""):
     if a == "arata" or a is None and n <= 3: app.zoom_pe(forme)
     else: app.deseneaza()
     return msg
+
+
+# ---------------------------------------------------------------- comenzile programului, spuse liber
+CE_POTI_CERE = """Ce îmi poți cere (scrie liber, fără diacritice, merge și cu greșeli):
+• Fibra unui port până la client: „arata pentru port 21”, „arata portul ODF 7 cum ajunge la client”, apoi „deseneaza-l pe pagina noua”
+• Porturi: „porturi libere”, „selecteaza pe schema porturile libere”, „eticheta portului”
+• Suduri: „arata locurile unde este sudat”, „cate suduri sunt”, „coloreaza sudurile cu galben”
+• Fibră nouă cu sudură: „CTA Nord port 3 la CTA Sud port 3 sudura in M1” sau „trage o fibra” (te întreb pas cu pas)
+• Desen nou: „adauga cladire noua”, „adauga odf nou”, „adauga manson nou” – îți propun variante de așezare
+• Verificare: „analizeaza schema”, „vezi neclaritatile”, „cum se poate imbunatati schema”
+• Selecție și stil: „selecteaza fibrele rosii”, „fa rosu”, „fa mai gros”, „intrerupt”, „pune nr 5”, „inca”
+• Editare: „copiaza”, „lipeste”, „sterge asta”, „muta-le la dreapta 1 cm”, „insereaza tabel 3 x 4”, „caseta text”
+• Pagini și vedere: „pagina noua”, „pagina 2”, „potriveste”, „zoom 150”, „format A3”, „tipareste”, „salveaza”
+• Cablul nou: „cablul nou rosu”, „cablul nou intrerupt”, „cablul nou ca cele existente”
+• Memorie: „ce ai invatat”, „analizeaza discutia precedenta”, „inapoi” / „inainte”"""
+
+
+def program(app, cm):
+    if re.search(r"\b(ce (pot|poti|pots) (sa )?((te|iti) )?(cer|intreb|zic)|ce stii (sa )?(faci)?|ce comenzi|exemple|lista comenzi)\b", cm): return CE_POTI_CERE
+    m = re.search(r"\b(?:insereaz\w*|adaug\w*|pune|fa|creeaz\w*)\s+(?:un\s+)?tabel\w*\D*(\d+)\s*(?:x|pe|randuri|rinduri|\*|cu)?\D*(\d+)?", cm)
+    if m or re.fullmatch(r"(insereaza |adauga |pune )?(un )?tabel", cm):
+        r_ = int(m.group(1)) if m and m.group(1) else 3; c_ = int(m.group(2)) if m and m.group(2) else 3
+        if not (1 <= r_ <= 30 and 1 <= c_ <= 20): return "Tabelul poate avea 1–30 de rânduri și 1–20 de coloane."
+        app.insereaza_tabel(r_, c_); app.modificat = True; return f"Am inserat un tabel de {r_} rânduri × {c_} coloane în mijlocul vederii. Dublu-clic pe o celulă ca să scrii."
+    if re.fullmatch(r"(copiaza|copiere|copy)( asta| selectia| obiectul)?", cm):
+        if not app.selectie: return "Selectează întâi ce vrei să copiezi, apoi scrie „copiaza”."
+        app.copiaza(); return f"Am copiat {len(app.selectie)} obiecte. Scrie „lipeste” (sau Ctrl+V cu mausul unde vrei)."
+    if re.fullmatch(r"(lipeste|lipire|paste|pune copia)( aici)?", cm): app.lipeste(); return "Am lipit ce era copiat."
+    if re.fullmatch(r"(caseta (de )?text|adauga text|text nou)", cm): app.caseta_text(); return "Am pus o casetă de text – scrie în ea direct pe schemă."
+    if re.fullmatch(r"(adauga |fa |deschide )?(o )?pagina noua", cm): app.pagina_noua(); return "Am făcut o pagină nouă."
+    if re.fullmatch(r"(potriveste|toata schema|arata tot|vezi tot|fit)", cm): app.potriveste(); return "Am potrivit toată pagina în fereastră."
+    m = re.fullmatch(r"zoom (\d+)\s*%?", cm)
+    if m: app.zoom_procent(int(m.group(1))); return f"Zoom {m.group(1)}%."
+    if re.fullmatch(r"(salveaza ca|salveaza cu alt nume|save as)", cm): app.salveaza_ca(); return "Am deschis fereastra „Salvează ca”."
+    m = re.search(r"\bcablu\w* no(u|i)\b.*?\b(rosu intrerupt|rosu|intrerupt|ca (cele )?existente)\b", cm)
+    if m and hasattr(app, "cb_stil"):
+        v = {"rosu": "roșu", "intrerupt": "linie întreruptă", "rosu intrerupt": "roșu întrerupt"}.get(m.group(2), "ca cele existente")
+        app.cb_stil.set(v); app.stil_cablu(); return f"De acum cablurile noi le desenez: {v}."
+    return None
 
 
 # ---------------------------------------------------------------- verificarea schemei
