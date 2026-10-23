@@ -38,93 +38,9 @@ class App:
         st = ttk.Style(); FONT = ("Segoe UI", 10)
         st.configure(".", font=FONT); st.configure("Titlu.TLabel", font=("Segoe UI Semibold", 14), foreground=ACCENT)
         st.configure("Mic.TLabel", font=("Segoe UI", 9), foreground="#606060")
-        # --- panglica (ca în Word): titlu + săgeți, apoi filele Fișier / Acasă / Inserare / Vizualizare ---
-        sus = tk.Frame(root, bg=ACCENT); sus.pack(fill="x")
-        tk.Label(sus, text="◈ Fibra Visio", bg=ACCENT, fg="white", font=("Segoe UI Semibold", 11)).pack(side="left", padx=(10, 14), pady=4)
-        for txt, cmd in (("💾", lambda: self.salveaza()), ("🖨", lambda: self.dialog_tiparire()), ("←", lambda: self.anuleaza_chat()), ("→", lambda: self.inainte())):
-            b = tk.Label(sus, text=txt, bg=ACCENT, fg="white", font=("Segoe UI", 12), padx=8, cursor="hand2"); b.pack(side="left")
-            b.bind("<Button-1>", lambda e, c=cmd: c())
-            b.bind("<Enter>", lambda e, b=b: b.config(bg="#2B88D8")); b.bind("<Leave>", lambda e, b=b: b.config(bg=ACCENT))
-        self.lbl_fisier = tk.Label(sus, text="", bg=ACCENT, fg="white", font=("Segoe UI", 10)); self.lbl_fisier.pack(side="left", padx=20)
-        st.configure("Ribbon.TNotebook", tabmargins=(8, 2, 8, 0)); st.configure("Ribbon.TNotebook.Tab", padding=(14, 4), font=("Segoe UI", 10))
-        nb = ttk.Notebook(root, style="Ribbon.TNotebook"); nb.pack(fill="x", padx=0); self.ribbon = nb
-
-        def fila(nume):
-            f = ttk.Frame(nb, padding=(6, 4)); nb.add(f, text=nume); return f
-
-        def grup(fila_, titlu):
-            g = ttk.Frame(fila_); g.pack(side="left", fill="y", padx=(2, 4))
-            corp = ttk.Frame(g); corp.pack(side="top", fill="both", expand=True)
-            ttk.Label(g, text=titlu, style="Mic.TLabel", anchor="center").pack(side="bottom", fill="x", pady=(2, 0))
-            ttk.Separator(fila_, orient="vertical").pack(side="left", fill="y", padx=4)
-            return corp
-
-        def mare(parinte, simbol, text, cmd):
-            b = ttk.Button(parinte, text=f"{simbol}\n{text}", command=cmd, width=9); b.pack(side="left", padx=2, fill="y"); return b
-
-        # Fișier
-        ff = fila("Fișier"); g = grup(ff, "Fișier")
-        mare(g, "📂", "Deschide", self.deschide); mare(g, "＋", "Nouă", self.nou); mare(g, "💾", "Salvează", self.salveaza); mare(g, "🖫", "Salvează ca", self.salveaza_ca)
-        g = grup(ff, "Tipărire"); mare(g, "🖨", "Tipărește", self.dialog_tiparire)
-        g = grup(ff, "Pagină")
-        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3)); r2 = ttk.Frame(g); r2.pack(fill="x")
-        ttk.Label(r1, text="Format    ", style="Mic.TLabel").pack(side="left")
-        self.cb_format = ttk.Combobox(r1, state="readonly", width=12, values=list(tiparire.FORMATE)); self.cb_format.set(tiparire.IMPLICIT)
-        self.cb_format.pack(side="left"); self.cb_format.bind("<<ComboboxSelected>>", lambda e: self.schimba_format())
-        ttk.Label(r2, text="Orientare ", style="Mic.TLabel").pack(side="left")
-        self.cb_orient = ttk.Combobox(r2, state="readonly", width=12, values=["culcat", "în picioare"]); self.cb_orient.set("culcat")
-        self.cb_orient.pack(side="left"); self.cb_orient.bind("<<ComboboxSelected>>", lambda e: self.schimba_format())
-        # Acasă
-        fa = fila("Acasă")
-        g = grup(fa, "Clipboard")
-        mare(g, "📋", "Lipește", lambda: self.lipeste()); col = ttk.Frame(g); col.pack(side="left")
-        ttk.Button(col, text="⧉ Copiază", command=lambda: self.copiaza()).pack(fill="x", pady=1)
-        ttk.Button(col, text="✕ Șterge", command=lambda: self.sterge_selectia()).pack(fill="x", pady=1)
-        g = grup(fa, "Font")
-        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3)); r2 = ttk.Frame(g); r2.pack(fill="x")
-        try:
-            import tkinter.font as tkf
-            fonturi = sorted({f for f in tkf.families() if not f.startswith("@")})
-        except Exception: fonturi = ["Arial", "Calibri", "Times New Roman"]
-        self.cb_font = ttk.Combobox(r1, width=18, values=fonturi); self.cb_font.set("Arial"); self.cb_font.pack(side="left")
-        self.cb_font.bind("<<ComboboxSelected>>", lambda e: self.aplica_text(font=self.cb_font.get()))
-        self.cb_font.bind("<Return>", lambda e: (self.aplica_text(font=self.cb_font.get()), "break")[1])
-        self.cb_size = ttk.Combobox(r1, width=4, values=[4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72])
-        self.cb_size.pack(side="left", padx=4); self.cb_size.bind("<<ComboboxSelected>>", lambda e: self.aplica_text(size=self.cb_size.get()))
-        self.cb_size.bind("<Return>", lambda e: (self.aplica_text(size=self.cb_size.get()), "break")[1])
-        ttk.Button(r1, text="A⁺", width=3, command=lambda: self.aplica_text(delta=+1)).pack(side="left")
-        ttk.Button(r1, text="A⁻", width=3, command=lambda: self.aplica_text(delta=-1)).pack(side="left", padx=(2, 0))
-        st.configure("B.TButton", font=("Segoe UI", 10, "bold")); st.configure("I.TButton", font=("Segoe UI", 10, "italic"))
-        st.configure("U.TButton", font=("Segoe UI", 10, "underline"))
-        for txt, bit, sty in (("B", 1, "B.TButton"), ("I", 2, "I.TButton"), ("U", 4, "U.TButton")):
-            ttk.Button(r2, text=txt, width=3, style=sty, command=lambda b=bit: self.aplica_text(stil=b)).pack(side="left", padx=1)
-        ttk.Label(r2, text="  A", font=("Segoe UI", 11, "bold")).pack(side="left")
-        for c in ("#000000", "#FF0000", "#0000FF", "#00A050", "#FF8C00", "#7030A0"):
-            b = tk.Label(r2, bg=c, width=2, relief="solid", bd=1, cursor="hand2"); b.pack(side="left", padx=1)
-            b.bind("<Button-1>", lambda e, c=c: self.aplica_text(culoare=c))
-        ttk.Button(r2, text="…", width=2, command=self.alege_culoare).pack(side="left", padx=(2, 0))
-        g = grup(fa, "Paragraf")
-        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3))
-        for txt, al in (("☰⯇", "0"), ("☰", "1"), ("⯈☰", "2")):
-            ttk.Button(r1, text=txt, width=4, command=lambda a=al: self.aplica_text(aliniere=a)).pack(side="left", padx=1)
-        self.lbl_text = ttk.Label(g, text="selectează o formă cu text", style="Mic.TLabel"); self.lbl_text.pack(fill="x")
-        g = grup(fa, "Schemă")
-        r1 = ttk.Frame(g); r1.pack(fill="x", pady=(0, 3)); r2 = ttk.Frame(g); r2.pack(fill="x")
-        ttk.Label(r1, text="Pagina ", style="Mic.TLabel").pack(side="left")
-        self.cb_pag = ttk.Combobox(r1, state="readonly", width=24); self.cb_pag.pack(side="left"); self.cb_pag.bind("<<ComboboxSelected>>", self.alege_pagina)
-        ttk.Label(r2, text="Cablu nou ", style="Mic.TLabel").pack(side="left")
-        self.cb_stil = ttk.Combobox(r2, state="readonly", width=20, values=["roșu", "linie întreruptă", "roșu întrerupt", "ca cele existente"])
-        self.cb_stil.current(0); self.cb_stil.pack(side="left"); self.cb_stil.bind("<<ComboboxSelected>>", self.stil_cablu)
-        # Inserare
-        fi = fila("Inserare"); g = grup(fi, "Tabele")
-        self.btn_tabel = mare(g, "▦", "Tabel ▾", self.meniu_tabel)
-        g = grup(fi, "Text")
-        mare(g, "A", "Casetă text", self.caseta_text)
-        # Vizualizare
-        fv = fila("Vizualizare"); g = grup(fv, "Zoom")
-        mare(g, "⤢", "Potrivește", self.potriveste)
-        mare(g, "＋", "Mărește", lambda: self.zoom_centru(1.25)); mare(g, "－", "Micșorează", lambda: self.zoom_centru(1 / 1.25))
-        nb.select(1)
+        # --- panglica, la fel ca în Visio (File / Home / Insert / Design / Data / Process / Review / View) ---
+        import panglica
+        self.unealta = "pointer"; self.panglica = panglica.Panglica(self, root); self.ribbon = None
         # --- schema | chat ---
         pw = ttk.PanedWindow(root, orient="horizontal"); pw.pack(fill="both", expand=True, padx=8, pady=(0, 4)); self.pw = pw
         stg = ttk.Frame(pw); pw.add(stg, weight=3)
@@ -741,7 +657,7 @@ class App:
     def schimba_format(self, fmt=None, culcat=None, toate=None):
         if not self.doc: return
         fmt = fmt or self.cb_format.get(); culcat = (self.cb_orient.get() != "în picioare") if culcat is None else culcat
-        if fmt not in tiparire.FORMATE: return
+        if fmt not in tiparire.FORMATE: fmt = tiparire.recunoaste(*self.doc.pagini[self.chat.ip].dimensiune())[0] or tiparire.IMPLICIT
         if toate is None:
             toate = len(self.doc.pagini) > 1 and messagebox.askyesno(TITLU, f"Pun {fmt} {'culcat' if culcat else 'în picioare'} la toate paginile?\n(Nu = doar la pagina deschisă)")
         w, h = tiparire.marime(fmt, culcat); afara = 0
@@ -938,6 +854,13 @@ class App:
         p = self.doc.pagini[self.chat.ip]; W, H = p.dimensiune()
         x0, y0 = self.ecran(0, H); x1, y1 = self.ecran(W, 0)
         cv.create_rectangle(x0 + 3, y0 + 3, x1 + 3, y1 + 3, fill="#C9CED4", outline=""); cv.create_rectangle(x0, y0, x1, y1, fill="white", outline="#D0D4D9")
+        try: grila = self.panglica.v["Grid"].get()
+        except Exception: grila = False
+        if grila and self.zoom * 0.25 >= 6:                                     # View → Grid: grila ca în Visio (la 1/4 inch)
+            pas = 0.25 if self.zoom * 0.25 >= 12 else 0.5; k = 0
+            while k * pas <= W: X = x0 + k * pas * self.zoom; cv.create_line(X, y0, X, y1, fill="#EEF1F5" if k % 4 else "#E1E6EC"); k += 1
+            k = 0
+            while k * pas <= H: Y = y1 - k * pas * self.zoom; cv.create_line(x0, Y, x1, Y, fill="#EEF1F5" if k % 4 else "#E1E6EC"); k += 1
         self.cutii = []                                          # (forma de sus, cutie) pentru selectare
         err = 0
         for f in p.forme():
@@ -1066,6 +989,8 @@ class App:
             if a0 <= e.x <= a1 and b0 <= e.y <= b1:
                 self.trimite_text(et); self.mod = None; return
         self.mouse0 = (e.x, e.y); self.mod = None
+        if getattr(self, "unealta", "pointer") != "pointer":                # unealtă din Home → Tools: desenez o formă nouă
+            self.mod = "unealta"; return
         for X, Y, i, j in getattr(self, "manere", []):
             if abs(e.x - X) <= 6 and abs(e.y - Y) <= 6:
                 self.mod = "redim"; self.maner = (i, j); return
@@ -1083,7 +1008,11 @@ class App:
     def trage(self, e):
         if not self.doc or self.mod is None: return
         self.cv.delete("tras")
-        if self.mod == "zona":
+        if self.mod == "unealta":
+            if self.unealta == "connector": self.cv.create_line(self.mouse0[0], self.mouse0[1], e.x, e.y, fill="#0078D7", width=2, tags="tras")
+            elif self.unealta == "ellipse": self.cv.create_oval(self.mouse0[0], self.mouse0[1], e.x, e.y, outline="#0078D7", dash=(3, 2), tags="tras")
+            else: self.cv.create_rectangle(self.mouse0[0], self.mouse0[1], e.x, e.y, outline="#0078D7", dash=(3, 2), tags="tras")
+        elif self.mod == "zona":
             self.cv.create_rectangle(self.mouse0[0], self.mouse0[1], e.x, e.y, outline="#0078D7", dash=(3, 2), tags="tras")
         elif self.mod == "redim" and self.selectie:
             r = self.cutie_noua(e)
@@ -1097,6 +1026,7 @@ class App:
     def elibereaza(self, e):
         if not self.doc or self.mod is None: return
         self.cv.delete("tras"); mod, self.mod = self.mod, None
+        if mod == "unealta": self.forma_noua_unealta(self.mouse0, (e.x, e.y)); return
         if mod == "redim":
             r = self.cutie_noua(e)
             if r and (abs(e.x - self.mouse0[0]) > 2 or abs(e.y - self.mouse0[1]) > 2): self.redimensioneaza(self.selectie[0], r)
@@ -1110,6 +1040,66 @@ class App:
             dx, dy = (e.x - self.mouse0[0]) / self.zoom, -(e.y - self.mouse0[1]) / self.zoom
             if abs(dx) * self.zoom < 2 and abs(dy) * self.zoom < 2: return
             self.muta_selectia(dx, dy)
+
+    # ---------- uneltele din panglică (Connector, Text, Rectangle, Ellipse, Container, Callout, Symbol) ----------
+    def forma_noua_unealta(self, p0, p1):
+        import elemente, porturi
+        k = self.unealta; a = self.pagina_xy(*p0); b = self.pagina_xy(*p1); S = self.chat.schema
+        mic = abs(p1[0] - p0[0]) < 4 and abs(p1[1] - p0[1]) < 4
+        if k != "text" and mic: return
+        x0, x1 = sorted((a[0], b[0])); y0, y1 = sorted((a[1], b[1]))
+        with self.chat.lacat:
+            self.inainte_de_modificare()
+            if k == "connector": porturi._linie(S, a, b, "#000000", False)
+            elif k == "rect": elemente.chenar(S, x0, y0, x1, y1)
+            elif k == "ellipse":
+                el = elemente.chenar(S, x0, y0, x1, y1); [el.remove(g) for g in el.findall(vsdx_doc.V + "Section") if g.get("N") == "Geometry"]
+                desen._geom(el, [("Ellipse", {"X": (x1 - x0) / 2, "Y": (y1 - y0) / 2, "A": x1 - x0, "B": (y1 - y0) / 2, "C": (x1 - x0) / 2, "D": y1 - y0})])
+            elif k == "text": elemente.text(S, a[0], a[1], "Text", pt=12, bold=False, w=1.2)
+        self.modificat = True
+        nou = self.doc.pagini[self.chat.ip].forme()[-1]; self.selectie = [nou]; self.deseneaza()
+        if k == "text": self.editor_pe_schema(nou)
+        self.panglica.unealta("pointer")
+
+    def container(self, callout=False):
+        """Insert → Container (chenar întrerupt cu titlu) / Callout (casetă cu chenar), în mijlocul vederii"""
+        if not self.doc: return
+        import elemente
+        cx, cy = self.pagina_xy(self.cv.winfo_width() / 2, self.cv.winfo_height() / 2); S = self.chat.schema
+        with self.chat.lacat:
+            self.inainte_de_modificare()
+            if callout:
+                elemente.chenar(S, cx - 0.8, cy - 0.3, cx + 0.8, cy + 0.3, rotunjit=0.06); elemente.text(S, cx, cy, "Callout", pt=11, bold=False, w=1.5)
+            else:
+                elemente.chenar(S, cx - 1.6, cy - 1.0, cx + 1.6, cy + 1.0, intrerupt=True, gros=0.02083333); elemente.text(S, cx, cy + 0.8, "Container", pt=11, w=3)
+        self.modificat = True; self.selectie = self.doc.pagini[self.chat.ip].forme()[-2:]; self.deseneaza()
+
+    def simbol(self, c):
+        """Insert → Symbol: îl adaug la sfârșitul textului selectat, sau ca text nou în mijlocul vederii"""
+        if not self.doc: return
+        ft = self.forme_text_selectate() if self.selectie else []
+        with self.chat.lacat:
+            self.inainte_de_modificare()
+            if ft: desen._text(ft[0].el, (ft[0].text_tot() or "") + c)
+            else:
+                import elemente
+                cx, cy = self.pagina_xy(self.cv.winfo_width() / 2, self.cv.winfo_height() / 2); elemente.text(self.chat.schema, cx, cy, c, pt=14, bold=False, w=0.5)
+        self.modificat = True; self.reselecteaza(); self.deseneaza()
+
+    def comuta_chat(self):
+        """View → Task Panes: arată / ascunde chatul din dreapta"""
+        panes = self.pw.panes()
+        if len(panes) > 1: self._chat_pane = panes[1]; self.pw.forget(panes[1])
+        elif getattr(self, "_chat_pane", None): self.pw.add(self._chat_pane, weight=1)
+        self.root.after(100, self.potriveste)
+
+    def zoom_procent(self, p):
+        if self.doc: self.zoom_centru(p / 100 * 96 / self.zoom)
+
+    def latime_pagina(self):
+        if not self.doc: return
+        W, H = self.doc.pagini[self.chat.ip].dimensiune(); cw = max(self.cv.winfo_width(), 200)
+        self.zoom = (cw - 40) / W; self.ox = 20; self.oy = 20; self.deseneaza()
 
     # ---------- tabel (ca în Word) ----------
     def meniu_tabel(self):
