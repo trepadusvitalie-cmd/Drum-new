@@ -1,6 +1,6 @@
 """Chatul: înțelege comenzile scrise în română (cu sau fără diacritice) și le face pe schemă.
 Fără internet: comenzile au forme fixe, cu multe variante. „ajutor” arată lista."""
-import math, re
+import math, os, re
 from desen import Schema, CUVINTE_TIP, TIPURI, tip_din_nume, pagina_sudura, RE_CABLU
 from vsdx_doc import norm
 
@@ -49,16 +49,135 @@ NUME = r"([A-Za-z][\w.\-/]*\d[\w.\-/]*|[A-Za-z]+-?\d+\w*|\"[^\"]+\")"
 def curat(n): return n.strip().strip('"').strip()
 
 
+_MEMORIE = None
+
+
+def memorie_comuna():
+    """o singură memorie pentru toate schemele (fișierul de pe calculator)"""
+    global _MEMORIE
+    if _MEMORIE is None:
+        import memorie
+        try: _MEMORIE = memorie.Memorie()
+        except Exception: _MEMORIE = memorie.Memorie(cale=os.path.join(os.path.expanduser("~"), ".fibravisio_memorie.json"))
+    return _MEMORIE
+
+
+NEINTELES = ("Nu am înțeles", "N-am", "Nu găsesc", "Scrie un", "Scrie numărul", "Câte fibre?")
+
+
+def _compact(nr):
+    """[1,2,3,7,9,10] -> „1-3, 7, 9-10”"""
+    out = []; i = 0
+    while i < len(nr):
+        j = i
+        while j + 1 < len(nr) and nr[j + 1] == nr[j] + 1: j += 1
+        out.append(f"{nr[i]}-{nr[j]}" if j > i else str(nr[i])); i = j + 1
+    return ", ".join(out)
+
+
 class Chat:
     def __init__(self, doc):
+        import threading
         self.doc = doc; self.ip = 0; self.istoric = []; self.refacere = []; self.variante = []
+        self.memorie = memorie_comuna(); self.previzualizare = []; self.lucrari = []; self.lacat = threading.RLock()
+        self.stare_agenti = lambda: "Niciun agent nu lucrează acum."
+        import asistent; self.agent = asistent.Agent(self)
+
+    def ruleaza_lucrare(self, fn):
+        """rulează lucrarea unui agent (în firul lui), cu lacăt pe schemă și pas de „înapoi”"""
+        with self.lacat:
+            stare = self.doc.instantaneu()
+            try: r = fn()
+            except Exception as e:
+                self.doc.restaureaza(stare); return f"N-am reușit: {e}", False, None
+            msg, sch = r[0], r[1]; ip = r[2] if len(r) > 2 else None
+            if sch: self.istoric.append(stare); self.istoric = self.istoric[-50:]; self.refacere = []
+            return msg, sch, ip
 
     @property
     def schema(self): return Schema(self.doc, self.doc.pagini[self.ip])
 
     def raspunde(self, mesaj):
-        """-> (răspuns, s-a schimbat desenul)"""
+        """-> (răspuns, s-a schimbat desenul). Notează discuția în memorie și învață din ea."""
+        prec = self.variante
+        if re.fullmatch(r"\s*[1-9]\s*", mesaj) and prec and int(mesaj) <= len(prec) and not self.agent.activ:
+            mesaj = prec[int(mesaj) - 1]                                  # în memorie notez varianta aleasă, nu cifra
+        r, sch = self._raspunde(mesaj)
+        try:
+            ok = not r.startswith(NEINTELES)
+            if not re.fullmatch(r"\s*\d+\s*", mesaj) or not ok: self.memorie.noteaza(mesaj, r, ok, self.doc.pagini[self.ip].nume)
+            else: self.memorie.noteaza(mesaj, r, ok)
+        except Exception: pass
+        return r, sch
+
+    def vorbeste(self, t):
+        """discuție (nu schimbă schema): memorie, agenți, „cum fac…”. -> text sau None"""
+        import dictionar
+        m = self.memorie
+        if re.search(r"\b(ce (ai|mai) invatat|ce stii despre mine|memori(a|e)|ce tii minte|ce ti-am spus)\b", t): return m.rezumat()
+        if re.search(r"\b(discuti\w* (precedent|trecut|de (ieri|azi|dinainte))|ce am (vorbit|discutat|scris)|istoric\w*|analizeaza discuti\w*)\b", t):
+            m.invata_din_istoric(); return m.ultimele(12) + "\n\nAm recitit discuțiile și am reînvățat din ele.\n" + m.rezumat()
+        if re.fullmatch(r"(uita tot|sterge memoria|goleste memoria)", t): m.uita(); return "Am uitat tot ce am învățat (memoria e goală)."
+        if re.search(r"\b(ce (fac|lucreaza) agentii|agenti|ce faci acum|cat mai (dureaza|ai)|e gata\??|status)\b", t): return self.stare_agenti()
+        if re.search(r"\bporturi\w* (libere|ocupate|goale|folosite)|\b(cate|ce) porturi\b|\bunde (am|e|sunt) (loc|porturi)", t):
+            import porturi
+            S = self.schema; out = []
+            for nd in porturi.noduri(S):
+                oc = set(porturi.porturi_ocupate(S, nd)); lib = [p for p in range(1, nd.n + 1) if p not in oc]
+                out.append(f"  {nd.nume}: {len(lib)} libere" + (f" ({_compact(lib)})" if lib else ""))
+            return ("Porturi libere pe pagină:\n" + "\n".join(out)) if out else "Nu văd benzi de porturi pe pagina asta."
+        if re.fullmatch(r"(salut|buna( ziua| seara| dimineata)?|noroc|hei|alo|privet|привет)", t):
+            return "Salut! Spune-mi liber ce vrei pe schemă (ex. „vreau un bloc nou cu 2 dulapuri de 12 porturi lângă CTA Nord”)."
+        if re.fullmatch(r"(multumesc|mersi|merci|bravo|super|ok|bine|spasibo|спасибо)", t): return "Cu plăcere! Ce mai facem?"
+        return dictionar.cum_fac(t)
+
+    def _raspunde(self, mesaj, traduce=True):
         prec, self.variante = self.variante, []
+        t1 = re.sub(r"\s+", " ", fara_diacritice(mesaj.strip()).lower()).strip(" .!?")
+        if not self.agent.activ:
+            v = self.vorbeste(t1)
+            if v: return v, False
+            tr = self.memorie.traduce(mesaj) if traduce else None
+            if tr and fara_diacritice(tr).lower().strip() != t1:            # am mai auzit asta: știu ce înseamnă
+                r, sch = self._raspunde(tr, traduce=False)
+                return f"(Am înțeles: „{tr}”)\n" + r, sch
+        # asistentul: dialog pas cu pas (desenează ODF / manșon / clădire)
+        import asistent, dictionar
+        t0 = fara_diacritice(mesaj.strip()).lower()
+        ag = self.agent
+        if not ag.activ and re.fullmatch(r"(continua|reia|mergi mai departe|hai inapoi la (ea|el))", t1) and getattr(self, "amanate", None):
+            self.agent = self.amanate.pop(); r = self.agent.urmatoarea(); self.variante = r[2]
+            return "Reiau de unde am rămas. " + r[0], False
+        if ag.activ:
+            q = ag.intrebare
+            v = self.vorbeste(t1)
+            if v:                                                          # o întrebare pe lângă: răspund și țin dialogul deschis
+                self.variante = ag.optiuni; return v + "\n\n(Încă aștept răspunsul la: " + getattr(ag, "text_intrebare", q or "") + ")", False
+            if q != "nume" and dictionar.intentie(t1):                     # cere altceva nou: pun dialogul deoparte, încep altul
+                self.amanate = (getattr(self, "amanate", None) or []) + [ag]; self.agent = asistent.Agent(self)
+                r = self.agent.porneste(t0, mesaj)
+                if r is not None:
+                    self.variante = r[2]
+                    return f"(Am pus deoparte „{ag.sloturi.get('nume', ag.intentie)}” – scrie „continua” ca s-o reiau.)\n" + r[0], False
+                self.agent = self.amanate.pop()
+            if re.search(r"\bport\w*\b.*\bla\b|\bp\d+\b.*\bla\b", t1) and q not in ("nume",):      # comandă de fibră în timpul dialogului
+                self.agent = asistent.Agent(self)
+                try: r, sch = self._raspunde(mesaj, traduce=False)
+                finally: self.agent = ag
+                self.variante = ag.optiuni
+                return r + "\n\n(Revin la întrebarea de dinainte – alege mai jos.)", sch
+        if self.agent.activ or not re.fullmatch(r"\s*[1-6]\s*", mesaj):
+            stare = self.doc.instantaneu()
+            try:
+                r = self.agent.raspunde(t0, mesaj) if self.agent.activ else self.agent.porneste(t0, mesaj)
+            except Exception as e:
+                self.agent.intentie = None; self.doc.restaureaza(stare); return f"N-am reușit: {e}", True
+            if r is not None:
+                txt, sch, var = r[:3]; self.variante = var
+                if sch: self.istoric.append(stare); self.istoric = self.istoric[-50:]; self.refacere = []
+                if len(r) > 3 and r[3]:                                     # dialogul s-a terminat: lucrarea pleacă la un agent
+                    self.lucrari.append(r[3]); self.agent = asistent.Agent(self)
+                return txt, sch
         if re.fullmatch(r"\s*[1-6]\s*", mesaj) and prec and int(mesaj) <= len(prec):     # a ales o variantă propusă
             mesaj = prec[int(mesaj) - 1]
         mesaj = re.sub(r"^[\s•\-*·>]+", "", mesaj.strip())                 # fără buline / liniuțe copiate din ajutor
@@ -78,6 +197,13 @@ class Chat:
             k = int(m.group(1)) - 1
             if not 0 <= k < len(self.doc.pagini): return f"Nu există pagina {k + 1}. Sunt {len(self.doc.pagini)}.", False
             self.ip = k; return f"Am deschis pagina {k + 1}: {self.doc.pagini[k].nume}.", True
+        if not self.lacat.acquire(blocking=False):                       # un agent desenează acum: comanda merge la rând
+            self.lucrari.append((f"comanda „{mesaj}”", lambda m=mesaj, tt=t: (self.executa(m, tt) or ("Nu am înțeles comanda „" + m + "”.", False)) + (self.ip,)))
+            return f"Un agent lucrează acum pe schemă – am pus comanda la rând, o fac imediat după el.", False
+        try: return self._executa_direct(mesaj, t)
+        finally: self.lacat.release()
+
+    def _executa_direct(self, mesaj, t):
         stare = self.doc.instantaneu()
         try:
             r = self.executa(mesaj, t)
@@ -91,11 +217,21 @@ class Chat:
         return r
 
     def inapoi(self):
+        if not self.lacat.acquire(blocking=False): return "Un agent desenează acum – încearcă din nou peste o clipă.", False
+        try: return self._inapoi()
+        finally: self.lacat.release()
+
+    def _inapoi(self):
         if not self.istoric: return "Nu am ce anula.", False
         self.refacere.append(self.doc.instantaneu()); self.doc.restaureaza(self.istoric.pop())
         self.ip = min(self.ip, len(self.doc.pagini) - 1); return "Înapoi: am anulat ultima modificare.", True
 
     def inainte(self):
+        if not self.lacat.acquire(blocking=False): return "Un agent desenează acum – încearcă din nou peste o clipă.", False
+        try: return self._inainte()
+        finally: self.lacat.release()
+
+    def _inainte(self):
         if not self.refacere: return "Nu am ce reface.", False
         self.istoric.append(self.doc.instantaneu()); self.doc.restaureaza(self.refacere.pop())
         self.ip = min(self.ip, len(self.doc.pagini) - 1); return "Înainte: am refăcut modificarea.", True
@@ -113,7 +249,7 @@ class Chat:
         except Exception: noduri = []
         try: nume = [x for x, _ in porturi._candidati(S)] + [x.split("\n")[0] for x, _ in S.elemente()]
         except Exception: nume = noduri[:]
-        # 1) nume ambiguu: „cta” poate fi: CTA Popovca, CTA Rautel
+        # 1) nume ambiguu: „cta” poate fi: CTA Nord, CTA Sud
         m = re.search(r"„(.+?)” (?:poate fi|se potrivește la mai multe): (.+?)(?:\. |$)", eroare)
         if m:
             for opt in [x.strip() for x in m.group(2).split(",")][:4]:
@@ -156,7 +292,13 @@ class Chat:
                 pa, pb = nr[0], (nr[1] if len(nr) > 1 else nr[0])
                 out.append(f"{a or noduri[0]} port {pa} la {b if a else (noduri[1] if len(noduri) > 1 else b)} port {pb}")
                 if not a: break
-        # 4) nimic: exemple cu numele reale
+        # 0) ai pomenit o clădire / un ODF / un manșon: poate vrei să-l desenez
+        import dictionar
+        for o in dictionar.scor_intentii(t):
+            out.insert(0, {"cladire": "adauga cladire noua", "odf": "adauga odf nou", "manson": "adauga manson nou"}[o])
+        # 4) nimic: exemple cu numele reale + asistentul care te ghidează
+        if not out or len(out) < 2:
+            out += ["ghideaza-ma (asistent)"]
         if not out:
             if len(noduri) >= 2: out += [f"{noduri[0]} port 1 la {noduri[1]} port 1", "porturi", "ajutor"]
             else:

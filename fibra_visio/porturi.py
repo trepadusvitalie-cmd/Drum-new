@@ -280,7 +280,7 @@ def mentiuni(S, t):
                 gas = [g for g in _gaseste_aprox(cheie, tc, ocupat, limite) if g[2] < 1.0]
             for st, en, sc in gas:
                 if len(cheie) <= 2 and en < len(tc) and tc[en].isdigit(): continue
-                if en < len(tc) and tc[en].isalpha() and sc == 1.0 and forta >= 2 and len(cheie) < 6: continue   # „RAUTEL” din „RAUTELSAT”
+                if en < len(tc) and tc[en].isalpha() and sc == 1.0 and forta >= 2 and len(cheie) < 6: continue   # „NORD” din „NORDVEST”
                 gasite.append([st, en, nume, nod, forta, sc])
                 if forta >= 2: ocupat.append((st, en))
     # numele generice („CTA”): dacă se potrivesc la mai multe, alege-l pe cel nepomenit altfel
@@ -369,6 +369,16 @@ def comanda(S, t):
     pp = lambda l: (f"portul {l[0]}" if len(l) == 1 else f"porturile {l[0]}–{l[-1]}")
     return (f"Am tras {len(la)} {'fibră' if len(la) == 1 else 'fibre'}: {A.nume} {pp(la)} → {B.nume} {pp(lb)}"
             + (f", cu sudură în {sud}." if sud else "."))
+
+
+def mansoane(S):
+    """manșoanele / chenarele cu nume care nu au bandă de porturi (MRAM, M1, M2…)"""
+    ns = {norm(n.nume) for n in noduri(S)}; out = []
+    for nume, nod in _candidati(S):
+        if nod is not None or norm(nume) in ns: continue
+        try: cutie_nod(S, nume); out.append(nume)
+        except Exception: pass
+    return out
 
 
 def analiza(S, nume_fisier=""):

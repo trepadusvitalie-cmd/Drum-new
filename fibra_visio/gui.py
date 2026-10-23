@@ -1,5 +1,5 @@
 """Fibra Visio – fereastra: schema în stânga, chatul în dreapta. Deschizi un .vsdx, scrii ce să facă, salvezi."""
-import copy, math, os, re, shutil, sys, traceback
+import copy, math, os, queue, re, shutil, sys, threading, traceback
 import xml.etree.ElementTree as ET
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -26,6 +26,7 @@ class App:
     def __init__(self, root):
         self.root = root; self.doc = None; self.chat = None; self.modificat = False; self.orig_vsd = None
         self.zoom = 50.0; self.ox = 20; self.oy = 20; self.istoric_cmd = []; self.ih = 0
+        self.rezultate = queue.Queue(); self.agenti = {}; self.nr_agent = 0
         root.title(TITLU); root.geometry("1440x880"); root.minsize(1000, 600)
         try:
             import sv_ttk; sv_ttk.set_theme("light")                    # tema Windows 11 (Sun Valley)
@@ -141,6 +142,8 @@ class App:
         chips = tk.Frame(jos, bg=PANOU); chips.pack(fill="x", pady=(0, 6)); self.chips = chips
         self.ghid = tk.Label(jos, text="", bg=PANOU, fg="#5B6470", font=("Segoe UI", 9), anchor="w", justify="left", wraplength=400)
         self.ghid.pack(fill="x", pady=(0, 4))
+        self.lbl_agenti = tk.Label(jos, text="", bg=PANOU, fg="#0F6CBD", font=("Segoe UI", 9), anchor="w", justify="left", wraplength=400)
+        self.lbl_agenti.pack(fill="x", pady=(0, 2))
         for c in ("porturi", "lista", "cabluri", "inapoi", "inainte", "ajutor"):
             b = tk.Label(chips, text=c, bg="#EEF2F6", fg="#334155", font=("Segoe UI", 9), padx=10, pady=3, cursor="hand2")
             b.pack(side="left", padx=(0, 6)); b.bind("<Button-1>", lambda e, c=c: self.trimite_text(c))
@@ -190,6 +193,48 @@ class App:
         if not fis: self.scrie("Trage un fișier Visio (.vsdx sau .vsd).", "err"); return
         if self.intreaba_salvare(): self.deschide_cale(fis[0])
 
+    # ---------- agenții: fiecare lucrare în firul ei, chatul rămâne liber ----------
+    def porneste_agenti(self):
+        ch = self.chat
+        ch.stare_agenti = self.stare_agenti
+        while ch.lucrari:
+            descr, fn = ch.lucrari.pop(0); self.nr_agent += 1; k = self.nr_agent
+            self.agenti[k] = descr
+            threading.Thread(target=self._agent, args=(k, ch, fn), daemon=True).start()
+        self.arata_agenti()
+        if not getattr(self, "_ascult", False): self._ascult = True; self.root.after(150, self.asculta_agenti)
+
+    def _agent(self, k, ch, fn):
+        try: r = ch.ruleaza_lucrare(fn)
+        except Exception as e: r = (f"N-am reușit: {e}", False, None)
+        self.rezultate.put((k, ch, r))
+
+    def asculta_agenti(self):
+        try:
+            while True:
+                k, ch, (msg, sch, ip) = self.rezultate.get_nowait()
+                self.agenti.pop(k, None)
+                if ch is not self.chat: continue                         # schema s-a închis între timp
+                self.scrie(f"🤖 Agent {k}: {msg}", "err" if msg.startswith("N-am") else "prog")
+                try: self.chat.memorie.noteaza(f"[agent {k}]", msg, not msg.startswith("N-am"))
+                except Exception: pass
+                if sch:
+                    self.modificat = True
+                    if ip is not None and ip != self.chat.ip: self.chat.ip = ip; self.actualizeaza_pagini(); self.potriveste()
+                    else: self.actualizeaza_pagini(); self.deseneaza()
+        except queue.Empty: pass
+        self.arata_agenti()
+        if self.agenti: self.root.after(150, self.asculta_agenti)
+        else: self._ascult = False
+
+    def stare_agenti(self):
+        if not self.agenti: return "Niciun agent nu lucrează acum – toate lucrările sunt gata."
+        return "Lucrează acum:\n" + "\n".join(f"  🤖 Agent {k}: {d}" for k, d in self.agenti.items())
+
+    def arata_agenti(self):
+        try: self.lbl_agenti.config(text=("⏳ " + " · ".join(f"Agent {k}: {d}" for k, d in self.agenti.items())) if self.agenti else "")
+        except Exception: pass
+
     def scrie_variante(self, var):
         """variantele corecte, ca butoane în chat: clic (sau cifra) și se execută"""
         self.txt.configure(state="normal")
@@ -236,6 +281,7 @@ class App:
                 self.scrie(r, "err" if r.startswith(("N-am", "Nu am înțeles", "Nu găsesc")) else "prog")
                 if self.chat.variante: self.scrie_variante(self.chat.variante)
                 if sch and not r.startswith("N-am"): self.modificat = True
+                self.porneste_agenti()
         except Exception:
             self.scrie("Eroare: " + traceback.format_exc(limit=2), "err")
         self.actualizeaza_pagini(); self.selectie = []; self.termeni = []; self.ascunde_sugestii()
@@ -497,6 +543,16 @@ class App:
         self.deseneaza()
 
     def deseneaza(self):
+        """desenez doar când niciun agent nu scrie în schemă (altfel reîncerc imediat după)"""
+        if self.chat is not None and not self.chat.lacat.acquire(blocking=False):
+            if not getattr(self, "_redesen", False):
+                self._redesen = True; self.root.after(200, lambda: (setattr(self, "_redesen", False), self.deseneaza()))
+            return
+        try: self._deseneaza()
+        finally:
+            if self.chat is not None: self.chat.lacat.release()
+
+    def _deseneaza(self):
         if getattr(self, "ed_win", None): self.inchide_editor(True); return     # întâi termină editarea textului
         cv = self.cv; cv.delete("all")
         if not self.doc: return
@@ -515,6 +571,15 @@ class App:
                 b = f.cutie(); a = self.ecran(b[0], b[3]); c = self.ecran(b[2], b[1])
                 cv.create_rectangle(a[0] - 3, a[1] - 3, c[0] + 3, c[1] + 3, outline="#0078D7", dash=(4, 2), width=2)
             except Exception: pass
+        self.previz = []                                          # variantele de așezare propuse de asistent (punctat, numerotat)
+        for ip, a0, b0, a1, b1, et in getattr(self.chat, "previzualizare", []) or []:
+            if ip != self.chat.ip: continue
+            A = self.ecran(a0, b1); C = self.ecran(a1, b0)
+            cv.create_rectangle(A[0], A[1], C[0], C[1], outline="#E8590C", dash=(6, 3), width=2, fill="#FFF4E6", stipple="gray25")
+            r = max(10, min(22, (C[0] - A[0]) / 4))
+            cv.create_oval((A[0] + C[0]) / 2 - r, (A[1] + C[1]) / 2 - r, (A[0] + C[0]) / 2 + r, (A[1] + C[1]) / 2 + r, fill="#E8590C", outline="")
+            cv.create_text((A[0] + C[0]) / 2, (A[1] + C[1]) / 2, text=et, fill="white", font=("Segoe UI", int(r), "bold"))
+            self.previz.append((A[0], A[1], C[0], C[1], et))
         try: self.actualizeaza_bara_text()
         except Exception: pass
         self.manere = []
@@ -618,6 +683,9 @@ class App:
     def clic(self, e):
         self.cv.focus_set()
         if not self.doc: return
+        for a0, b0, a1, b1, et in getattr(self, "previz", []):               # clic pe o variantă de așezare = o aleg
+            if a0 <= e.x <= a1 and b0 <= e.y <= b1:
+                self.trimite_text(et); self.mod = None; return
         self.mouse0 = (e.x, e.y); self.mod = None
         for X, Y, i, j in getattr(self, "manere", []):
             if abs(e.x - X) <= 6 and abs(e.y - Y) <= 6:
@@ -990,6 +1058,27 @@ class App:
             self.status.config(text="Text schimbat.")
         self.reselecteaza(); self.deseneaza()
 
+    def invata_simbol(self):
+        """formele selectate devin simbolul pe care asistentul îl folosește la desen"""
+        if not self.selectie: return
+        w = tk.Toplevel(self.root); w.title("Învață ca simbol"); w.transient(self.root); w.grab_set(); w.resizable(False, False)
+        fr = ttk.Frame(w, padding=14); fr.pack()
+        ttk.Label(fr, text=f"Ai selectat {len(self.selectie)} forme. Ce sunt?").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+        tip = tk.StringVar(value="manson")
+        for i, (v, et) in enumerate((("manson", "Manșon"), ("odf", "ODF / cutie cu porturi"), ("cladire", "Clădire"))):
+            ttk.Radiobutton(fr, text=et, value=v, variable=tip).grid(row=1 + i, column=0, columnspan=2, sticky="w")
+        def ok():
+            t = tip.get(); f = self.selectie
+            if t == "odf":
+                import porturi
+                S = self.chat.schema; ns = [n for n in porturi.noduri(S) if any(n.banda.id == x.id for x in f)]
+                if not ns: messagebox.showwarning(TITLU, "În selecție nu e nicio bandă galbenă de porturi."); return
+                b = ns[0].banda.cutie(); t = f"odf{ns[0].n}{'v' if (b[3] - b[1]) > (b[2] - b[0]) else 'h'}"
+            import simboluri
+            simboluri.invata(self.doc, f, t, "învățat"); w.destroy()
+            self.scrie(f"Am învățat simbolul ({len(f)} forme) ca „{t}”. De acum asistentul îl desenează așa.", "prog")
+        ttk.Button(fr, text="Învață", command=ok).grid(row=5, column=0, pady=(10, 0)); ttk.Button(fr, text="Renunță", command=w.destroy).grid(row=5, column=1, pady=(10, 0))
+
     def meniu(self, e):
         """clic dreapta (fără tragere): meniul cu acțiuni"""
         if not self.doc or abs(e.x - self.px0) > 3 or abs(e.y - self.py0) > 3: return
@@ -1002,6 +1091,7 @@ class App:
         m.add_command(label="Copiază                Ctrl+C", command=self.copiaza, state="normal" if self.selectie else "disabled")
         m.add_command(label="Lipește aici           Ctrl+V", command=self.lipeste, state="normal" if self.clipboard else "disabled")
         m.add_command(label="Șterge                 Delete", command=self.sterge_selectia, state="normal" if self.selectie else "disabled")
+        m.add_command(label="Învață ca simbol…", command=self.invata_simbol, state="normal" if self.selectie else "disabled")
         m.add_separator()
         m.add_command(label="Înapoi                 Ctrl+Z", command=self.anuleaza_chat)
         m.add_command(label="Înainte                Ctrl+Y", command=self.inainte)

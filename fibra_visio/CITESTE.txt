@@ -36,6 +36,31 @@ Scheme cu benzi de porturi (CTA / ODF / BTS cu banda galbenă 1…N)
   nord p3 la vest p3 sudura in M1      → trece prin manșonul M1, cu punctul roșu de sudură
   Merge și fără diacritice, fără spații, cu nume incomplete („popov”) sau cu o literă greșită.
 
+Asistentul (v8) – vorbești liber, el te înțelege și lucrează în fundal
+  Scrii cum vrei, fără cuvinte fixe și fără diacritice:
+    vreau un bloc nou cu doua dulapuri de 12 porturi de la cta nord cu sudura in M2
+    pune o mufa noua M8 langa M3          ·   fa-mi un odf de 8 porturi
+    trage o fibra / leaga o fibra           → te întreabă: de la ce nod, ce porturi, până unde, UNDE SE FACE SUDURA
+    porturi libere · cate porturi libere    → vezi ce e liber la fiecare nod
+    cum fac tabel / cum salvez / cum mut    → îți explică
+  Înțelege sinonime (dulap/cutie/box = ODF, mufă = manșon, bloc/casă = clădire, pune/fă/vreau = adaugă),
+  numere scrise în litere („două”, „douăsprezece”), greșeli mici de tastare.
+  Sudura: la clădire / ODF nou te întreabă „Unde se face sudura?”; o poți spune și din prima („… cu sudura in M2”).
+  Pe fibre directe: „nord p5 la sud p6 sudura in M1”.
+
+  Variante de așezare: înainte să deseneze, îți arată pe schemă 2–4 locuri posibile (dreptunghiuri portocalii 1, 2, 3…).
+  Alegi cu clic pe dreptunghi sau pe varianta din chat; sau „pe o pagină nouă”. Pe schemele mici desenează mai mic (la scara lor).
+
+  Mai mulți agenți: când ai răspuns la întrebări, lucrarea pleacă la un agent (🤖 Agent 1, 2…) și chatul rămâne liber –
+  poți începe imediat altă lucrare. Sub chat vezi ce lucrează acum; „ce fac agentii” îți spune starea.
+  Dacă ceri altceva în mijlocul întrebărilor, pune dialogul deoparte – „continua” îl reia.
+
+  Memoria: ține minte discuțiile (pe calculatorul tău: %APPDATA%\FibraVisio\memorie.json) și învață din ele:
+    • scrii ceva ce n-a înțeles, apoi alegi varianta bună → data viitoare înțelege direct ce ai scris;
+    • ține minte ce alegi des (porturi, banda, nodul sursă, manșonul) și ți le propune primele;
+    • „încă unul” / „la fel” = încă un element ca ultimul desenat.
+    „ce ai invatat” – ce știe despre tine · „analizeaza discutia precedenta” – recitește discuțiile și reînvață · „uita tot” – golește memoria.
+
 Editare cu mausul
   clic – selectează · Shift+clic – mai multe · trage pe gol – selectează zona · trage – mută
   Ctrl+C / Ctrl+V – copiază și lipește (unde e mausul) · Delete – șterge
