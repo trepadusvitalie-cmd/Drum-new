@@ -777,7 +777,11 @@ Enter или правая кнопка — завершить команду; п
             try:
                 doc = fisiere.deschide(p); pv = self.v.pregateste(doc); self.root.after(0, lambda: self._deschis(doc, p, pv))
             except Exception as ex:
-                traceback.print_exc(); self.root.after(0, lambda: (self.root.config(cursor=""), messagebox.showerror(TITLU_APP, f"Не удалось открыть файл:\n{ex}")))
+                msg = str(ex) if str(ex) not in ("", "None") else type(ex).__name__ + ": " + repr(ex.args)
+                try:                                             # jurnal pentru diagnostic: %APPDATA%\CAD_PC\eroare.log
+                    with open(os.path.join(fisiere.CFG, "eroare.log"), "a", encoding="utf-8") as f: f.write(f"--- {p}\n{traceback.format_exc()}\n")
+                except Exception: pass
+                traceback.print_exc(); self.root.after(0, lambda m=msg: (self.root.config(cursor=""), messagebox.showerror(TITLU_APP, f"Не удалось открыть файл:\n{m}")))
         threading.Thread(target=lucru, daemon=True).start()
 
     def _deschis(self, doc, p, gata=None):

@@ -58,17 +58,36 @@ def _oda(src, dst_dir, fmt, ver):
     shutil.rmtree(d_in, ignore_errors=True)
 
 
+def _repeta(f, *a):
+    """AutoCAD ocupat (pornește, are o comandă activă) răspunde „call rejected”: mai încerc până la 60 s"""
+    for i in range(120):
+        try: return f(*a)
+        except Exception as ex:
+            cod = getattr(ex, "hresult", None) or (ex.args[0] if getattr(ex, "args", None) else None)
+            if cod in (-2147418111, -2147417846, -2147417848) and i < 119: time.sleep(0.5); continue
+            raise
+
+
 def _acad(src, dst, tip):
-    a = autocad()
-    if a is None: raise EroareFisier("AutoCAD nu răspunde.")
-    copie = os.path.join(tempfile.mkdtemp(dir=TMP), os.path.basename(src)); shutil.copy2(src, copie)
-    doc = a.Documents.Open(copie, False)
     try:
-        if os.path.exists(dst): os.remove(dst)
-        doc.SaveAs(dst, tip)
+        import pythoncom; pythoncom.CoInitialize()          # COM pe firul de fundal (altfel AutoCAD nu răspunde)
+    except Exception: pythoncom = None
+    try:
+        a = autocad()
+        if a is None: raise EroareFisier("AutoCAD nu răspunde (nu e instalat sau nu pornește).")
+        copie = os.path.join(tempfile.mkdtemp(dir=TMP), os.path.basename(src)); shutil.copy2(src, copie)
+        docs = _repeta(lambda: a.Documents)
+        doc = _repeta(docs.Open, copie, True)
+        try:
+            if os.path.exists(dst): os.remove(dst)
+            _repeta(doc.SaveAs, dst, tip)
+        finally:
+            try: _repeta(doc.Close, False)
+            except Exception: pass
     finally:
-        try: doc.Close(False)
-        except Exception: pass
+        if pythoncom:
+            try: pythoncom.CoUninitialize()
+            except Exception: pass
 
 
 def dwg_in_dxf(dwg):
@@ -76,7 +95,11 @@ def dwg_in_dxf(dwg):
     if oda_exe():
         _oda(dwg, out_dir, "DXF", "ACAD2018")
     elif ce_convertor() == "AutoCAD":
-        _acad(dwg, dxf, 65)
+        try: _acad(dwg, dxf, 65)
+        except EroareFisier: raise
+        except Exception as ex:
+            raise EroareFisier("AutoCAD nu a putut transforma fișierul DWG (" + (str(ex) or type(ex).__name__) + ").\n\n"
+                               "Soluția sigură: instalează ODA File Converter (gratuit):\nhttps://www.opendesign.com/guestfiles/oda_file_converter")
     else:
         raise EroareFisier("Pentru DWG e nevoie de ODA File Converter (gratuit, opendesign.com) sau de AutoCAD instalat.\n"
                            "Poți deschide direct fișierele DXF.")
