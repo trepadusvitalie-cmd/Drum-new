@@ -166,7 +166,7 @@ class Editare:
         self.stare = dict(cmd=cmd, baza=None, puncte=[], **date); self.app.mesaj(prompt); self.app.prompt(prompt)
 
     def opreste(self, mesaj="*Прервано*"):
-        self.stare = None; cv = self.app.cv; cv.delete("prev"); cv.delete("snap"); self.v.deseneaza(); self.prinderi()
+        self.stare = None; cv = self.app.cv; cv.delete("prev"); cv.delete("snap"); cv.delete("masura"); self.v.deseneaza(); self.prinderi()
         self.app.prompt(None); self.app.mesaj(mesaj)
 
     def miscare(self, e):
@@ -195,7 +195,7 @@ class Editare:
         """text scris în linia de comandă cât o comandă cere ceva: număr, punct „x,y” sau Da/Nu"""
         st = self.stare; t = (t or "").strip()
         if not t:
-            if st["cmd"] in ("ОТРЕЗОК", "ПЛИНИЯ", "КОПИРОВАТЬ"): return self.termina()
+            if st["cmd"] in ("ОТРЕЗОК", "ПЛИНИЯ", "КОПИРОВАТЬ", "ПЛОЩАДЬ"): return self.termina()
             if st["cmd"] == "ЗЕРКАЛО" and st.get("intreaba"): return self._oglinda(False)
             return
         if st["cmd"] == "ЗЕРКАЛО" and st.get("intreaba"):
@@ -237,6 +237,22 @@ class Editare:
         if c == "КРУГ":
             if st["baza"] is None: st["baza"] = p; return self.app.prompt("Радиус круга (число или точка):")
             return self._cerc(math.hypot(p[0] - st["baza"][0], p[1] - st["baza"][1]))
+        if c in ("ИЗМЕРИТЬ", "УГОЛИЗМ", "ПЛОЩАДЬ", "КООРД"):
+            st["puncte"].append(p); st["baza"] = p; pts = st["puncte"]
+            if c == "КООРД": self.app.mesaj(f"X = {p[0]:.4f}   Y = {p[1]:.4f}   Z = 0.0000"); return self.opreste("Координаты точки.")
+            if c == "ИЗМЕРИТЬ" and len(pts) == 2:
+                (x1, y1), (x2, y2) = pts; d = math.hypot(x2 - x1, y2 - y1); a = math.degrees(math.atan2(y2 - y1, x2 - x1)) % 360
+                self.app.mesaj(f"Расстояние = {d:.4f},  Угол в плоскости XY = {a:.2f}°,  ΔX = {x2 - x1:.4f},  ΔY = {y2 - y1:.4f}")
+                return self.opreste("Измерено.")
+            if c == "УГОЛИЗМ" and len(pts) == 3:
+                (ax, ay), (bx, by), (cx, cy) = pts
+                u = abs(math.degrees(math.atan2(cy - by, cx - bx) - math.atan2(ay - by, ax - bx))) % 360; u = 360 - u if u > 180 else u
+                self.app.mesaj(f"Угол = {u:.2f}°"); return self.opreste("Измерено.")
+            if c == "ПЛОЩАДЬ" and len(pts) >= 2:
+                sx, sy = self.v.ecran(*pts[-2]); ex, ey = self.v.ecran(*pts[-1]); self.app.cv.create_line(sx, sy, ex, ey, fill="#5fd36b", width=2, tags="masura")
+            self.app.prompt({"ИЗМЕРИТЬ": "Вторая точка:", "УГОЛИЗМ": "Вершина угла:" if len(pts) == 1 else "Вторая сторона угла:",
+                             "ПЛОЩАДЬ": "Следующая точка или [Enter = посчитать]:"}[c])
+            return
         if c == "ТЕКСТ":
             self.stare = None; self.app.prompt(None); self.app.cv.delete("snap")
             return self.app.et.dialog_text(None, p, mtext=st.get("mtext", False))
@@ -251,6 +267,11 @@ class Editare:
 
     def termina(self):
         st = self.stare
+        if st and st["cmd"] == "ПЛОЩАДЬ" and len(st["puncte"]) >= 3:
+            pts = st["puncte"]; n = len(pts)
+            a = abs(sum(pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1] for i in range(n))) / 2
+            per = sum(math.hypot(pts[(i + 1) % n][0] - pts[i][0], pts[(i + 1) % n][1] - pts[i][1]) for i in range(n))
+            self.app.cv.delete("masura"); self.app.mesaj(f"Площадь = {a:.4f},  Периметр = {per:.4f}"); return self.opreste("Измерено.")
         if st and st["cmd"] == "ПЛИНИЯ" and len(st["puncte"]) >= 2:
             self.instantaneu(); self.doc.modelspace().add_lwpolyline(st["puncte"], dxfattribs={"layer": self.app.strat_curent()}); self.gata_modificare()
         self.opreste("Готово.")
@@ -318,6 +339,19 @@ class Editare:
             b = self.v.bbox.get(e.dxf.handle) if e.dxf.handle else None
         p0 = self.puncte_prindere_copie(self.clip[0])
         self.incepe("ВСТАВИТЬБУФ", "Точка вставки:", nevoie_sel=False, baza0=p0); self.stare["baza"] = None
+
+    def lipeste_original(self):
+        if not self.clip: return self.app.mesaj("Буфер пуст.")
+        self.instantaneu(); msp = self.doc.modelspace(); noi = set()
+        for e in self.clip:
+            c2 = e.copy(); msp.add_entity(c2); noi.add(c2.dxf.handle)
+        self.sel = noi; self.gata_modificare(f"Вставлено с исходными координатами: {len(noi)}")
+
+    def raza(self, sx, sy):
+        h = self.la_entitate(sx, sy); e = self.ent(h) if h else None
+        if e is not None and e.dxftype() in ("CIRCLE", "ARC"):
+            r = e.dxf.radius; self.app.mesaj(f"Радиус = {r:.4f},  Диаметр = {2 * r:.4f}"); return True
+        return False
 
     def puncte_prindere_copie(self, e):
         try:

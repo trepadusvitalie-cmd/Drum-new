@@ -18,7 +18,7 @@ FILE = {
                       [("m", "", "✎", "#f0a050", "СТЕРЕТЬ"), ("m", "", "⊡", "#e8ebef", "РАСЧЛЕНИТЬ"), ("m", "", "⫽", "#e8ebef", "ПОДОБИЕ")]]),
   ("Аннотации", [("M", "Текст", "A", "#e8ebef", "МТЕКСТ"), ("M", "Размер", "↔", "#f0c040", "РАЗМЕР"),
                  [("m", "Линейный", "⟷", "#e8ebef", "РАЗМЛИНЕЙНЫЙ"), ("m", "Выноска", "↗", "#e8ebef", "МВЫНОСКА"), ("m", "Таблица", "▦", "#e8ebef", "ТАБЛИЦА")]]),
-  ("Слои", [("M", "Свойства\nслоя", "☰", "#f0c040", "СЛОЙ"), [("c", 26, "слой"), ("m", "", "💡❄🔒", "#f0c040", "СЛОЙ"), ("m", "", "⇆", "#e8ebef", "СЛОЙТЕК")]]),
+  ("Слои", [("M", "Свойства\nслоя", "☰", "#f0c040", "СЛОЙ"), [("c", 26, "слой"), [("m", "", "💡", "#f0c040", "СЛОЙ"), ("m", "", "☀", "#f0c040", "СЛОЙ"), ("m", "", "🔒", "#f0c040", "СЛОЙ")], ("m", "", "⇆", "#e8ebef", "СЛОЙТЕК")]]),
   ("Блок", [("M", "Вставка", "⊕", "#7fb3ff", "ВСТАВИТЬ"), ("M", "Обнаружить", "⌕", "#7fb3ff", "НАЙТИ"), [("m", "", "✚", "#f0c040", "БЛОК"), ("m", "", "✎", "#e8ebef", "БЛОКРЕД"), ("m", "", "Ⓐ", "#e8ebef", "АТРРЕД")]]),
   ("Свойства", [("M", "Копирование\nсвойств", "🖌", "#e8ebef", "КОПИРОВАТЬСВ"), [("c", 18, "цвет"), ("c", 18, "тип"), ("c", 18, "вес")]]),
   ("Группы", [("M", "Группа", "▣", "#7fb3ff", "ГРУППА")]),
@@ -102,6 +102,39 @@ FILE = {
 }
 
 
+# săgețile ▾ de sub / lângă butoane, ca în AutoCAD: comanda butonului -> [(text, icoană, comandă) sau None = separator]
+SUB = {
+    "МТЕКСТ": [("Многострочный текст", "A", "МТЕКСТ"), ("Однострочный текст", "A", "ТЕКСТ")],
+    "РАЗМЛИНЕЙНЫЙ": [("Линейный", "⟷", "РАЗМЛИНЕЙНЫЙ"), ("Параллельный", "⤡", "РАЗМПАРАЛ"), ("Угловой", "∠", "РАЗМУГЛ"), None,
+                     ("Длина дуги", "◠", "РАЗМДУГА"), ("Радиус", "◔", "РАЗМРАДИУС"), ("Диаметр", "⌀", "РАЗМДИАМЕТР"), None,
+                     ("Ординатный", "⊥", "РАЗМОРД"), ("С изломом", "⌇", "РАЗМИЗЛОМ")],
+    "МВЫНОСКА": [("Выноска", "↗", "МВЫНОСКА"), None, ("Добавить выноску", "+↗", "МВЫНОСКАДОБ"), ("Удалить выноску", "×↗", "МВЫНОСКАУД"), None,
+                 ("Выровнять", "⇉", "МВЫНОСКАВЫР"), ("Группировать", "⊞", "МВЫНОСКАГР")],
+    "ВСТАВИТЬ": "blocuri",
+    "МАССИВ": [("Прямоугольный массив", "⊞", "МАССИВПРЯМ"), ("Массив по траектории", "⋰", "МАССИВТРАЕКТ"), ("Круговой массив", "⁂", "МАССИВКРУГ")],
+    "ОБРЕЗАТЬ": [("Обрезать", "✂", "ОБРЕЗАТЬ"), ("Удлинить", "⇥", "УДЛИНИТЬ")],
+    "СОПРЯЖЕНИЕ": [("Сопряжение", "⌒", "СОПРЯЖЕНИЕ"), ("Фаска", "⟋", "ФАСКА"), ("Плавное соединение", "∿", "СОЕДИНЕНИЕ")],
+    "ВСТАВИТЬБУФ": [("Вставить", "📋", "ВСТАВИТЬБУФ"), ("Вставить как блок", "📋", "ВСТАВИТЬБЛОК"), ("Вставить как гиперссылку", "📋", "ВСТАВИТЬГИПЕР"),
+                    ("Вставить с исходными координатами", "📋", "ВСТАВИТЬИСХ"), ("Специальная вставка", "📋", "СПЕЦВСТАВКА")],
+    "ИЗМЕРИТЬ": [("Быстрое", "📏", "ИЗМЕРИТЬ"), ("Расстояние", "↔", "ИЗМЕРИТЬ"), ("Радиус", "◔", "РАДИУСИЗМ"), ("Угол", "∠", "УГОЛИЗМ"),
+                 ("Площадь", "◺", "ПЛОЩАДЬ"), ("Объем", "⛁", "ОБЪЕМ")],
+}
+
+# săgeata ▾ din titlul grupului: instrumentele în plus ale grupului
+SUB_GRUP = {
+    "Рисование": [("Сплайн", "∿", "СПЛАЙН"), ("Прямая", "⟋", "ПРЯМАЯ"), ("Луч", "↗", "ЛУЧ"), ("Точка", "·", "ТОЧКА"), ("Деление", "⁘", "ДЕЛИТЬ"),
+                  ("Разметка", "⁙", "РАЗМЕТИТЬ"), None, ("Область", "▰", "ОБЛАСТЬ"), ("Маскировка", "▨", "МАСКИРОВКА"), ("Облако", "☁", "ОБЛАКО"),
+                  ("Спираль", "◎", "СПИРАЛЬ"), ("Кольцо", "◉", "КОЛЬЦО"), ("Контур", "▭", "КОНТУР")],
+    "Редактирование": [("Удалить дубликаты", "⧉", "УДАЛИТЬДУБЛ"), ("Разорвать", "⫶", "РАЗОРВАТЬ"), ("Соединить", "⎯", "СОЕДИНИТЬ"), ("Стереть", "✎", "СТЕРЕТЬ"),
+                       ("Растянуть", "⇲", "РАСТЯНУТЬ"), ("Расчленить", "⊡", "РАСЧЛЕНИТЬ"), None, ("Порядок прорисовки", "⧈", "ПОРЯДОК"),
+                       ("Выровнять", "⇉", "ВЫРОВНЯТЬ"), ("Редактировать полилинию", "⌇", "ПОЛРЕД"), ("Редактировать штриховку", "▦", "ШТРИХРЕД")],
+    "Утилиты": [("Координаты", "⌖", "КООРД"), ("Отображение точек...", "⁘", "ДИАЛТОЧ")],
+    "Слои": [("Свойства слоя", "☰", "СЛОЙ"), ("Сделать текущим слой объекта", "⇆", "СЛОЙТЕК")],
+    "Аннотации": [("Однострочный текст", "A", "ТЕКСТ"), ("Многострочный текст", "A", "МТЕКСТ"), ("Найти и заменить", "🔎", "НАЙТИ"), ("Автонумерация", "¹²³", "TCOUNT")],
+    "Блок": [("Вставить блок", "⊕", "ВСТАВИТЬ"), ("Редактировать атрибуты", "Ⓐ", "АТРРЕД"), ("Экспорт атрибутов в Excel", "⇧", "ATTOUT"), ("Импорт атрибутов из Excel", "⇩", "ATTIN")],
+}
+
+
 class Panglica:
     def __init__(self, app, parinte):
         self.app = app; self.pagini = {}; self.file = {}; self.combo = {}; self.activ = None
@@ -138,6 +171,9 @@ class Panglica:
         g = tk.Frame(pag, bg=CORP); g.pack(side="left", fill="y")
         sus = tk.Frame(g, bg=CORP); sus.pack(side="top", fill="both", expand=True, padx=3, pady=(3, 0))
         jos = tk.Label(g, text=titlu + " ▾" if len(titlu) < 30 else titlu, bg=CORP, fg=TEXT, font=F_GRUP); jos.pack(side="bottom", fill="x")
+        if titlu in SUB_GRUP:
+            jos.bind("<Button-1>", lambda e, t=titlu, w=jos: self.submeniu_grup(t, w))
+            jos.bind("<Enter>", lambda e, w=jos: w.config(bg=HOVER)); jos.bind("<Leave>", lambda e, w=jos: w.config(bg=CORP))
         for col in coloane:
             if isinstance(col, list):
                 c = tk.Frame(sus, bg=CORP); c.pack(side="left", fill="y", padx=2)
@@ -161,8 +197,47 @@ class Panglica:
         tk.Label(b, text=ic, bg=CORP, fg=cul, font=F_ICON if len(ic) < 3 else (F_ICON[0], -15, "bold"), height=1).pack(side="top", pady=(2, 0))
         tk.Label(b, text=text, bg=CORP, fg=TEXT, font=F_BTN, justify="center").pack(side="top")
         self._buton(b, cmd)
+        if cmd in SUB:
+            s = tk.Label(b, text="▾", bg=CORP, fg=TEXT, font=(F, -10)); s.pack(side="top")
+            s.bind("<Button-1>", lambda e, c=cmd, w=b: self.submeniu(c, w)); b.winfo_children()[1].bind("<Button-1>", lambda e, c=cmd, w=b: self.submeniu(c, w))
+
+    def submeniu_grup(self, titlu, w):
+        m = tk.Menu(self.app.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", bd=0, font=(F, -13))
+        for x in SUB_GRUP[titlu]:
+            if x is None: m.add_separator()
+            else: m.add_command(label=f"  {x[1]:<3}  {x[0]}", command=lambda c=x[2]: self.app.executa(c))
+        m.tk_popup(w.winfo_rootx(), w.winfo_rooty() + w.winfo_height())
+
+    def submeniu(self, cmd, w):
+        m = tk.Menu(self.app.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", bd=0, font=(F, -13))
+        el = SUB[cmd]
+        if el == "blocuri":
+            doc = self.app.doc
+            nume = sorted(b.name for b in doc.blocks if not b.name.startswith("*") and not b.is_any_layout) if doc else []
+            if not nume: m.add_command(label="      (в чертеже нет блоков)", state="disabled")
+            for n in nume[:40]: m.add_command(label="  ⬚   " + n, command=lambda n=n: self.app.executa("ВСТАВИТЬ " + n))
+            m.add_separator()
+            for t in ("Последние блоки...", "Избранные блоки...", "Блоки из библиотек..."): m.add_command(label="      " + t, command=lambda: self.app.executa("ВСТАВИТЬ"))
+        else:
+            for x in el:
+                if x is None: m.add_separator()
+                else: m.add_command(label=f"  {x[1]:<3}  {x[0]}", command=lambda c=x[2]: self.app.executa(c))
+        m.tk_popup(w.winfo_rootx(), w.winfo_rooty() + w.winfo_height())
 
     def _mic(self, p, it):
+        if isinstance(it, list):                       # un rând de butoane mici, unul lângă altul
+            r = tk.Frame(p, bg=CORP); r.pack(side="top", anchor="w")
+            for x in it:
+                _, text, ic, cul, cmd = x
+                b = tk.Frame(r, bg=CORP); b.pack(side="left")
+                tk.Label(b, text=ic, bg=CORP, fg=cul, font=F_ICON_MIC, width=2).pack(side="left"); self._buton(b, cmd)
+            return
+        if it[0] == "c" and it[2] == "цвет":
+            from lista_culori import ListaCulori
+            w = ListaCulori(p, self.app, 170); w.pack(side="top", anchor="w", pady=1); self.combo["цвет"] = w; return
+        if it[0] == "c" and it[2] == "слой":
+            from lista_straturi import ListaStraturi
+            w = ListaStraturi(p, self.app, 250); w.pack(side="top", anchor="w", pady=1); self.combo["слой"] = w; return
         if it[0] == "c":
             v = tk.StringVar(); cb = ttk.Combobox(p, textvariable=v, width=it[1], state="readonly", style="Cad.TCombobox")
             cb.pack(side="top", anchor="w", pady=1); self.combo[it[2]] = cb
@@ -179,3 +254,6 @@ class Panglica:
         tk.Label(b, text=ic, bg=CORP, fg=cul, font=F_ICON_MIC, width=2 if len(ic) < 3 else len(ic)).pack(side="left")
         if text: tk.Label(b, text=text, bg=CORP, fg=TEXT, font=F_MIC).pack(side="left", padx=(2, 4))
         self._buton(b, cmd)
+        if cmd in SUB:
+            s = tk.Label(b, text="▾", bg=CORP, fg=TEXT, font=(F, -10)); s.pack(side="left")
+            s.bind("<Button-1>", lambda e, c=cmd, w=b: self.submeniu(c, w))

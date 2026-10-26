@@ -42,6 +42,9 @@ COMENZI = {
     "ATTOUT": "c_export", "ЭКСПОРТАТР": "c_export", "ИЗВЛЕЧЬ": "c_export", "DATAEXTRACTION": "c_export", "ЭКСПОРТДАННЫХ": "c_export", "XLIST": "c_prop",
     "ATTIN": "c_import", "ИМПОРТАТР": "c_import", "ИМПОРТДАННЫХ": "c_import",
     "АТРРЕД": "c_atr", "EATTEDIT": "c_atr", "ATTEDIT": "c_atr", "ДИСПАТР": "c_atr", "BATTMAN": "c_atr",
+    # măsurători și altele
+    "ИЗМЕРИТЬ": "c_dist", "DIST": "c_dist", "DI": "c_dist", "MEASUREGEOM": "c_dist", "ПЛОЩАДЬ": "c_arie", "AREA": "c_arie", "AA": "c_arie",
+    "УГОЛИЗМ": "c_unghi", "РАДИУСИЗМ": "c_raza", "КООРД": "c_coord", "ID": "c_coord", "ВСТАВИТЬИСХ": "c_liporig", "PASTEORIG": "c_liporig",
 }
 
 
@@ -729,6 +732,22 @@ Enter или правая кнопка — завершить команду; п
     def _ajutor_vechi(self):
         self.mesaj("Команды: ОТКРЫТЬ, СОХРАНИТЬ, Z, LA | M, CO, RO, SC, MI, E, X, U | L, PL, C | ТЕКСТ, МТЕКСТ, ED, НАЙТИ, TCOUNT, ATTOUT, ATTIN, АТРРЕД.")
 
+    def alege_culoare(self, aci, rgb):
+        """din lista de culori: schimbă culoarea obiectelor selectate sau culoarea curentă pentru obiectele noi"""
+        if not self.doc: return
+        if self.ed.sel:
+            self.ed.instantaneu()
+            for h in self.ed.sel:
+                e = self.ed.ent(h)
+                if e is None: continue
+                if rgb: e.rgb = rgb
+                else:
+                    if e.dxf.hasattr("true_color"): e.dxf.discard("true_color")
+                    e.dxf.color = aci
+            self.ed.gata_modificare(f"Цвет изменен для {len(self.ed.sel)} объектов")
+        else:
+            self.culoare_curenta = (aci, rgb); self.mesaj("Текущий цвет: " + (("RGB %d,%d,%d" % rgb) if rgb else str(aci)))
+
     # ---------------------------------------------------------------- etapa 2: comenzi de editare și etichete
     def c_anuleaza(self): self.ed.anuleaza() if self.doc else None
     def c_reface(self): self.ed.reface() if self.doc else None
@@ -751,6 +770,15 @@ Enter или правая кнопка — завершить команду; п
     def c_mtext(self): self.ed.incepe("ТЕКСТ", "МТЕКСТ  Точка вставки:", nevoie_sel=False, mtext=True)
     def c_cauta(self, txt=""):
         self.et.cauta_inlocuieste(txt if txt != "Поиск текста" else "")
+    def c_dist(self): self.ed.incepe("ИЗМЕРИТЬ", "ИЗМЕРИТЬ  Первая точка:", nevoie_sel=False)
+    def c_arie(self): self.ed.incepe("ПЛОЩАДЬ", "ПЛОЩАДЬ  Первая угловая точка:", nevoie_sel=False)
+    def c_unghi(self): self.ed.incepe("УГОЛИЗМ", "УГОЛ  Точка на первой стороне:", nevoie_sel=False)
+    def c_coord(self): self.ed.incepe("КООРД", "КООРД  Укажите точку:", nevoie_sel=False)
+    def c_liporig(self): self.ed.lipeste_original() if self.doc else None
+    def c_raza(self):
+        ents = [self.ed.ent(h) for h in self.ed.sel]; c = [e for e in ents if e is not None and e.dxftype() in ("CIRCLE", "ARC")]
+        if c: self.mesaj(f"Радиус = {c[0].dxf.radius:.4f},  Диаметр = {2 * c[0].dxf.radius:.4f}")
+        else: self.mesaj("РАДИУС: выберите круг или дугу, затем команду.")
     def c_numar(self): self.et.numerotare() if self.doc else None
     def c_export(self): self.et.export_excel()
     def c_import(self): self.et.import_excel()
