@@ -40,6 +40,33 @@ class Editare:
                 sx, sy = self.v.ecran(x, y); cv.create_rectangle(sx - 4, sy - 4, sx + 4, sy + 4, fill=GRIP, outline="#9cc3ff", tags="grip"); n += 1
         cv.tag_raise("grip"); cv.tag_raise("cur")
 
+    def _la_maner(self, sx, sy):
+        for h in list(self.sel)[:300]:
+            for x, y in self.puncte_prindere(h)[:20]:
+                qx, qy = self.v.ecran(x, y)
+                if abs(qx - sx) <= 6 and abs(qy - sy) <= 6: return h, (x, y)
+        return None
+
+    def _muta_maner(self, st, p):
+        """mută mânerul ales: capăt de linie / vârf de polilinie / rază de cerc; altfel mută tot obiectul"""
+        e = self.ent(st["h"])
+        if e is None: return
+        (x0, y0), (x, y) = st["p0"], p; t = e.dxftype(); ac = lambda a, b: abs(a[0] - b[0]) < 1e-9 and abs(a[1] - b[1]) < 1e-9
+        self.instantaneu([st["h"]])
+        if t == "LINE" and ac((e.dxf.start.x, e.dxf.start.y), (x0, y0)): e.dxf.start = (x, y, e.dxf.start.z)
+        elif t == "LINE" and ac((e.dxf.end.x, e.dxf.end.y), (x0, y0)): e.dxf.end = (x, y, e.dxf.end.z)
+        elif t == "LWPOLYLINE":
+            pts = list(e.get_points("xyseb"))
+            for i, q in enumerate(pts):
+                if ac(q[:2], (x0, y0)): pts[i] = (x, y) + tuple(q[2:]); break
+            e.set_points(pts, format="xyseb")
+        elif t == "CIRCLE" and not ac((e.dxf.center.x, e.dxf.center.y), (x0, y0)):
+            e.dxf.radius = max(1e-9, math.hypot(x - e.dxf.center.x, y - e.dxf.center.y))
+        else:
+            try: e.translate(x - x0, y - y0, 0)
+            except Exception: pass
+        self.gata_modificare("Растянуто.")
+
     def puncte_prindere(self, h):
         e = self.ent(h)
         if e is None: return []
@@ -47,7 +74,9 @@ class Editare:
         try:
             if t == "LINE": return [(e.dxf.start.x, e.dxf.start.y), (e.dxf.end.x, e.dxf.end.y), ((e.dxf.start.x + e.dxf.end.x) / 2, (e.dxf.start.y + e.dxf.end.y) / 2)]
             if t == "LWPOLYLINE": return [(p[0], p[1]) for p in e.get_points("xy")]
-            if t in ("CIRCLE", "ARC"): c = e.dxf.center; return [(c.x, c.y)]
+            if t in ("CIRCLE", "ARC"):
+                c = e.dxf.center; r = e.dxf.radius
+                return [(c.x, c.y), (c.x + r, c.y), (c.x, c.y + r), (c.x - r, c.y), (c.x, c.y - r)] if t == "CIRCLE" else [(c.x, c.y)]
             if t in ("TEXT", "MTEXT", "INSERT", "POINT"):
                 p = e.dxf.insert if t != "POINT" else e.dxf.location; return [(p.x, p.y)]
         except Exception: pass
@@ -147,6 +176,11 @@ class Editare:
             self.v.selectie = {"vp" + vp} if vp else set(); self.v.deseneaza()
             return self.app.mesaj("Видовой экран выбран. Правая кнопка – «Развернуть ВЭкран»." if vp else "Лист: редактирование модели – на вкладке «Модель».")
         if self.stare: return self.punct(self.punct_ecran(e.x, e.y))
+        g = self._la_maner(e.x, e.y)
+        if g:                                              # clic pe un mâner albastru: ** РАСТЯНУТЬ ** ca în AutoCAD
+            h, p0 = g; self.stare = dict(cmd="GRIP", h=h, p0=p0, baza=p0, puncte=[])
+            sx, sy = self.v.ecran(*p0); self.app.cv.create_rectangle(sx - 5, sy - 5, sx + 5, sy + 5, fill="#e8423f", outline="white", tags="grip")
+            return self.app.prompt("** РАСТЯНУТЬ **  Точка растяжения (Esc – отмена):")
         h = self.la_entitate(e.x, e.y)
         if h:
             grup = self.app.un.extinde_grup(h) if hasattr(self.app, "un") else {h}
@@ -321,6 +355,8 @@ class Editare:
             self.app.prompt({"ИЗМЕРИТЬ": "Вторая точка:", "УГОЛИЗМ": "Вершина угла:" if len(pts) == 1 else "Вторая сторона угла:",
                              "ПЛОЩАДЬ": "Следующая точка или [Enter = посчитать]:"}[c])
             return
+        if c == "GRIP":
+            self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); self.app.cv.delete("prev"); return self._muta_maner(st, p)
         if c == "PUNCT":                                   # o comandă din alt modul cere un singur punct
             self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); return st["cb"](p)
         if c == "PUNCTE":                                  # cere n puncte, apoi cb(listă)
