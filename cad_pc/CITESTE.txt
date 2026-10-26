@@ -23,7 +23,20 @@ Ce merge in etapa 1
   scrii direct pe desen si merge in linia de comanda; Enter gol repeta ultima comanda
 - Bara de jos: Модель / Layout, МОДЕЛЬ, grila, orto si celelalte comutatoare
 
+Etapa 2 – editare si etichete
+- Selectie: clic pe obiect; fereastra stanga->dreapta = doar ce e complet inauntru, dreapta->stanga = ce atinge;
+  Shift+clic scoate din selectie; Esc goleste; Ctrl+A tot. Obiectele de pe straturi blocate nu se selecteaza.
+- ПЕРЕНЕСТИ (M), КОПИРОВАТЬ (CO), ПОВЕРНУТЬ (RO), МАСШТАБ (SC), ЗЕРКАЛО (MI), СТЕРЕТЬ (E / Delete), РАСЧЛЕНИТЬ (X)
+  punctele: clic pe desen (cu prindere de capete / centre / puncte de insertie, F3), sau scrii x,y; un numar = distanta pe directia mouse-ului
+- ОТМЕНИТЬ / Ctrl+Z, ПОВТОРИТЬ / Ctrl+Y; Ctrl+C, Ctrl+V, Ctrl+X
+- ОТРЕЗОК (L), ПЛИНИЯ (PL), КРУГ (C)
+- Lista de straturi si de culori din panglica schimba stratul / culoarea obiectelor selectate
+- Etichete: ТЕКСТ (DT), МТЕКСТ (T); dublu clic pe text = editare; dublu clic pe bloc = atributele lui
+- НАЙТИ / Ctrl+F = „Найти и заменить” (texte, MTEXT si atribute; Показать = zoom la rezultat)
+- TCOUNT = numerotare automata (dupa X sau Y, numar de start, pas, inlocuire / prefix / sufix, atributul ales)
+- ATTOUT = atributele blocurilor si textele in Excel (cu HANDLE); ATTIN = le citeste inapoi din Excel si le schimba in desen
+- Meniurile din bara de stare (☰, ▾ la привязка / полярное / объектная привязка / масштаб, ⚙), bara de acces rapid ▾,
+  meniul ☰ al tab-urilor, ☰ Модель/Layout (Новый лист), 🔧 din linia de comanda, „?” si coordonatele
+
 Urmeaza
-- Etapa 2: selectare, mutare, copiere, rotire, stergere, anulare; etichete (text nou, editare, cautare/inlocuire,
-  numerotare automata, atribute, export/import Excel)
-- Etapa 3: simboluri (blocuri), pagini Модель / Layout, tiparire si PDF
+- Etapa 3: simboluri (blocuri: inserare, editare, inlocuire), pagini Модель / Layout cu vizualizare, tiparire si PDF

@@ -17,7 +17,7 @@ class Vedere:
         self.prim = []                    # ("p", [x,y,…], culoare, handle, umplut, strat) / ("t", x, y, text, h, rot, culoare, handle, ancora, strat)
         self.s = 1.0; self.cx = 0.0; self.cy = 0.0
         self.grila = True; self.ascunse = set(); self._dupa = None
-        self.selectie = set()
+        self.selectie = set(); self.bbox = {}
 
     # ---------------------------------------------------------------- încărcare
     def incarca(self, doc, layout="Model"):
@@ -29,11 +29,20 @@ class Vedere:
 
     def reconstruieste(self):
         """recalculează primitivele (după o modificare a desenului sau a straturilor)"""
-        self.prim = []; self._lay = self.straturi()
+        self.prim = []; self._lay = self.straturi(); self.bbox = {}
         if self.layout is None: return
         for e in self.layout:
             try: self._entitate(e, e.dxf.handle, None, None, 0)
             except Exception: pass
+        bb = self.bbox                                    # cutia fiecărei entități (pentru selecția cu fereastră)
+        for p in self.prim:
+            if p[0] == "t":
+                h = p[7]; x, y, hg = p[1], p[2], p[4]; n = max(len(l) for l in p[3].split("\n")) * hg * 0.7
+                box = (x - n * 0.1, y - hg * 0.3, x + n, y + hg * (p[3].count("\n") + 1.2))
+            else:
+                h = p[3]; xs = p[1][0::2]; ys = p[1][1::2]; box = (min(xs), min(ys), max(xs), max(ys))
+            o = bb.get(h)
+            bb[h] = box if o is None else (min(o[0], box[0]), min(o[1], box[1]), max(o[2], box[2]), max(o[3], box[3]))
 
     def strat_vizibil(self, nume):
         l = self._lay.get(nume)

@@ -6,6 +6,8 @@ from tkinter import ttk, filedialog, messagebox, colorchooser
 from stil import *
 import fisiere, panglica
 from vedere import Vedere
+from editare import Editare
+from etichete import Etichete, CULORI
 
 TITLU_APP = "CAD PC 2025"
 ACI = {1: "#ff0000", 2: "#ffff00", 3: "#00ff00", 4: "#00ffff", 5: "#0000ff", 6: "#ff00ff", 7: "#ffffff", 8: "#808080", 9: "#c0c0c0"}
@@ -23,6 +25,23 @@ COMENZI = {
     "ОРТО": "comuta_orto", "ORTHO": "comuta_orto", "ВЫХОД": "iesire", "QUIT": "iesire", "EXIT": "iesire",
     "ИМПОРТ": "deschide", "IMPORT": "deschide", "ЭКСПОРТ": "salveaza_ca", "EXPORT": "salveaza_ca",
     "СЛОЙТЕК": "strat_curent_dialog", "СПРАВКА": "ajutor", "HELP": "ajutor", "?": "ajutor",
+    # etapa 2: editare
+    "ОТМЕНИТЬ": "c_anuleaza", "UNDO": "c_anuleaza", "U": "c_anuleaza", "ПОВТОРИТЬ": "c_reface", "REDO": "c_reface",
+    "СТЕРЕТЬ": "c_sterge", "ERASE": "c_sterge", "E": "c_sterge", "С": "c_sterge", "DELETE": "c_sterge",
+    "ПЕРЕНЕСТИ": "c_muta", "MOVE": "c_muta", "M": "c_muta", "КОПИРОВАТЬ": "c_copiaza", "COPY": "c_copiaza", "CO": "c_copiaza", "CP": "c_copiaza",
+    "ПОВЕРНУТЬ": "c_roteste", "ROTATE": "c_roteste", "RO": "c_roteste", "МАСШТАБ": "c_scaleaza", "SCALE": "c_scaleaza", "SC": "c_scaleaza",
+    "ЗЕРКАЛО": "c_oglinda", "MIRROR": "c_oglinda", "MI": "c_oglinda", "РАСЧЛЕНИТЬ": "c_desface", "EXPLODE": "c_desface", "X": "c_desface", "BURST": "c_desface",
+    "MOCORO": "c_muta", "ОТРЕЗОК": "c_linie", "LINE": "c_linie", "L": "c_linie", "ПЛИНИЯ": "c_plinie", "PLINE": "c_plinie", "PL": "c_plinie",
+    "КРУГ": "c_cerc", "CIRCLE": "c_cerc", "C": "c_cerc", "ВЫБРАТЬВСЕ": "c_tot", "SELECTALL": "c_tot",
+    "КОПБУФ": "c_copbuf", "COPYCLIP": "c_copbuf", "ВСТАВИТЬБУФ": "c_lipbuf", "PASTECLIP": "c_lipbuf", "ВЫРЕЗАТЬ": "c_taie", "CUTCLIP": "c_taie",
+    "СВОЙСТВА": "c_prop", "PROPERTIES": "c_prop", "CH": "c_prop", "PR": "c_prop",
+    # etapa 2: etichete
+    "ТЕКСТ": "c_text", "TEXT": "c_text", "DTEXT": "c_text", "DT": "c_text", "МТЕКСТ": "c_mtext", "MTEXT": "c_mtext", "T": "c_mtext", "MT": "c_mtext",
+    "TXTEDIT": "c_edtext", "DDEDIT": "c_edtext", "ED": "c_edtext", "TEXTEDIT": "c_edtext", "РЕДТЕКСТ": "c_edtext",
+    "НАЙТИ": "c_cauta", "FIND": "c_cauta", "НАЙТИТЕКСТ": "c_cauta", "TCOUNT": "c_numar", "НУМЕРАЦИЯ": "c_numar",
+    "ATTOUT": "c_export", "ЭКСПОРТАТР": "c_export", "ИЗВЛЕЧЬ": "c_export", "DATAEXTRACTION": "c_export", "ЭКСПОРТДАННЫХ": "c_export", "XLIST": "c_prop",
+    "ATTIN": "c_import", "ИМПОРТАТР": "c_import", "ИМПОРТДАННЫХ": "c_import",
+    "АТРРЕД": "c_atr", "EATTEDIT": "c_atr", "ATTEDIT": "c_atr", "ДИСПАТР": "c_atr", "BATTMAN": "c_atr",
 }
 
 
@@ -49,7 +68,7 @@ class App:
         z = tk.Frame(root, bg=DESEN); z.pack(fill="both", expand=True)
         self.cv = tk.Canvas(z, bg=DESEN, highlightthickness=0, cursor="none" if sys.platform == "win32" else "crosshair")
         self.cv.pack(fill="both", expand=True)
-        self.v = Vedere(self.cv)
+        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.ultim_mouse = (0, 0); self._prompt = None
         self._linie_comanda(z)
         self._start(z)
         self._legaturi()
@@ -63,15 +82,18 @@ class App:
         a = tk.Label(b, text=" A ", bg=ROSU_A, fg="white", font=(F, -15, "bold")); a.pack(side="left", padx=(6, 0), pady=4)
         tk.Label(b, text="▾", bg=TITLU, fg=TEXT, font=(F, -10)).pack(side="left", padx=(1, 8))
         a.bind("<Button-1>", lambda e: self.meniu_a())
-        for ic, cmd in (("🗋", "НОВЫЙ"), ("🗁", "ОТКРЫТЬ"), ("💾", "СОХРАНИТЬ"), ("💾", "СОХРАНИТЬКАК"), ("⇪", "ЭКСПОРТ"), ("🖶", "ПЕЧАТЬ"),
-                        ("↶", "ОТМЕНИТЬ"), ("↷", "ПОВТОРИТЬ")):
-            l = tk.Label(b, text=ic, bg=TITLU, fg=TEXT, font=F_ICON_MIC, padx=4); l.pack(side="left")
-            l.bind("<Button-1>", lambda e, c=cmd: self.executa(c))
-            l.bind("<Enter>", lambda e, l=l: l.config(bg=HOVER)); l.bind("<Leave>", lambda e, l=l: l.config(bg=TITLU))
-        tk.Label(b, text="▾", bg=TITLU, fg=TEXT, font=(F, -10)).pack(side="left", padx=4)
+        self._qat = {}; self._qat_bara = tk.Frame(b, bg=TITLU); self._qat_bara.pack(side="left")
+        self._qat_vars = {}
+        self._umple_qat()
+        sg = tk.Label(b, text="▾", bg=TITLU, fg=TEXT, font=(F, -10)); sg.pack(side="left", padx=4)
+        sg.bind("<Button-1>", lambda e: self.meniu_qat(sg))
         tk.Label(b, text="➤ Общий доступ", bg=TITLU, fg="#8ab8ff", font=F_MIC).pack(side="left", padx=6)
         self.lbl_titlu = tk.Label(b, text=TITLU_APP, bg=TITLU, fg=TEXT, font=F_TITLU); self.lbl_titlu.place(relx=0.5, rely=0.5, anchor="center")
-        tk.Label(b, text="?", bg=TITLU, fg=TEXT, font=(F, -14, "bold"), padx=8).pack(side="right")
+        h = tk.Label(b, text="?  ▾", bg=TITLU, fg=TEXT, font=(F, -13, "bold"), padx=8); h.pack(side="right")
+        h.bind("<Button-1>", lambda e: self.meniu_sus("ajutor", h))
+        c = tk.Label(b, text="⩓ ▾", bg=TITLU, fg=TEXT, font=(F, -14), padx=6); c.pack(side="right")
+        c.bind("<Button-1>", lambda e: self.meniu_sus("cont", c))
+        tk.Label(b, text="🛒", bg=TITLU, fg=TEXT, font=F_ICON_MIC, padx=4).pack(side="right")
         tk.Label(b, text="👤 Вход в службы ▾", bg=TITLU, fg=TEXT, font=F_MIC).pack(side="right", padx=6)
         tk.Label(b, text="🔍", bg=TITLU, fg=TEXT, font=F_ICON_MIC).pack(side="right")
         self.cauta = tk.Entry(b, bg="#2b313a", fg=GRI, insertbackground=TEXT, relief="flat", font=(F, -11, "italic"), width=30)
@@ -79,10 +101,133 @@ class App:
         self.cauta.bind("<FocusIn>", lambda e: (self.cauta.delete(0, "end"), self.cauta.config(fg=TEXT)) if self.cauta.get().startswith("Введите") else None)
         self.cauta.bind("<Return>", lambda e: self.executa(self.cauta.get()))
 
+    # bara de acces rapid: (nume în meniu, icoană, comandă, vizibil implicit)
+    QAT = [("Создать", "🗋", "НОВЫЙ", True), ("Открыть", "🗁", "ОТКРЫТЬ", True), ("Сохранить", "💾", "СОХРАНИТЬ", True), ("Сохранить как...", "💾", "СОХРАНИТЬКАК", True),
+           ("Открыть в интернете и на мобильных устройствах", "⇩", "ОТКРЫТЬ", True), ("Сохранить в интернете и на мобильных устройствах", "⇪", "СОХРАНИТЬКАК", True),
+           ("Печать", "🖶", "ПЕЧАТЬ", True), ("Отменить", "↶", "ОТМЕНИТЬ", True), ("Повторить", "↷", "ПОВТОРИТЬ", True),
+           ("Пакетная печать", "🖶", "ПАКЕТПЕЧАТЬ", False), ("Слой", "☰", "СЛОЙ", False), ("Копирование свойств", "🖌", "КОПИРОВАТЬСВ", False),
+           ("Предварительный просмотр", "🔍", "ПРЕДВАР", False), ("Свойства", "▤", "СВОЙСТВА", False), ("Визуализация", "◐", "ВИЗУАЛИЗАЦИЯ", False),
+           ("Диспетчер подшивок", "📁", "ПОДШИВКИ", False), ("Рабочее пространство", "⚙", "РАБПРОСТР", False)]
+
+    def _umple_qat(self):
+        for w in self._qat_bara.winfo_children(): w.destroy()
+        for nume, ic, cmd, vz in self.QAT:
+            v = self._qat_vars.setdefault(nume, tk.BooleanVar(value=vz))
+            if not v.get(): continue
+            l = tk.Label(self._qat_bara, text=ic, bg=TITLU, fg=TEXT, font=F_ICON_MIC, padx=4); l.pack(side="left")
+            l.bind("<Button-1>", lambda e, c=cmd: self.executa(c))
+            l.bind("<Enter>", lambda e, l=l: l.config(bg=HOVER)); l.bind("<Leave>", lambda e, l=l: l.config(bg=TITLU))
+
+    def meniu_qat(self, w):
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", selectcolor=TEXT, bd=0, font=F_MIC)
+        m.add_command(label="Адаптировать панель быстрого доступа", state="disabled")
+        for nume, *_ in self.QAT: m.add_checkbutton(label=nume, variable=self._qat_vars[nume], command=self._umple_qat)
+        m.add_separator()
+        m.add_command(label="Другие команды...", command=self.dialog_ajutor)
+        m.add_command(label="Показать строку меню", command=lambda: self.mesaj("Строка меню: используйте меню «A» и ленту."))
+        m.add_command(label="Показать под лентой", command=lambda: self.mesaj("Панель быстрого доступа остается над лентой."))
+        m.tk_popup(w.winfo_rootx() - 20, w.winfo_rooty() + w.winfo_height())
+
+    def meniu_taburi(self, w):
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", bd=0, font=F_MIC)
+        m.add_command(label="      Начало", command=self.arata_start)
+        if self.doc: m.add_command(label="  •  " + (os.path.basename(self.cale) if self.cale else "Чертеж1.dwg") + ("*" if self.modificat else ""), command=self.arata_desen)
+        m.add_separator()
+        m.add_command(label="＋  Новый чертеж", command=self.nou)
+        m.add_command(label="🗋  Создать...", command=self.nou)
+        m.add_command(label="🗁  Открыть...", command=self.deschide)
+        m.add_command(label="💾  Сохранить все", command=self.salveaza)
+        m.add_command(label="✖  Закрыть все", command=self.inchide)
+        m.tk_popup(w.winfo_rootx(), w.winfo_rooty() + w.winfo_height())
+
+    def meniu_foi(self, w):
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", bd=0, font=F_MIC)
+        m.add_command(label="＋  Новый лист", command=self.foaie_noua)
+        m.add_command(label="▤  Из шаблона...", command=lambda: self.mesaj("Листы из шаблона — в этапе 3."))
+        m.add_separator()
+        m.add_command(label="☰  Диспетчер параметров листов...", command=lambda: self.mesaj("Параметры листов — в этапе 3 (печать, PDF)."))
+        m.add_command(label="✔  Выбрать все листы", command=lambda: self.mesaj("Выбраны все листы."))
+        m.add_command(label="🖶  Опубликовать выбранные листы...", state="disabled")
+        m.add_separator()
+        m.add_command(label="⇡  Закрепить над строкой состояния", command=lambda: self.mesaj("Вкладки листов: над строкой состояния."))
+        m.add_command(label="•  Закрепить на уровне строки состояния", command=lambda: self.mesaj("Вкладки листов: на уровне строки состояния."))
+        m.add_separator()
+        nume = ["Model"] + ([l.name for l in self.doc.layouts if l.name != "Model"] if self.doc else ["Layout1"])
+        for n in nume:
+            m.add_command(label=("  •  " if n == "Model" else "      ") + ("Модель" if n == "Model" else n),
+                          command=lambda n=n: self.mesaj(f"Лист «{n}»: просмотр листов — в этапе 3."))
+        m.tk_popup(w.winfo_rootx(), w.winfo_rooty() - 22 * (len(nume) + 8) - 30)
+
+    def foaie_noua(self):
+        if not self.doc: return self.mesaj("Нет открытого чертежа.")
+        i = 1
+        while f"Layout{i}" in [l.name for l in self.doc.layouts]: i += 1
+        self.doc.layouts.new(f"Layout{i}"); self.marcheaza()
+        self._taburi_layout(["Model"] + [l.name for l in self.doc.layouts if l.name != "Model"]); self.mesaj(f"Создан лист Layout{i}.")
+
+    def meniu_cmd(self, w):
+        m = tk.Menu(self.root, tearoff=0, bg="#f0f0f0", fg="#1b1b1b", activebackground="#cfe3ff", activeforeground="#000", bd=1, font=F_MIC)
+        sub = tk.Menu(m, tearoff=0, bg="#f0f0f0", fg="#1b1b1b", activebackground="#cfe3ff", font=F_MIC)
+        if not hasattr(self, "_v_cmd"): self._v_cmd = {k: tk.BooleanVar(value=True) for k in ("auto", "srch", "mid")}
+        sub.add_checkbutton(label="Автозавершение", variable=self._v_cmd["auto"])
+        sub.add_checkbutton(label="Поиск системных переменных", variable=self._v_cmd["srch"])
+        sub.add_checkbutton(label="Поиск в середине строки", variable=self._v_cmd["mid"])
+        m.add_cascade(label="Параметры ввода", menu=sub)
+        m.add_command(label="Строки журнала командной строки", command=self.jurnal_comenzi)
+        m.add_command(label="Параметры поиска при вводе...", command=lambda: self.mesaj("Поиск при вводе: включен."))
+        m.add_separator()
+        m.add_command(label="Прозрачность...", command=lambda: self.mesaj("Прозрачность командной строки: 0%."))
+        m.add_command(label="Параметры...", command=self.dialog_ajutor)
+        m.tk_popup(w.winfo_rootx(), w.winfo_rooty() - 150)
+
+    def jurnal_comenzi(self):
+        d = tk.Toplevel(self.root); d.title("Журнал командной строки"); d.configure(bg=CORP); d.geometry("620x360")
+        t = tk.Text(d, bg="#2b313a", fg=TEXT, relief="flat", font=F_CMD, padx=10, pady=8); t.pack(fill="both", expand=True)
+        t.insert("1.0", "\n".join(self.jurnal)); t.see("end"); t.config(state="disabled")
+
+    def meniu_sus(self, k, w):
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", bd=0, font=F_MIC)
+        if k == "cont":
+            m.add_command(label="Подключиться", state="disabled")
+            for t in ("Учетная запись", "Сертифицированное оборудование"): m.add_command(label="      " + t, command=lambda t=t: self.mesaj(f"«{t}» — недоступно (без интернета)."))
+            m.add_command(label="CAD PC в Интернете", state="disabled")
+            for t in ("Главная страница", "YouTube", "Facebook", "Twitter"): m.add_command(label="      " + t, command=lambda t=t: self.mesaj(f"«{t}» — недоступно (без интернета)."))
+        else:
+            m.add_command(label="Справка", command=self.dialog_ajutor)
+            m.add_command(label="Загрузить автономную справку", command=self.dialog_ajutor)
+            m.add_command(label="Обратная связь", command=lambda: self.mesaj("Обратная связь: напишите разработчику CAD PC."))
+            m.add_command(label="Загрузить пакеты локализации", command=lambda: self.mesaj("Язык интерфейса: русский."))
+            m.add_command(label="Анализатор производительности", command=lambda: self.mesaj(f"Объектов на экране: {len(self.v.prim)}"))
+            m.add_separator()
+            m.add_command(label="Параметры конфиденциальности...", command=lambda: self.mesaj("CAD PC работает без интернета и ничего не отправляет."))
+            m.add_separator()
+            m.add_command(label="О программе CAD PC 2025", command=lambda: messagebox.showinfo(TITLU_APP, "CAD PC 2025\nПросмотр и редактирование DWG / DXF.\nDWG — через ODA File Converter или AutoCAD."))
+        m.tk_popup(w.winfo_rootx() - 180, w.winfo_rooty() + w.winfo_height())
+
+    def dialog_ajutor(self):
+        d = tk.Toplevel(self.root); d.title("Справка CAD PC"); d.configure(bg=CORP); d.geometry("620x520")
+        t = tk.Text(d, bg="#2b313a", fg=TEXT, relief="flat", font=F_MIC, wrap="word", padx=12, pady=10); t.pack(fill="both", expand=True)
+        t.insert("1.0", """Мышь: колесо — масштаб, нажатое колесо — панорама, двойной щелчок колесом — показать все.
+Выбор: щелчок по объекту; рамка слева направо — только целиком внутри; справа налево — пересекающие. Shift+щелчок — убрать из выбора. Esc — снять выбор.
+Двойной щелчок: по тексту — редактировать текст; по блоку — атрибуты; по другому объекту — свойства.
+
+Файл: ОТКРЫТЬ (Ctrl+O), СОХРАНИТЬ (Ctrl+S), СОХРАНИТЬКАК (Ctrl+Shift+S), НОВЫЙ (Ctrl+N)
+Вид: ПОКАЗАТЬ / Z, РЕГЕН, СЕТКА (F7), ОРТО (F8), объектная привязка (F3)
+Слои: СЛОЙ / LA; список слоев на ленте — текущий слой или слой выбранных объектов
+Редактирование: ПЕРЕНЕСТИ (M), КОПИРОВАТЬ (CO), ПОВЕРНУТЬ (RO), МАСШТАБ (SC), ЗЕРКАЛО (MI), СТЕРЕТЬ (E, Delete),
+  РАСЧЛЕНИТЬ (X), ОТМЕНИТЬ (U, Ctrl+Z), ПОВТОРИТЬ (Ctrl+Y), ВЫБРАТЬВСЕ (Ctrl+A), Ctrl+C / Ctrl+V / Ctrl+X
+Рисование: ОТРЕЗОК (L), ПЛИНИЯ (PL), КРУГ (C)
+Надписи: ТЕКСТ (DT), МТЕКСТ (T), РЕДТЕКСТ (ED), НАЙТИ (Ctrl+F) — найти и заменить,
+  TCOUNT — автонумерация, АТРРЕД — атрибуты блока, ATTOUT — экспорт атрибутов и текстов в Excel, ATTIN — импорт из Excel
+Точки: щелчок на чертеже или ввод «x,y»; число — расстояние в направлении мыши (для ПОВЕРНУТЬ — угол, для МАСШТАБ — коэффициент).
+Enter или правая кнопка — завершить команду; пустой Enter — повторить последнюю команду.""")
+        t.config(state="disabled")
+
     # ---------------------------------------------------------------- tab-urile documentelor
     def _bara_documente(self):
         b = tk.Frame(self.root, bg=FILE, height=28); b.pack(fill="x"); b.pack_propagate(False)
-        tk.Label(b, text="☰", bg=FILE, fg=TEXT, font=F_ICON_MIC, padx=10).pack(side="left")
+        mt = tk.Label(b, text="☰", bg=FILE, fg="#8ab8ff", font=F_ICON_MIC, padx=10); mt.pack(side="left")
+        mt.bind("<Button-1>", lambda e: self.meniu_taburi(mt))
         self.tab_start = tk.Label(b, text="Начало", bg=FILE, fg=TEXT, font=F_MIC, padx=14); self.tab_start.pack(side="left", fill="y")
         self.tab_start.bind("<Button-1>", lambda e: self.arata_start())
         self.tab_doc = tk.Frame(b, bg=CORP); self.tab_doc_l = tk.Label(self.tab_doc, text="", bg=CORP, fg="white", font=(F, -12, "bold"), padx=10)
@@ -94,11 +239,13 @@ class App:
     # ---------------------------------------------------------------- jos: tab-urile Модель / Layout și bara de stare
     def _jos(self):
         b = tk.Frame(self.root, bg=STARE, height=30); b.pack(side="bottom", fill="x"); b.pack_propagate(False)
-        tk.Label(b, text="☰", bg=STARE, fg=TEXT, font=F_ICON_MIC, padx=10).pack(side="left")
+        ml = tk.Label(b, text="☰", bg=STARE, fg="#8ab8ff", font=F_ICON_MIC, padx=10); ml.pack(side="left")
+        ml.bind("<Button-1>", lambda e: self.meniu_foi(ml))
         self.tab_lay = tk.Frame(b, bg=STARE); self.tab_lay.pack(side="left", fill="y")
         self._taburi_layout(["Model", "Layout1"])
         self.stare = {}
-        dr = tk.Frame(b, bg=STARE); dr.pack(side="right", fill="y")
+        dr = tk.Frame(b, bg=STARE); dr.pack(side="right", fill="y"); self._dr_stare = dr
+        self.lbl_coord = tk.Label(b, text="", bg=STARE, fg=TEXT, font=F_CMD)
         for k, txt, tip, act in (("model", "МОДЕЛЬ", "Пространство модели", False), ("grila", "▦", "Сетка (F7)", True), ("snap", "⠿", "Шаговая привязка", False),
                                  ("orto", "∟", "Орто (F8)", False), ("polar", "◎", "Полярное отслеживание (F10)", True), ("izo", "⟋", "Изометрия", False),
                                  ("osnap", "◰", "Объектная привязка (F3)", True), ("adn", "✈", "Аннотативность", True), ("masc", "1:1", "Масштаб аннотаций", False),
@@ -107,6 +254,9 @@ class App:
             l = tk.Label(dr, text=txt, bg=ACTIV if act else STARE, fg="white", font=(F, -12, "bold") if k == "model" else F_ICON_MIC, padx=5)
             l.pack(side="left", fill="y", padx=1, pady=3); self.stare[k] = [l, act]
             l.bind("<Button-1>", lambda e, k=k: self.comuta_stare(k))
+            if k in ("snap", "polar", "osnap", "set", "masc"):                # săgețile ▾ cu meniurile lor
+                a = tk.Label(dr, text="▾", bg=STARE, fg=TEXT, font=(F, -10)); a.pack(side="left", fill="y")
+                a.bind("<Button-1>", lambda e, k=k, a=a: self.meniu_sageata(k, a))
         self.stare["model"][0].config(bg="#1b2027")
 
     def _taburi_layout(self, nume):
@@ -116,9 +266,75 @@ class App:
             l = tk.Label(self.tab_lay, text=t, bg=CORP if n == "Model" else STARE, fg="white", font=(F, -12, "bold") if n == "Model" else F_MIC, padx=12)
             l.pack(side="left", fill="y"); l.bind("<Button-1>", lambda e, n=n: self.mesaj(f"Лист «{n}»: листы будут доступны в версии 3 (Модель / Layout, печать, PDF)."))
             tk.Label(self.tab_lay, text="/", bg=STARE, fg=SEP, font=F_MIC).pack(side="left")
-        tk.Label(self.tab_lay, text="＋", bg=STARE, fg=TEXT, font=F_ICON_MIC, padx=8).pack(side="left")
+        pl = tk.Label(self.tab_lay, text="＋", bg=STARE, fg=TEXT, font=F_ICON_MIC, padx=8); pl.pack(side="left")
+        pl.bind("<Button-1>", lambda e: self.foaie_noua())
+
+    # elementele meniului „☰” din bara de stare (ca în AutoCAD): (text, cheia butonului sau None, bifat implicit)
+    ADAPTARE = [("Координаты", "coord", False), ("Пространство модели", "model", True), None, ("Сетка", "grila", True), ("Режим привязки", "snap", True), None,
+                ("Подразумеваемые зависимости", None, False), ("Динамический ввод", None, False), None, ("Режим «Орто»", "orto", True),
+                ("Полярное отслеживание", "polar", True), ("Изометрическое проектирование", "izo", True), None, ("Отслеживание привязки к объектам", None, True),
+                ("Объектная привязка 2D", "osnap", True), None, ("Толщина линий", None, False), ("Прозрачность", None, False), ("Циклический выбор", None, False),
+                ("Объектная привязка 3D", None, False), None, ("Динамическая ПСК", None, False), ("Фильтрация выбора", None, False), ("Гизмо", None, False), None,
+                ("Видимость аннотаций", "adn", True), ("Автомасштаб", None, True), ("Масштаб аннотаций", "masc", True), None,
+                ("Переключение рабочего пространства", "set", True), None, ("Монитор аннотаций", None, True), ("Единицы", None, False), ("Быстрые свойства", None, False),
+                ("Блокировка элементов интерфейса", None, False), None, ("Изолировать объекты", "izol", True), ("Производительность графики", "acc", False), None,
+                ("Очистить экран", "ecran", True)]
+
+    def meniu_stare(self):
+        if not hasattr(self, "_vad"): self._vad = {t[0]: tk.BooleanVar(value=t[2]) for t in self.ADAPTARE if t}
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", selectcolor=TEXT, bd=0, font=F_MIC)
+        for t in self.ADAPTARE:
+            if t is None: m.add_separator(); continue
+            m.add_checkbutton(label=t[0], variable=self._vad[t[0]], command=lambda t=t: self._aplica_adaptare(t))
+        l = self.stare["meniu"][0]; m.tk_popup(l.winfo_rootx() - 230, l.winfo_rooty() - 880)
+
+    def _aplica_adaptare(self, t):
+        nume, k, _ = t; v = self._vad[nume].get()
+        if k == "coord":
+            if v: self.lbl_coord.pack(side="right", padx=10, before=self._dr_stare)
+            else: self.lbl_coord.pack_forget()
+        elif k and k in self.stare:
+            l = self.stare[k][0]
+            if v: l.pack(side="left", fill="y", padx=1, pady=3, before=self.stare["meniu"][0])
+            else: l.pack_forget()
+
+    MENIURI_SAGEATA = {
+        "snap": [("Полярная привязка", False), ("Шаговая привязка", True), None, ("Параметры привязки...", None)],
+        "polar": [("90, 540, 810, 1080...", True), ("45, 630, 945, 1260...", False), ("30, 660, 990, 1320...", False), ("23, 675, 1013, 1350...", False),
+                  ("18, 684, 1026, 1368...", False), ("15, 690, 1035, 1380...", False), ("10, 700, 1050, 1400...", False), ("5, 710, 1065, 1420...", False),
+                  None, ("Параметры отслеживания...", None)],
+        "osnap": [("⌐  Конточка", True), ("⊿  Середина", False), ("⊙  Центр", True), ("⊡  Геометрический центр", False), ("▫  Узел", False),
+                  ("◇  Квадрант", False), ("✕  Пересечение", True), ("┄  Продолжение", True), ("⊓  Т.вставки", False), ("⊥  Нормаль", False),
+                  ("◯  Касательная", False), ("⌇  Ближайшая", False), ("⊠  Кажущееся пересечение", False), ("∥  Параллельно", False), None,
+                  ("Параметры объектной привязки...", None)],
+        "set": [("Рисование и аннотации", True), ("Основы 3D", False), ("3D-моделирование", False), ("Классический AutoCAD", False), None,
+                ("Сохранить текущее как...", None), ("Параметры рабочего пространства...", None), ("Адаптация...", None), ("Отображение меток рабочего пространства", False)],
+        "masc": [(m, m == "1:1") for m in ("100:1", "10:1", "1:1", "1:10", "1:100", "1:16", "1:2", "1:20", "1:30", "1:4", "1:40", "1:5", "1:50", "1:8", "2:1", "4:1", "8:1")]
+                + [("Пользовательский...", None), None, ("Масштаб внешних ссылок", None), ("Процентные значения", None)],
+    }
+
+    def meniu_sageata(self, k, w):
+        if not hasattr(self, "_vm"): self._vm = {}
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", selectcolor=TEXT, bd=0, font=F_MIC)
+        exclusiv = k in ("snap", "polar", "set", "masc")
+        if exclusiv and k not in self._vm:
+            self._vm[k] = tk.StringVar(value=next(t[0] for t in self.MENIURI_SAGEATA[k] if t and t[1]))
+        for t in self.MENIURI_SAGEATA[k]:
+            if t is None: m.add_separator(); continue
+            nume, bif = t
+            if bif is None: m.add_command(label=nume, command=lambda n=nume: self.mesaj(f"«{n.rstrip('.')}» — в следующей версии."))
+            elif exclusiv: m.add_radiobutton(label=nume, variable=self._vm[k], value=nume, command=lambda k=k: self._ales_sageata(k))
+            else:
+                v = self._vm.setdefault(k + nume, tk.BooleanVar(value=bif)); m.add_checkbutton(label=nume, variable=v)
+        m.tk_popup(w.winfo_rootx() - 120, w.winfo_rooty() - 22 * len(self.MENIURI_SAGEATA[k]) - 10)
+
+    def _ales_sageata(self, k):
+        v = self._vm[k].get()
+        if k == "masc": self.stare["masc"][0].config(text=v)
+        self.mesaj({"snap": "Привязка: ", "polar": "Полярные углы: ", "set": "Рабочее пространство: ", "masc": "Масштаб аннотаций: "}[k] + v)
 
     def comuta_stare(self, k):
+        if k == "meniu": return self.meniu_stare()
         if k == "grila": return self.comuta_grila()
         if k == "orto": return self.comuta_orto()
         l, act = self.stare[k]
@@ -133,7 +349,9 @@ class App:
         self.istoric = tk.Label(z, text="", bg="#2b313a", fg=TEXT, font=F_CMD, anchor="w", justify="left", padx=8)
         f = tk.Frame(z, bg=CMD, height=26); self.fcmd = f
         f.place(relx=0.5, rely=1.0, y=-8, anchor="s", relwidth=0.58, height=26)
-        tk.Label(f, text="⁞ ✕ 🔧", bg="#9a9a9a", fg="#2b2b2b", font=F_ICON_MIC, padx=4).pack(side="left", fill="y")
+        tk.Label(f, text="⁞ ✕", bg="#9a9a9a", fg="#2b2b2b", font=F_ICON_MIC, padx=4).pack(side="left", fill="y")
+        ch = tk.Label(f, text="🔧", bg="#9a9a9a", fg="#2b2b2b", font=F_ICON_MIC, padx=4); ch.pack(side="left", fill="y")
+        ch.bind("<Button-1>", lambda e: self.meniu_cmd(ch))
         tk.Label(f, text=">_▾", bg=CMD, fg="#444", font=F_CMD).pack(side="left", padx=(4, 0))
         self.cmd = tk.Entry(f, bg=CMD, fg=CMD_TXT, insertbackground=CMD_TXT, relief="flat", font=(F_CMD[0], -12, "italic"))
         self.cmd.pack(side="left", fill="both", expand=True, padx=4)
@@ -141,13 +359,17 @@ class App:
         self.cmd.bind("<FocusIn>", lambda e: self._placeholder(False)); self.cmd.bind("<FocusOut>", lambda e: self._placeholder(not self.cmd.get()))
         self.cmd.bind("<Return>", self._enter); self.cmd.bind("<Escape>", lambda e: self.anuleaza())
         self.cmd.bind("<Up>", lambda e: self._din_istoric(-1)); self.cmd.bind("<Down>", lambda e: self._din_istoric(1))
-        self.linii = []; self.ist_cmd = []; self.ist_i = 0
+        self.linii = []; self.ist_cmd = []; self.ist_i = 0; self.jurnal = getattr(self, 'jurnal', [])
 
     def _placeholder(self, da):
-        if da and not self.cmd.get(): self.cmd.insert(0, "Введите команду"); self.cmd.config(fg="#6f6f6f", font=(F_CMD[0], -12, "italic"))
-        elif not da and self.cmd.get() == "Введите команду": self.cmd.delete(0, "end"); self.cmd.config(fg=CMD_TXT, font=(F_CMD[0], -12))
+        txt = getattr(self, "_prompt", None) or "Введите команду"
+        if da and not self.cmd.get(): self.cmd.insert(0, txt); self.cmd.config(fg="#1f4f9a" if getattr(self, "_prompt", None) else "#6f6f6f", font=(F_CMD[0], -12, "italic"))
+        elif not da and self.cmd.get() in ("Введите команду", getattr(self, "_prompt", None) or "Введите команду"):
+            self.cmd.delete(0, "end"); self.cmd.config(fg=CMD_TXT, font=(F_CMD[0], -12))
 
     def mesaj(self, t):
+        if not hasattr(self, "jurnal"): self.jurnal = []
+        self.jurnal = (self.jurnal + [t])[-500:]
         self.linii = (self.linii + [t])[-3:]
         self.istoric.config(text="\n".join(self.linii))
         self.istoric.place(relx=0.5, rely=1.0, y=-36, anchor="s", relwidth=0.58)
@@ -156,8 +378,10 @@ class App:
 
     def _enter(self, e=None):
         t = self.cmd.get().strip()
-        if t == "Введите команду": t = ""
+        if t in ("Введите команду", self._prompt or "Введите команду"): t = ""
         self.cmd.delete(0, "end")
+        if self.ed.stare:                                              # o comandă așteaptă un punct / o valoare
+            self.ed.valoare(t); self.cv.focus_set(); self._placeholder(True); return
         if not t and self.ultima: t = self.ultima                      # Enter gol repetă ultima comandă, ca în AutoCAD
         if t: self.ist_cmd.append(t); self.ist_i = len(self.ist_cmd); self.executa(t)
         self.cv.focus_set(); self._placeholder(True)
@@ -182,7 +406,30 @@ class App:
             self.mesaj(f"«{nume}» — будет работать в следующей версии CAD PC (этап 2: редактирование и надписи, этап 3: блоки, листы, печать).")
 
     def anuleaza(self):
-        self.cmd.delete(0, "end"); self.mesaj("*Прервано*"); self.cv.focus_set(); self._placeholder(True)
+        self.cmd.delete(0, "end")
+        if self.ed.stare: self.ed.opreste()
+        elif self.ed.sel: self.ed.goleste()
+        else: self.mesaj("*Прервано*")
+        self.cv.focus_set(); self._placeholder(True)
+
+    def prompt(self, t):
+        self._prompt = t; self.cmd.delete(0, "end"); self._placeholder(True)
+        if t: self.cmd.focus_set(); self._placeholder(False); self.cv.focus_set()
+
+    def marcheaza(self):
+        self.modificat = True; self._titlu()
+
+    def strat_curent(self):
+        n = self.doc.header.get("$CLAYER", "0") if self.doc else "0"
+        return n if self.doc and n in self.doc.layers else "0"
+
+    def dupa_selectie(self):
+        cb = self.pg.combo.get("слой")
+        if not cb or not self.doc: return
+        if self.ed.sel:
+            straturi = {self.ed.ent(h).dxf.layer for h in self.ed.sel if self.ed.ent(h) is not None}
+            cb.set("● " + straturi.pop() if len(straturi) == 1 else "*РАЗЛИЧНЫЕ*")
+        else: cb.set("● " + self.strat_curent())
 
     # ---------------------------------------------------------------- pagina „Начало”
     def _start(self, z):
@@ -309,14 +556,34 @@ class App:
         cv.bind("<ButtonPress-2>", self._pan_start); cv.bind("<B2-Motion>", self._pan); cv.bind("<ButtonRelease-2>", lambda e: self.v.deseneaza())
         cv.bind("<Double-Button-2>", lambda e: self.zoom_ext())
         cv.bind("<Motion>", self._cursor); cv.bind("<Leave>", lambda e: cv.delete("cur"))
+        cv.bind("<Button-1>", lambda e: (cv.focus_set(), self.ed.clic(e))); cv.bind("<B1-Motion>", lambda e: (self.ed.trage(e), self._cursor(e)))
+        cv.bind("<ButtonRelease-1>", self.ed.elibereaza); cv.bind("<Double-Button-1>", self._dublu_clic)
+        cv.bind("<Button-3>", lambda e: self._enter() if self.ed.stare else None)
         cv.bind("<Key>", self._tasta)
+        r.bind("<Control-z>", lambda e: self.c_anuleaza()); r.bind("<Control-y>", lambda e: self.c_reface())
+        r.bind("<Control-a>", lambda e: self.c_tot() if self.focus_desen() else None); r.bind("<Delete>", lambda e: self.c_sterge() if self.focus_desen() else None)
+        r.bind("<Control-c>", lambda e: self.c_copbuf() if self.focus_desen() else None); r.bind("<Control-v>", lambda e: self.c_lipbuf() if self.focus_desen() else None)
+        r.bind("<Control-x>", lambda e: self.c_taie() if self.focus_desen() else None); r.bind("<Control-f>", lambda e: self.c_cauta())
+        r.bind("<F3>", lambda e: self.comuta_stare("osnap"))
         r.bind("<Control-o>", lambda e: self.deschide()); r.bind("<Control-s>", lambda e: self.salveaza()); r.bind("<Control-S>", lambda e: self.salveaza_ca())
         r.bind("<Control-n>", lambda e: self.nou()); r.bind("<F7>", lambda e: self.comuta_grila()); r.bind("<F8>", lambda e: self.comuta_orto())
         r.protocol("WM_DELETE_WINDOW", self.iesire)
 
+    def focus_desen(self):
+        f = self.root.focus_get(); return f is self.cv or f is None
+
+    def _dublu_clic(self, e):
+        h = self.ed.la_entitate(e.x, e.y)
+        if not h or self.ed.stare: return
+        ent = self.ed.ent(h); t = ent.dxftype()
+        if t in ("TEXT", "MTEXT"): self.et.dialog_text(ent)
+        elif t == "INSERT": self.et.dialog_atribute(ent)
+        else: self.et.dialog_proprietati([ent])
+
     def _tasta(self, e):
         """ca în AutoCAD: ce scrii pe desen merge în linia de comandă"""
         if e.keysym == "Escape": return self.anuleaza()
+        if e.keysym == "Delete": return self.c_sterge()
         if e.keysym in ("Return", "space"): return self._enter()
         if e.char and e.char.isprintable() and not (e.state & 0x4):
             self.cmd.focus_set(); self._placeholder(False); self.cmd.insert("end", e.char)
@@ -332,6 +599,9 @@ class App:
         dx, dy = e.x - self._p0[0], e.y - self._p0[1]; self._p0 = (e.x, e.y); self.v.deplaseaza(dx, dy)
 
     def _cursor(self, e):
+        self.ultim_mouse = (e.x, e.y); self.ed.miscare(e)
+        if self.doc and self.lbl_coord.winfo_ismapped():
+            x, y = self.v.lume(e.x, e.y); self.lbl_coord.config(text=f"{x:.4f}, {y:.4f}, 0.0000")
         cv = self.cv; cv.delete("cur")
         if str(cv.cget("cursor")) == "fleur": cv.config(cursor="none" if sys.platform == "win32" else "crosshair")
         L = 60; c = "#ffffff"
@@ -385,6 +655,7 @@ class App:
 
     def _deschis(self, doc, p):
         self.root.config(cursor=""); self.doc = doc; self.cale = p; self.modificat = False
+        self.ed.sel = set(); self.ed.anulari = []; self.ed.refaceri = []; self.v.selectie = set()
         self.arata_desen(); self.v.incarca(doc); self._suprapuneri(); self._titlu(); self._actualizeaza_straturi()
         self._taburi_layout(["Model"] + [l.name for l in doc.layouts if l.name != "Model"])
         n = sum(1 for _ in doc.modelspace())
@@ -392,7 +663,7 @@ class App:
 
     def nou(self):
         if not self._intreaba_salvare(): return
-        self.doc = fisiere.nou(); self.cale = None; self.modificat = False
+        self.doc = fisiere.nou(); self.cale = None; self.modificat = False; self.ed.sel = set(); self.ed.anulari = []; self.v.selectie = set()
         self.arata_desen(); self.v.incarca(self.doc); self.v.s = 4; self.v.deseneaza(); self._suprapuneri(); self._titlu(); self._actualizeaza_straturi()
         self.mesaj("Новый чертеж.")
 
@@ -453,7 +724,47 @@ class App:
         self.orto = not self.orto; self._seteaza_stare("orto", self.orto); self.mesaj("<Орто вкл>" if self.orto else "<Орто откл>")
 
     def ajutor(self):
-        self.mesaj("Команды: ОТКРЫТЬ, СОХРАНИТЬ, СОХРАНИТЬКАК, ПОКАЗАТЬ (Z), СЛОЙ (LA), РЕГЕН, СЕТКА (F7), ОРТО (F8). Колесо — масштаб, нажатое колесо — панорама.")
+        return self.dialog_ajutor()
+
+    def _ajutor_vechi(self):
+        self.mesaj("Команды: ОТКРЫТЬ, СОХРАНИТЬ, Z, LA | M, CO, RO, SC, MI, E, X, U | L, PL, C | ТЕКСТ, МТЕКСТ, ED, НАЙТИ, TCOUNT, ATTOUT, ATTIN, АТРРЕД.")
+
+    # ---------------------------------------------------------------- etapa 2: comenzi de editare și etichete
+    def c_anuleaza(self): self.ed.anuleaza() if self.doc else None
+    def c_reface(self): self.ed.reface() if self.doc else None
+    def c_sterge(self): self.ed.sterge() if self.doc else None
+    def c_desface(self): self.ed.desface() if self.doc else None
+    def c_tot(self): self.ed.tot() if self.doc else None
+    def c_copbuf(self): self.ed.copiaza_buf() if self.doc else None
+    def c_lipbuf(self): self.ed.lipeste_buf() if self.doc else None
+    def c_taie(self):
+        if self.doc and self.ed.sel: self.ed.copiaza_buf(); self.ed.sterge()
+    def c_muta(self): self.ed.incepe("ПЕРЕНЕСТИ", "ПЕРЕНЕСТИ  Базовая точка:")
+    def c_copiaza(self): self.ed.incepe("КОПИРОВАТЬ", "КОПИРОВАТЬ  Базовая точка:")
+    def c_roteste(self): self.ed.incepe("ПОВЕРНУТЬ", "ПОВЕРНУТЬ  Базовая точка:")
+    def c_scaleaza(self): self.ed.incepe("МАСШТАБ", "МАСШТАБ  Базовая точка:")
+    def c_oglinda(self): self.ed.incepe("ЗЕРКАЛО", "ЗЕРКАЛО  Первая точка оси отражения:")
+    def c_linie(self): self.ed.incepe("ОТРЕЗОК", "ОТРЕЗОК  Первая точка:", nevoie_sel=False)
+    def c_plinie(self): self.ed.incepe("ПЛИНИЯ", "ПЛИНИЯ  Начальная точка:", nevoie_sel=False)
+    def c_cerc(self): self.ed.incepe("КРУГ", "КРУГ  Центр круга:", nevoie_sel=False)
+    def c_text(self): self.ed.incepe("ТЕКСТ", "ТЕКСТ  Начальная точка текста:", nevoie_sel=False)
+    def c_mtext(self): self.ed.incepe("ТЕКСТ", "МТЕКСТ  Точка вставки:", nevoie_sel=False, mtext=True)
+    def c_cauta(self, txt=""):
+        self.et.cauta_inlocuieste(txt if txt != "Поиск текста" else "")
+    def c_numar(self): self.et.numerotare() if self.doc else None
+    def c_export(self): self.et.export_excel()
+    def c_import(self): self.et.import_excel()
+    def c_edtext(self):
+        ents = [self.ed.ent(h) for h in self.ed.sel]; t = [e for e in ents if e is not None and e.dxftype() in ("TEXT", "MTEXT")]
+        if t: self.et.dialog_text(t[0])
+        else: self.mesaj("Выберите текст (или двойной щелчок по тексту).")
+    def c_atr(self):
+        b = [self.ed.ent(h) for h in self.ed.sel]; b = [e for e in b if e is not None and e.dxftype() == "INSERT"]
+        if b: self.et.dialog_atribute(b[0])
+        else: self.mesaj("Выберите блок (или двойной щелчок по блоку).")
+    def c_prop(self):
+        ents = [self.ed.ent(h) for h in self.ed.sel if self.ed.ent(h) is not None]
+        self.et.dialog_proprietati(ents)
 
     # ---------------------------------------------------------------- straturi
     def _actualizeaza_straturi(self):
@@ -462,12 +773,24 @@ class App:
         nume = sorted(l.dxf.name for l in self.doc.layers)
         cb["values"] = ["● " + n for n in nume]
         cur = self.doc.header.get("$CLAYER", "0"); cb.set("● " + cur)
-        for k, val in (("цвет", "■ ПоСлою"), ("тип", "—— ПоСлою"), ("вес", "—— ПоСлою")):
+        if "цвет" in self.pg.combo: self.pg.combo["цвет"]["values"] = ["■ " + n for n, _ in CULORI]; self.pg.combo["цвет"].set("■ ПоСлою")
+        for k, val in (("тип", "—— ПоСлою"), ("вес", "—— ПоСлою")):
             if k in self.pg.combo: self.pg.combo[k]["values"] = [val]; self.pg.combo[k].set(val)
+        if "высота" in self.pg.combo: self.pg.combo["высота"]["values"] = ["1", "1.5", "2", "2.5", "3", "4", "5", "10"]; self.pg.combo["высота"].set(str(self.et.inaltime))
+        if "стильтекста" in self.pg.combo: self.pg.combo["стильтекста"]["values"] = sorted(s.dxf.name for s in self.doc.styles); self.pg.combo["стильтекста"].set("Standard")
 
     def combo_ales(self, k, val):
-        if k == "слой" and self.doc:
-            n = val[2:]; self.doc.header["$CLAYER"] = n; self.mesaj(f"Текущий слой: {n}")
+        if not self.doc: return
+        if k == "слой":
+            n = val[2:]
+            if self.ed.sel: self.ed.schimba_strat(n)                  # ca în AutoCAD: cu obiecte selectate, lista schimbă stratul lor
+            else: self.doc.header["$CLAYER"] = n; self.mesaj(f"Текущий слой: {n}")
+        elif k == "цвет":
+            v = dict(CULORI)[val[2:]]
+            if not self.ed.schimba_culoare(v): self.mesaj("Выберите объекты, затем цвет.")
+        elif k == "высота":
+            try: self.et.inaltime = float(val); self.mesaj(f"Высота текста: {val}")
+            except ValueError: pass
 
     def strat_curent_dialog(self):
         self.dialog_straturi()
