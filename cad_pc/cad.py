@@ -217,11 +217,56 @@ class App:
 
     # ---------------------------------------------------------------- meniul „A”
     def meniu_a(self):
-        m = tk.Toplevel(self.root); m.overrideredirect(True); m.configure(bg="#3b4453")
-        x = self.root.winfo_rootx() + 4; y = self.root.winfo_rooty() + 32; m.geometry(f"500x620+{x}+{y}")
-        st = tk.Frame(m, bg="#3b4453", width=150); st.pack(side="left", fill="y"); st.pack_propagate(False)
+        """meniul „A” ca în AutoCAD: stânga comenzile, dreapta ultimele documente sau opțiunile comenzii de sub mouse"""
+        if getattr(self, "_meniu", None) and self._meniu.winfo_exists(): return self._inchide_meniu()
+        m = tk.Toplevel(self.root); m.overrideredirect(True); m.configure(bg="#3b4453"); m.transient(self.root); self._meniu = m
+        x = self.root.winfo_rootx() + 4; y = self.root.winfo_rooty() + 32; m.geometry(f"520x630+{x}+{y}")
+        st = tk.Frame(m, bg="#3b4453", width=160); st.pack(side="left", fill="y"); st.pack_propagate(False)
         dr = tk.Frame(m, bg="#2b313a"); dr.pack(side="left", fill="both", expand=True)
-        def gata(f): m.destroy(); f()
+        def gata(f): self._inchide_meniu(); f()
+        def dreapta(titlu, optiuni):
+            for w in dr.winfo_children(): w.destroy()
+            tk.Label(dr, text=titlu, bg="#2b313a", fg=TEXT, font=(F, -13, "bold"), anchor="w").pack(fill="x", padx=12, pady=(14, 8))
+            tk.Frame(dr, bg=SEP, height=1).pack(fill="x", padx=10, pady=(0, 6))
+            for ic, txt, sub, f in optiuni:
+                r = tk.Frame(dr, bg="#2b313a"); r.pack(fill="x", padx=6, pady=1)
+                a = tk.Label(r, text=ic, bg="#2b313a", fg=TEXT, font=(F_ICON[0], -20), width=2); a.pack(side="left", padx=6)
+                b = tk.Label(r, text=txt + ("\n" + sub if sub else ""), bg="#2b313a", fg=TEXT, font=F_MIC, justify="left", anchor="w"); b.pack(side="left", fill="x", pady=4)
+                for w in (r, a, b):
+                    w.bind("<Button-1>", lambda e, f=f: gata(f))
+                    w.bind("<Enter>", lambda e, r=r: [c.config(bg=HOVER) for c in [r] + r.winfo_children()])
+                    w.bind("<Leave>", lambda e, r=r: [c.config(bg="#2b313a") for c in [r] + r.winfo_children()])
+        def recente():
+            for w in dr.winfo_children(): w.destroy()
+            tk.Label(dr, text="🕓  Последние документы", bg="#2b313a", fg=TEXT, font=F_MIC, anchor="w").pack(fill="x", padx=10, pady=(12, 6))
+            tk.Label(dr, text="По упорядоченному списку ▾", bg="#2b313a", fg=TEXT, font=F_MIC, anchor="w").pack(fill="x", padx=10, pady=(0, 8))
+            for p in fisiere.recente()[:15]:
+                l = tk.Label(dr, text="🗎  " + os.path.basename(p), bg="#2b313a", fg=TEXT, font=F_MIC, anchor="w"); l.pack(fill="x", padx=10, pady=3)
+                l.bind("<Button-1>", lambda e, p=p: gata(lambda: self.deschide_cale(p)))
+                l.bind("<Enter>", lambda e, l=l: l.config(bg=HOVER)); l.bind("<Leave>", lambda e, l=l: l.config(bg="#2b313a"))
+            jos = tk.Frame(dr, bg="#2b313a"); jos.pack(side="bottom", fill="x", pady=8)
+            b = tk.Label(jos, text="Выход из CAD PC 2025", bg="#3b4453", fg=TEXT, font=F_MIC, padx=8, pady=3); b.pack(side="right", padx=6)
+            b.bind("<Button-1>", lambda e: gata(self.iesire))
+            tk.Label(jos, text="Параметры", bg="#3b4453", fg=TEXT, font=F_MIC, padx=8, pady=3).pack(side="right")
+        sub = {
+            "Создать": [("🗋", "Чертеж", "Создание нового пустого чертежа", self.nou)],
+            "Открыть": [("🗁", "Чертеж", "Открытие файла DWG или DXF", self.deschide)] +
+                       [("🗎", os.path.basename(p), os.path.dirname(p), (lambda p=p: self.deschide_cale(p))) for p in fisiere.recente()[:5]],
+            "Сохранить\nкак": [("💾", "Чертеж", "Сохранение в формате DWG (AutoCAD 2018)", self.salveaza_ca),
+                               ("💾", "DWG AutoCAD 2013", "Для старых версий AutoCAD", lambda: self.salveaza_ca("AutoCAD 2013")),
+                               ("💾", "DWG AutoCAD 2010", "", lambda: self.salveaza_ca("AutoCAD 2010")),
+                               ("💾", "DXF", "Формат обмена чертежами", lambda: self.salveaza_ca("DXF"))],
+            "Импорт": [("⇩", "DWG / DXF", "Открыть чертеж", self.deschide)],
+            "Экспорт": [("⇧", "DXF", "Сохранить копию в DXF", lambda: self.salveaza_ca("DXF")),
+                        ("⇧", "DWG", "Сохранить копию в DWG", self.salveaza_ca),
+                        ("📄", "PDF", "Будет в этапе 3 (листы, печать)", lambda: self.executa("ЭКСПОРТPDF"))],
+            "Публикация": [("🗂", "Публикация в PDF", "Будет в этапе 3", lambda: self.executa("ПУБЛИКАЦИЯ"))],
+            "Печать": [("🖶", "Печать", "Будет в этапе 3", lambda: self.executa("ПЕЧАТЬ")),
+                       ("🔍", "Предварительный просмотр", "Будет в этапе 3", lambda: self.executa("ПРЕДВАР"))],
+            "Утилиты": [("☰", "Свойства слоев", "Диспетчер слоев", self.dialog_straturi),
+                        ("🔎", "Найти и заменить", "Поиск текста в чертеже", lambda: self.executa("НАЙТИ"))],
+            "Закрыть": [("✖", "Текущий чертеж", "", self.inchide), ("✖", "Выход", "Закрыть CAD PC", self.iesire)],
+        }
         for ic, txt, f in (("🗋", "Создать", self.nou), ("🗁", "Открыть", self.deschide), ("💾", "Сохранить", self.salveaza),
                            ("💾", "Сохранить\nкак", self.salveaza_ca), ("⇩", "Импорт", self.deschide), ("⇧", "Экспорт", self.salveaza_ca),
                            ("🗂", "Публикация", lambda: self.executa("ПУБЛИКАЦИЯ")), ("🖶", "Печать", lambda: self.executa("ПЕЧАТЬ")),
@@ -229,22 +274,31 @@ class App:
             r = tk.Frame(st, bg="#3b4453", height=56); r.pack(fill="x"); r.pack_propagate(False)
             a = tk.Label(r, text=ic, bg="#3b4453", fg=TEXT, font=(F_ICON[0], -22), width=2); a.pack(side="left", padx=8)
             b = tk.Label(r, text=txt, bg="#3b4453", fg=TEXT, font=F_MIC, justify="left"); b.pack(side="left")
-            tk.Label(r, text="▸", bg="#3b4453", fg=TEXT, font=F_MIC).pack(side="right", padx=6)
+            if txt in sub: tk.Label(r, text="▸", bg="#3b4453", fg=TEXT, font=F_MIC).pack(side="right", padx=6)
+            def intra(e, r=r, txt=txt):
+                for c in [r] + r.winfo_children(): c.config(bg=HOVER)
+                if txt in sub: dreapta(txt.replace("\n", " "), sub[txt])
             for w in (r, a, b):
-                w.bind("<Button-1>", lambda e, f=f: gata(f))
-                w.bind("<Enter>", lambda e, r=r: [c.config(bg=HOVER) for c in [r] + r.winfo_children()])
+                w.bind("<Button-1>", lambda e, f=f: gata(f)); w.bind("<Enter>", intra)
                 w.bind("<Leave>", lambda e, r=r: [c.config(bg="#3b4453") for c in [r] + r.winfo_children()])
-        tk.Label(dr, text="🕓  Последние документы", bg="#2b313a", fg=TEXT, font=F_MIC, anchor="w").pack(fill="x", padx=10, pady=(12, 6))
-        tk.Label(dr, text="По упорядоченному списку ▾", bg="#2b313a", fg=TEXT, font=F_MIC, anchor="w").pack(fill="x", padx=10, pady=(0, 8))
-        for p in fisiere.recente()[:15]:
-            l = tk.Label(dr, text="🗎  " + os.path.basename(p), bg="#2b313a", fg=TEXT, font=F_MIC, anchor="w"); l.pack(fill="x", padx=10, pady=3)
-            l.bind("<Button-1>", lambda e, p=p: gata(lambda: self.deschide_cale(p)))
-            l.bind("<Enter>", lambda e, l=l: l.config(bg=HOVER)); l.bind("<Leave>", lambda e, l=l: l.config(bg="#2b313a"))
-        jos = tk.Frame(dr, bg="#2b313a"); jos.pack(side="bottom", fill="x", pady=8)
-        b = tk.Label(jos, text="Выход из CAD PC 2025", bg="#3b4453", fg=TEXT, font=F_MIC, padx=8, pady=3); b.pack(side="right", padx=6)
-        b.bind("<Button-1>", lambda e: gata(self.iesire))
-        tk.Label(jos, text="Параметры", bg="#3b4453", fg=TEXT, font=F_MIC, padx=8, pady=3).pack(side="right")
-        m.bind("<FocusOut>", lambda e: m.destroy()); m.bind("<Escape>", lambda e: m.destroy()); m.focus_force()
+        recente()
+        m.bind("<Escape>", lambda e: self._inchide_meniu())
+        # se închide la un clic în afara meniului (nu la pierderea focusului – pe Windows asta îl închidea imediat)
+        self.root.after(200, lambda: self.root.bind_all("<Button-1>", self._clic_afara_meniu, add="+"))
+
+    def _clic_afara_meniu(self, e):
+        m = getattr(self, "_meniu", None)
+        if not m or not m.winfo_exists(): return
+        x, y = e.x_root, e.y_root
+        if not (m.winfo_rootx() <= x <= m.winfo_rootx() + m.winfo_width() and m.winfo_rooty() <= y <= m.winfo_rooty() + m.winfo_height()):
+            self._inchide_meniu()
+
+    def _inchide_meniu(self):
+        m = getattr(self, "_meniu", None)
+        if m and m.winfo_exists(): m.destroy()
+        self._meniu = None
+        try: self.root.unbind_all("<Button-1>")
+        except Exception: pass
 
     # ---------------------------------------------------------------- legăturile de tastatură și mouse
     def _legaturi(self):
@@ -347,18 +401,19 @@ class App:
         if not self.cale: return self.salveaza_ca()
         return self._scrie(self.cale)
 
-    def salveaza_ca(self):
+    def salveaza_ca(self, versiune="AutoCAD 2018"):
         if self.doc is None: return False
         baza = os.path.splitext(os.path.basename(self.cale))[0] if self.cale else "Чертеж1"
-        p = filedialog.asksaveasfilename(title="Сохранение чертежа", initialfile=baza + ".dwg", defaultextension=".dwg",
-                                         filetypes=[("Чертеж AutoCAD 2018 (*.dwg)", "*.dwg"), ("AutoCAD 2018 DXF (*.dxf)", "*.dxf")])
+        dxf = versiune == "DXF"; ver = "AutoCAD 2018" if dxf else versiune
+        tipuri = [("AutoCAD 2018 DXF (*.dxf)", "*.dxf"), (f"Чертеж {ver} (*.dwg)", "*.dwg")] if dxf else [(f"Чертеж {ver} (*.dwg)", "*.dwg"), ("AutoCAD 2018 DXF (*.dxf)", "*.dxf")]
+        p = filedialog.asksaveasfilename(title="Сохранение чертежа", initialfile=baza + (".dxf" if dxf else ".dwg"), defaultextension=".dxf" if dxf else ".dwg", filetypes=tipuri)
         if not p: return False
-        return self._scrie(p)
+        return self._scrie(p, ver)
 
-    def _scrie(self, p):
+    def _scrie(self, p, versiune="AutoCAD 2018"):
         self.root.config(cursor="watch"); self.root.update_idletasks()
         try:
-            fisiere.salveaza(self.doc, p)
+            fisiere.salveaza(self.doc, p, versiune)
         except Exception as ex:
             self.root.config(cursor=""); messagebox.showerror(TITLU_APP, f"Не удалось сохранить:\n{ex}"); return False
         self.root.config(cursor=""); self.cale = p; self.modificat = False; self._titlu()
