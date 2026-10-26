@@ -728,7 +728,10 @@ Enter или правая кнопка — завершить команду; п
             x, y = self.v.lume(e.x, e.y); self.lbl_coord.config(text=f"{x:.4f}, {y:.4f}, 0.0000")
         cv = self.cv; cv.delete("cur")
         if str(cv.cget("cursor")) == "fleur": cv.config(cursor="none" if sys.platform == "win32" else "crosshair")
-        L = 60; c = "#ffffff"
+        L = 48; c = "#ffffff"
+        if self.v.foaie and getattr(self.v, "hartie", None):              # pe hârtia albă a foii: cursor negru, ca în AutoCAD
+            w, h = self.v.hartie[0] * self.v.sf, self.v.hartie[1] * self.v.sf
+            if abs(e.x - self.v.fx) <= w / 2 and abs(e.y - self.v.fy) <= h / 2: c = "#000000"
         cv.create_line(e.x - L, e.y, e.x + L, e.y, fill=c, tags="cur"); cv.create_line(e.x, e.y - L, e.x, e.y + L, fill=c, tags="cur")
         cv.create_rectangle(e.x - 4, e.y - 4, e.x + 4, e.y + 4, outline=c, tags="cur")
 
