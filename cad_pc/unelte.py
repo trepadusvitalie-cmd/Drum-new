@@ -95,24 +95,53 @@ class Popup:
 
 
 class Sfat:
-    """sfatul de sub mouse (ca în AutoCAD): titlu, explicație, comanda"""
+    """sfatul de sub mouse (ca în AutoCAD): titlu, explicație, comanda. Se închide singur când mouse-ul pleacă."""
+    activ = None
+
     def __init__(self, w, text):
         self.w = w; self.text = text; self.l = None; self.job = None
         if text:
-            w.bind("<Enter>", self._intra, add="+"); w.bind("<Leave>", self._iese, add="+"); w.bind("<ButtonPress>", self._iese, add="+")
+            for x in [w] + list(w.winfo_children()):
+                x.bind("<Enter>", self._intra, add="+"); x.bind("<ButtonPress>", self._iese, add="+")
 
-    def _intra(self, e): self.job = self.w.after(650, self._arata)
+    def _intra(self, e):
+        if self.job: self.w.after_cancel(self.job)
+        if self.l is None: self.job = self.w.after(700, self._arata)
 
     def _iese(self, e=None):
-        if self.job: self.w.after_cancel(self.job); self.job = None
-        if self.l: self.l.destroy(); self.l = None
+        if self.job:
+            try: self.w.after_cancel(self.job)
+            except Exception: pass
+            self.job = None
+        if self.l is not None:
+            try: self.l.destroy()
+            except Exception: pass
+            self.l = None
+        if Sfat.activ is self: Sfat.activ = None
+
+    def _sub_mouse(self):
+        try:
+            x, y = self.w.winfo_pointerxy(); u = self.w.winfo_containing(x, y)
+        except Exception: return False
+        while u is not None:
+            if u is self.w: return True
+            u = getattr(u, "master", None)
+        return False
 
     def _arata(self):
+        self.job = None
+        if not self._sub_mouse(): return
+        if Sfat.activ is not None and Sfat.activ is not self: Sfat.activ._iese()       # un singur sfat deschis
         r = self.w.winfo_toplevel()
         self.l = tk.Label(r, text=self.text, bg="#f4f4f4", fg="#1b1b1b", font=(F, -12), justify="left", padx=8, pady=6, relief="solid", bd=1, wraplength=330)
         x = self.w.winfo_rootx() - r.winfo_rootx() + 10; y = self.w.winfo_rooty() - r.winfo_rooty() + self.w.winfo_height() + 4
         self.l.update_idletasks(); x = min(x, r.winfo_width() - self.l.winfo_reqwidth() - 6)
-        self.l.place(x=max(0, x), y=y); self.l.lift()
+        self.l.place(x=max(0, x), y=y); self.l.lift(); Sfat.activ = self; self._verifica()
+
+    def _verifica(self):
+        if self.l is None: return
+        if self._sub_mouse(): self.w.after(200, self._verifica)
+        else: self._iese()
 
 
 # ---------------------------------------------------------------- alegerea unei culori ACI (ca „Выбор цвета”)
