@@ -76,7 +76,7 @@ class App:
     def __init__(self, root, initial=None):
         self.root = root; self.doc = None; self.cale = None; self.modificat = False; self.ultima = None
         self.orto = False
-        root.title(TITLU_APP); root.configure(bg=TITLU); root.geometry("1500x900")
+        root.title(TITLU_APP); root.configure(bg=TITLU); root.geometry("1500x900"); self._iconita()
         try: root.state("zoomed")
         except Exception: pass
         st = ttk.Style(root)
@@ -262,6 +262,20 @@ class App:
 Точки: щелчок на чертеже или ввод «x,y»; число — расстояние в направлении мыши (для ПОВЕРНУТЬ — угол, для МАСШТАБ — коэффициент).
 Enter или правая кнопка — завершить команду; пустой Enter — повторить последнюю команду.""")
         t.config(state="disabled")
+
+    def _iconita(self):
+        """iconița ferestrei: icon.png de lângă exe sau partea pătrată din stânga a lui logo.png"""
+        try:
+            from PIL import Image, ImageTk
+            p = _langa_exe("icon.png")
+            if os.path.exists(p): im = Image.open(p).convert("RGBA")
+            else:
+                p = _langa_exe("logo.png")
+                if not os.path.exists(p): return
+                im = Image.open(p).convert("RGBA"); im = im.crop((0, 0, min(im.height, im.width), im.height))
+            self._icoane = [ImageTk.PhotoImage(im.resize((n, n), Image.LANCZOS)) for n in (48, 32, 16)]
+            self.root.iconphoto(True, *self._icoane)
+        except Exception: pass
 
     def _logo(self, inaltime):
         """logo.png de lângă exe, micșorat la înălțimea dată (dacă există)"""
