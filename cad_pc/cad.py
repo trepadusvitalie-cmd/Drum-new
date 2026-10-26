@@ -10,6 +10,10 @@ from editare import Editare
 from etichete import Etichete, CULORI
 from simboluri import Simboluri
 from imagini import Imagini
+from unelte import Unelte
+from desen import Desen
+from meniuri import Meniuri
+import geo
 import tiparire
 
 def _langa_exe(nume):
@@ -67,6 +71,48 @@ COMENZI = {
     "ПЕЧАТЬ": "c_print", "PLOT": "c_print", "PRINT": "c_print", "ПАКЕТПЕЧАТЬ": "c_print", "ПРЕДВАР": "c_print", "PREVIEW": "c_print",
     "ЭКСПОРТPDF": "c_pdf", "EXPORTPDF": "c_pdf", "ПУБЛИКАЦИЯ": "c_pdf", "PUBLISH": "c_pdf",
     "ЛИСТ": "foaie_noua", "LAYOUT": "foaie_noua",
+    # 3.3
+    "ТАБЛИЦА": "un.tabel_dialog", "TABLE": "un.tabel_dialog", "ШТРИХ": "un.hasura_dialog:Штриховка", "HATCH": "un.hasura_dialog:Штриховка", "H": "un.hasura_dialog:Штриховка",
+    "ГРАДИЕНТ": "un.hasura_dialog:Градиент", "GRADIENT": "un.hasura_dialog:Градиент", "КОНТУР": "un.contur", "BOUNDARY": "un.contur", "BO": "un.contur",
+    "СТИЛЬ": "un.stiluri_dialog", "STYLE": "un.stiluri_dialog", "ST": "un.stiluri_dialog", "ДИАЛТОЧ": "un.puncte_dialog", "PTYPE": "un.puncte_dialog",
+    "ПОРВПЕРЕД": "un.ordine:ВПЕРЕД", "ПОРНАЗАД": "un.ordine:НАЗАД", "ПОРПЕРЕД": "un.ordine:ПЕРЕД", "ПОРЗА": "un.ordine:ЗА", "DRAWORDER": "un.ordine:ВПЕРЕД",
+    "ТЕКСТВПЕРЕД": "un.ordine:ТЕКСТВПЕРЕД", "РАЗМВПЕРЕД": "un.ordine:РАЗМВПЕРЕД", "ВЫНВПЕРЕД": "un.ordine:ВЫНВПЕРЕД", "АННВПЕРЕД": "un.ordine:АННВПЕРЕД", "ШТРИХНАЗАД": "un.ordine:ШТРИХНАЗАД",
+    "ПОРЯДОК": "meniu_sub:ПОРЯДОК", "ОБЛАКО": "meniu_sub:ОБЛАКО", "REVCLOUD": "meniu_sub:ОБЛАКО",
+    "ГРУППА": "un.grup_op:ГРУППА", "GROUP": "un.grup_op:ГРУППА", "G": "un.grup_op:ГРУППА", "РАЗГРУППИРОВАТЬ": "un.grup_op:РАЗГРУППИРОВАТЬ", "UNGROUP": "un.grup_op:РАЗГРУППИРОВАТЬ",
+    "РЕДГРУППА": "un.grup_op:РЕДГРУППА", "ВЫБОРГРУППЫ": "un.grup_op:ВЫБОР", "ДИСПГРУПП": "un.grup_op:ДИСП", "РАМКАГРУППЫ": "un.grup_op:РАМКА",
+    "ИЗОЛИРОВАТЬ": "un.izoleaza:ИЗОЛ", "ISOLATEOBJECTS": "un.izoleaza:ИЗОЛ", "СКРЫТЬ": "un.izoleaza:СКРЫТЬ", "HIDEOBJECTS": "un.izoleaza:СКРЫТЬ",
+    "НЕИЗОЛИРОВАТЬ": "un.izoleaza:КОНЕЦ", "UNISOLATEOBJECTS": "un.izoleaza:КОНЕЦ",
+    "СЛОЙИЗО": "un.strat_op:ИЗО", "LAYISO": "un.strat_op:ИЗО", "СЛОЙНЕИЗО": "un.strat_op:НЕИЗО", "LAYUNISO": "un.strat_op:НЕИЗО", "СЛОЙЗАМ": "un.strat_op:ЗАМ", "LAYFRZ": "un.strat_op:ЗАМ",
+    "СЛОЙОТКЛ": "un.strat_op:ОТКЛ", "LAYOFF": "un.strat_op:ОТКЛ", "СЛОЙТЕКОБ": "un.strat_op:ТЕК", "LAYMCUR": "un.strat_op:ТЕК", "СЛОЙВКЛ": "un.strat_op:ВКЛ", "LAYON": "un.strat_op:ВКЛ",
+    "СЛОЙРАЗМ": "un.strat_op:РАЗМ", "LAYTHW": "un.strat_op:РАЗМ", "СЛОЙБЛОК": "un.strat_op:БЛОК", "LAYLCK": "un.strat_op:БЛОК", "СЛОЙРАЗБЛОК": "un.strat_op:РАЗБЛОК", "LAYULK": "un.strat_op:РАЗБЛОК",
+    "СЛОЙНАТЕК": "un.strat_op:НАТЕК", "LAYCUR": "un.strat_op:НАТЕК", "СЛОЙОБЪЕД": "un.strat_op:ОБЪЕД", "LAYMRG": "un.strat_op:ОБЪЕД", "СЛОЙУДАЛ": "un.strat_op:УДАЛ", "LAYDEL": "un.strat_op:УДАЛ",
+    "ЗАТЕНЕНИЕ": "c_estompare", "LAYLOCKFADECTL": "c_estompare",
+    "КРУГЦД": "ds.cerc:ЦД", "КРУГ2Т": "ds.cerc:2Т", "КРУГ3Т": "ds.cerc:3Т", "КРУГККР": "ds.cerc:ККР", "КРУГ3К": "ds.cerc:3К",
+    "ДУГА": "ds.arc:3Т", "ARC": "ds.arc:3Т", "A": "ds.arc:3Т", "ДУГА3Т": "ds.arc:3Т", "ДУГАНЦК": "ds.arc:НЦК", "ДУГАНЦУ": "ds.arc:НЦУ", "ДУГАНЦД": "ds.arc:НЦД", "ДУГАНКУ": "ds.arc:НКУ",
+    "ДУГАНКН": "ds.arc:НКН", "ДУГАНКР": "ds.arc:НКР", "ДУГАЦНК": "ds.arc:ЦНК", "ДУГАЦНУ": "ds.arc:ЦНУ", "ДУГАЦНД": "ds.arc:ЦНД", "ДУГАПРОД": "ds.arc:ПРОД",
+    "ОБЛАКОПРЯМ": "ds.nor:ПРЯМ", "ОБЛАКОМНОГ": "ds.nor:МНОГ", "ОБЛАКОРУКА": "ds.nor:РУКА", "КОЛЬЦО": "ds.inel", "DONUT": "ds.inel", "СПЛАЙН": "ds.spline", "SPLINE": "ds.spline", "SPL": "ds.spline",
+    "ПРЯМАЯ": "ds.dreapta", "XLINE": "ds.dreapta", "XL": "ds.dreapta", "ЛУЧ": "ds.dreapta:1", "RAY": "ds.dreapta:1", "ТОЧКА": "ds.punct", "POINT": "ds.punct", "PO": "ds.punct",
+    "ДЕЛИТЬ": "ds.imparte", "DIVIDE": "ds.imparte", "DIV": "ds.imparte", "РАЗМЕТИТЬ": "ds.imparte:1", "MEASURE": "ds.imparte:1", "ME": "ds.imparte:1",
+    "СОПРЯЖЕНИЕ": "ds.racord:R", "FILLET": "ds.racord:R", "F": "ds.racord:R", "ФАСКА": "ds.racord:F", "CHAMFER": "ds.racord:F", "CHA": "ds.racord:F", "СОЕДИНЕНИЕ": "ds.racord:S", "BLEND": "ds.racord:S",
+    "МАССИВ": "ds.masiv:ПРЯМ", "ARRAY": "ds.masiv:ПРЯМ", "AR": "ds.masiv:ПРЯМ", "МАССИВПРЯМ": "ds.masiv:ПРЯМ", "ARRAYRECT": "ds.masiv:ПРЯМ", "МАССИВКРУГ": "ds.masiv:КРУГ", "ARRAYPOLAR": "ds.masiv:КРУГ",
+    "МАССИВТРАЕКТ": "ds.masiv:ТРАЕКТ", "ARRAYPATH": "ds.masiv:ТРАЕКТ",
+    "РАЗМЕР": "ds.cota:ЛИН", "DIM": "ds.cota:ЛИН", "РАЗМЛИНЕЙНЫЙ": "ds.cota:ЛИН", "DIMLINEAR": "ds.cota:ЛИН", "DLI": "ds.cota:ЛИН", "РАЗМПАРАЛ": "ds.cota:ПАРАЛ", "DIMALIGNED": "ds.cota:ПАРАЛ",
+    "РАЗМРАДИУС": "ds.cota:РАД", "DIMRADIUS": "ds.cota:РАД", "РАЗМДИАМЕТР": "ds.cota:ДИАМ", "DIMDIAMETER": "ds.cota:ДИАМ", "РАЗМПРОД": "ds.cota:ПРОД", "DIMCONTINUE": "ds.cota:ПРОД", "DCO": "ds.cota:ПРОД",
+    "РАЗМБАЗ": "ds.cota:БАЗ", "DIMBASELINE": "ds.cota:БАЗ", "DBA": "ds.cota:БАЗ", "РАЗМЭКСПРЕСС": "ds.cota:ЛИН",
+    "АТРРЕДН": "mn.atribute_multiple", "АТРОТОБН": "mn.afisare_atribute:normal", "АТРОТОБВСЕ": "mn.afisare_atribute:toate", "АТРОТОБНЕТ": "mn.afisare_atribute:niciunul",
+    "ATTDISP": "mn.afisare_atribute:toate", "АТРОТОБ": "mn.afisare_atribute:normal", "АТРСИНХР": "mn.sincronizare", "ATTSYNC": "mn.sincronizare", "БАЗА": "mn.punct_baza", "BASE": "mn.punct_baza",
+    "ИМПОРТPDF": "mn.import_pdf", "PDFIMPORT": "mn.import_pdf", "ИМПОРТDGN": "mn.import_dgn", "DGNIMPORT": "mn.import_dgn", "ИМПОРТЧЕРТ": "mn.import_desen",
+    "ПБЛОК": "mn.wblock", "WBLOCK": "mn.wblock", "W": "mn.wblock", "БЛОКИПОСЛ": "mn.meniu_blocuri:rec", "БЛОКИИЗБР": "mn.meniu_blocuri:pref", "БЛОКИБИБЛ": "mn.meniu_blocuri:lib",
+    "ЭКСПОРТ_PDF": "mn.export_pdf", "ЭКСПОРТВСЕ": "mn.export_pdf:toate", "ЭКСПОРТDWF": "mn.export_dwf:DWF", "ЭКСПОРТDWFX": "mn.export_dwf:DWFx",
+    "ПАРАМЕТРЫ": "mn.parametri", "OPTIONS": "mn.parametri", "OP": "mn.parametri", "НАСТРОЙКА": "mn.parametri", "БЫСТРВЫБ": "mn.selectie_rapida", "QSELECT": "mn.selectie_rapida",
+    "КАЛЬК": "mn.calculator", "QUICKCALC": "mn.calculator", "QC": "mn.calculator", "ВЫБРАТЬПОДОБНЫЕ": "mn.selecteaza_similare", "SELECTSIMILAR": "mn.selecteaza_similare",
+    "ПИ": "mn.adaptare", "CUI": "mn.adaptare", "ПАЛИТРЫ": "mn.adaptare", "ПСЕВДОНИМЫ": "mn.pseudonime", "ALIASEDIT": "mn.pseudonime", "АВТОИСПР": "mn.pseudonime:1", "СИНОНИМЫ": "mn.pseudonime:2",
+    "ВЫРЕЗАТЬБАЗ": "c_baza_buf:1", "КОПБАЗ": "c_baza_buf", "COPYBASE": "c_baza_buf", "ВСТАВИТЬБЛОК": "c_lipbuf", "PASTEBLOCK": "c_lipbuf",
+    "БАЗОВЫЙ": "foaie_noua", "ВИДМОДЕЛЬ": "foaie_noua", "VIEWBASE": "foaie_noua", "ВИДINVENTOR": "c_inventor", "МОДЕЛЬ": "c_model", "ПАРАМЛИСТ": "c_print", "PAGESETUP": "c_print",
+    "ЭКСПОРТГИС": "c_export_gis", "ЭКСПОРТSHP": "c_export_gis:.shp", "ЭКСПОРТGDB": "c_export_gis:.gdb", "ЭКСПОРТXLSX": "c_export_gis:.xlsx", "ЭКСПОРТXLS": "c_export_gis:.xls",
+    "ЭКСПОРТKML": "c_export_gis:.kml", "ЭКСПОРТKMZ": "c_export_gis:.kmz", "SHP": "c_export_gis:.shp", "KML": "c_export_gis:.kml",
+    "ГЕОМЕСТО": "c_geo_esri", "GEOGRAPHICLOCATION": "c_geo_esri", "ГЕОESRI": "c_geo_esri", "ГЕОBING": "c_geo_bing", "ГЕОФАЙЛ": "c_geo_fisier", "ГЕОКАРТА": "c_geo_esri",
+    "РЗМСТИЛЬ": "c_stil_info:Размерный стиль", "МЛСТИЛЬ": "c_stil_info:Стиль мультивыноски", "ТАБЛСТИЛЬ": "c_stil_info:Стиль таблиц",
     "ПРИСОЕД": "c_imagine", "ИЗОБР": "c_imagine", "IMAGEATTACH": "c_imagine", "IMAGE": "c_imagine", "IAT": "c_imagine", "ATTACH": "c_imagine", "TIFF": "c_imagine",
     "УГОЛИЗМ": "c_unghi", "РАДИУСИЗМ": "c_raza", "КООРД": "c_coord", "ID": "c_coord", "ВСТАВИТЬИСХ": "c_liporig", "PASTEORIG": "c_liporig",
 }
@@ -95,7 +141,7 @@ class App:
         z = tk.Frame(root, bg=DESEN); z.pack(fill="both", expand=True)
         self.cv = tk.Canvas(z, bg=DESEN, highlightthickness=0, cursor="none" if sys.platform == "win32" else "crosshair")
         self.cv.pack(fill="both", expand=True)
-        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.sim = Simboluri(self); self.img = Imagini(self); self.ultim_mouse = (0, 0); self._prompt = None
+        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.sim = Simboluri(self); self.img = Imagini(self); self.un = Unelte(self); self.ds = Desen(self); self.mn = Meniuri(self); self.ultim_mouse = (0, 0); self._prompt = None
         self._linie_comanda(z)
         self._start(z)
         self._legaturi()
@@ -200,7 +246,7 @@ class App:
             b = self.v.limite() if not self.v.foaie else None
             if b:
                 cx, cy = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2; vh = max(b[3] - b[1], (b[2] - b[0]) * 277 / 400) * 1.05
-                lay.add_viewport(center=(210, 148.5), size=(400, 277), view_center_point=(cx, cy), view_height=vh)
+                lay.add_viewport(center=(200, 138.5), size=(390, 267), view_center_point=(cx, cy), view_height=vh * 267 / 277)   # originea foii = colțul zonei tipăribile
         except Exception: traceback.print_exc()
         self.marcheaza(); self.v.versiune += 1
         self.schimba_foaie(f"Layout{i}"); self.mesaj(f"Создан лист Layout{i} (A3) с видовым экраном на всю модель.")
@@ -298,6 +344,7 @@ Enter или правая кнопка — завершить команду; п
         x = tk.Label(self.tab_doc, text="✕", bg=CORP, fg=GRI, font=F_MIC, padx=4); x.pack(side="left"); x.bind("<Button-1>", lambda e: self.inchide())
         p = tk.Label(b, text="＋", bg=FILE, fg=TEXT, font=F_ICON_MIC, padx=10); p.pack(side="left"); p.bind("<Button-1>", lambda e: self.nou())
         self._bara_doc = b; self._plus = p
+        self.tab_doc_l.bind("<Button-3>", lambda e: self.mn.context_fisier(e)); p.bind("<Button-3>", lambda e: self.mn.context_plus(e))
 
     # ---------------------------------------------------------------- jos: tab-urile Модель / Layout și bara de stare
     def _jos(self):
@@ -331,7 +378,10 @@ Enter или правая кнопка — завершить команду; п
             l.pack(side="left", fill="y"); l.bind("<Button-1>", lambda e, n=n: self.schimba_foaie(n))
             tk.Label(self.tab_lay, text="/", bg=STARE, fg=SEP, font=F_MIC).pack(side="left")
         pl = tk.Label(self.tab_lay, text="＋", bg=STARE, fg=TEXT, font=F_ICON_MIC, padx=8); pl.pack(side="left")
-        pl.bind("<Button-1>", lambda e: self.foaie_noua())
+        pl.bind("<Button-1>", lambda e: self.foaie_noua()); pl.bind("<Button-3>", lambda e: self.mn.context_foi(e))
+        for w in self.tab_lay.winfo_children():
+            if isinstance(w, tk.Label) and w.cget("text") not in ("/", "＋"):
+                n = "Model" if w.cget("text") == "Модель" else w.cget("text"); w.bind("<Button-3>", lambda e, n=n: self.mn.context_foi(e, n))
 
     # elementele meniului „☰” din bara de stare (ca în AutoCAD): (text, cheia butonului sau None, bifat implicit)
     ADAPTARE = [("Координаты", "coord", False), ("Пространство модели", "model", True), None, ("Сетка", "grila", True), ("Режим привязки", "snap", True), None,
@@ -416,7 +466,8 @@ Enter или правая кнопка — завершить команду; п
         tk.Label(f, text="⁞ ✕", bg="#9a9a9a", fg="#2b2b2b", font=F_ICON_MIC, padx=4).pack(side="left", fill="y")
         ch = tk.Label(f, text="🔧", bg="#9a9a9a", fg="#2b2b2b", font=F_ICON_MIC, padx=4); ch.pack(side="left", fill="y")
         ch.bind("<Button-1>", lambda e: self.meniu_cmd(ch))
-        tk.Label(f, text=">_▾", bg=CMD, fg="#444", font=F_CMD).pack(side="left", padx=(4, 0))
+        rc = tk.Label(f, text=">_▾", bg=CMD, fg="#444", font=F_CMD); rc.pack(side="left", padx=(4, 0))
+        rc.bind("<Button-1>", lambda e: self.mn.meniu_recente(rc))
         self.cmd = tk.Entry(f, bg=CMD, fg=CMD_TXT, insertbackground=CMD_TXT, relief="flat", font=(F_CMD[0], -12, "italic"))
         self.cmd.pack(side="left", fill="both", expand=True, padx=4)
         self._placeholder(True)
@@ -460,9 +511,16 @@ Enter или правая кнопка — завершить команду; п
         if not t: return
         cuv = t.split(None, 1); nume = cuv[0].lstrip("_.-").upper(); rest = cuv[1] if len(cuv) > 1 else ""
         self.mesaj("Команда: " + t)
+        nume = self.mn.aliasuri.get(nume, nume) if hasattr(self, "mn") else nume
         m = COMENZI.get(nume)
         if m:
-            self.ultima = nume
+            self.ultima = nume; self._recente_panglica = (getattr(self, "_recente_panglica", []) + [nume])[-20:]
+            if ":" in m or "." in m:                                   # „obiect.metodă:argument” (modulele din 3.3)
+                cale, _, arg = m.partition(":"); o = self
+                for parte in cale.split("."): o = getattr(o, parte)
+                try: o(arg) if arg else o()
+                except Exception as ex: traceback.print_exc(); self.mesaj(f"Ошибка: {ex}")
+                return
             try: getattr(self, m)(rest) if rest else getattr(self, m)()
             except TypeError: getattr(self, m)()
             except Exception as ex: traceback.print_exc(); self.mesaj(f"Ошибка: {ex}")
@@ -624,7 +682,7 @@ Enter или правая кнопка — завершить команду; п
         cv.bind("<Motion>", self._cursor); cv.bind("<Leave>", lambda e: cv.delete("cur"))
         cv.bind("<Button-1>", lambda e: (cv.focus_set(), self.ed.clic(e))); cv.bind("<B1-Motion>", lambda e: (self.ed.trage(e), self._cursor(e)))
         cv.bind("<ButtonRelease-1>", self.ed.elibereaza); cv.bind("<Double-Button-1>", self._dublu_clic)
-        cv.bind("<Button-3>", lambda e: self._enter() if self.ed.stare else None)
+        cv.bind("<Button-3>", lambda e: self._enter() if self.ed.stare else (self.mn.context_desen(e) if self.mn and __import__("meniuri").setari().get("meniu_dreapta", True) else None))
         cv.bind("<Key>", self._tasta)
         r.bind("<Control-z>", lambda e: self.c_anuleaza()); r.bind("<Control-y>", lambda e: self.c_reface())
         r.bind("<Control-a>", lambda e: self.c_tot() if self.focus_desen() else None); r.bind("<Delete>", lambda e: self.c_sterge() if self.focus_desen() else None)
@@ -816,7 +874,12 @@ Enter или правая кнопка — завершить команду; п
     def c_reface(self): self.ed.reface() if self.doc else None
     def c_sterge(self): self.ed.sterge() if self.doc else None
     def c_desface(self): self.ed.desface() if self.doc else None
-    def c_tot(self): self.ed.tot() if self.doc else None
+    def c_tot(self):
+        if not self.doc: return
+        if self.v.foaie:
+            self.v.selectie = {"vp" + e.dxf.handle for e in self.doc.layouts.get(self.v.foaie) if e.dxftype() == "VIEWPORT" and e.dxf.get("id", 2) != 1}
+            self.v.deseneaza(); return self.mesaj(f"Выбрано видовых экранов: {len(self.v.selectie)}")
+        self.ed.tot()
     def c_copbuf(self): self.ed.copiaza_buf() if self.doc else None
     def c_lipbuf(self): self.ed.lipeste_buf() if self.doc else None
     def c_taie(self):
@@ -838,12 +901,45 @@ Enter или правая кнопка — завершить команду; п
     def c_inlocbloc(self): self.sim.inlocuieste() if self.doc else None
     def c_print(self): tiparire.dialog(self)
     def c_imagine(self): self.img.importa()
+    def c_estompare(self):
+        v = {0: 30, 30: 50, 50: 70}.get(self.un.estompare.get(), 0); self.un.estompare_blocate(v)
+    def c_baza_buf(self, taie=""):
+        if not self.ed.sel: return self.mesaj("Выберите объекты, затем команду.")
+        self.ed.incepe("BAZABUF", "Базовая точка:", nevoie_sel=False, taie=bool(taie))
+    def c_inventor(self): messagebox.showinfo("Базовый вид", "Виды из Autodesk Inventor (IPT/IAM) не поддерживаются.\nИспользуйте «Из пространства модели».")
+    def c_model(self): self.schimba_foaie("Model")
+    def c_export_gis(self, fmt=""): geo.dialog_export(self, fmt or None)
+    def c_geo_esri(self): geo.meniu_esri(self)
+    def c_geo_bing(self): geo.meniu_bing(self)
+    def c_geo_fisier(self): geo.import_geo(self)
+    def c_stil_info(self, t):
+        if not self.doc: return
+        tab = {"Размерный стиль": self.doc.dimstyles, "Стиль мультивыноски": getattr(self.doc, "mleader_styles", None), "Стиль таблиц": None}.get(t)
+        nume = sorted(x.dxf.name for x in tab) if tab is not None else ["Standard"]
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, font=F_MIC)
+        for n in nume: m.add_command(label=("✔ " if n == "Standard" else "   ") + n, command=lambda n=n: self.mesaj(f"{t}: {n}"))
+        m.tk_popup(self.root.winfo_pointerx(), self.root.winfo_pointery())
+    def meniu_sub(self, cmd):
+        m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", font=(F, -13))
+        for x in panglica.SUB[cmd]:
+            if x is None: m.add_separator()
+            else: m.add_command(label=f"  {x[1]:<3}  {x[0]}", command=lambda c=x[2]: self.executa(c))
+        m.tk_popup(self.root.winfo_pointerx(), self.root.winfo_pointery())
+    def aplica_setari(self, s):
+        try: self.cv.config(bg=s.get("fundal") or DESEN)
+        except Exception: pass
+        try: self.un.estompare_blocate(int(s.get("estompare", 50)))
+        except Exception: pass
+        self.v.deseneaza()
     def c_pdf(self): tiparire.dialog(self, doar_pdf=True)
 
     def schimba_foaie(self, n):
         if not self.doc: return
         if self.ed.stare: self.ed.opreste()
-        self.foaie_act = n; self.v.arata_foaie(n); self._taburi_layout(["Model"] + [l.name for l in self.doc.layouts if l.name != "Model"])
+        self.foaie_act = n; self.v.arata_foaie(n); self.pg.arata_fila("Лист", n != "Model")
+        if n != "Model": self.pg.arata("Лист")
+        elif self.pg.activ == "Лист": self.pg.arata("Главная")
+        self._taburi_layout(["Model"] + [l.name for l in self.doc.layouts if l.name != "Model"])
         self.stare["model"][0].config(text="МОДЕЛЬ" if n == "Model" else "ЛИСТ")
         self.mesaj("Модель" if n == "Model" else f"Лист «{n}»: колесо — масштаб, нажатое колесо — панорама; печать — Ctrl+P.")
 
@@ -882,7 +978,13 @@ Enter или правая кнопка — завершить команду; п
         for k, val in (("тип", "—— ПоСлою"), ("вес", "—— ПоСлою")):
             if k in self.pg.combo: self.pg.combo[k]["values"] = [val]; self.pg.combo[k].set(val)
         if "высота" in self.pg.combo: self.pg.combo["высота"]["values"] = ["1", "1.5", "2", "2.5", "3", "4", "5", "10"]; self.pg.combo["высота"].set(str(self.et.inaltime))
-        if "стильтекста" in self.pg.combo: self.pg.combo["стильтекста"]["values"] = sorted(s.dxf.name for s in self.doc.styles); self.pg.combo["стильтекста"].set("Standard")
+        if "стильтекста" in self.pg.combo:
+            self.pg.combo["стильтекста"]["values"] = sorted(s.dxf.name for s in self.doc.styles if s.dxf.name) + ["Управление стилями текста..."]
+            self.pg.combo["стильтекста"].set(self.doc.header.get("$TEXTSTYLE", "Standard"))
+        for k, val in (("экспорт", ["Экспорт: Текущий лист", "Все листы"]), ("параметрылиста", ["Параметры листа: Текущие", "Переопределить"]),
+                       ("стильразм", sorted(x.dxf.name for x in self.doc.dimstyles)), ("стильтабл", ["Standard"]), ("стильвыноски", ["Standard"])):
+            if k in self.pg.combo and isinstance(self.pg.combo[k], ttk.Combobox):
+                self.pg.combo[k]["values"] = val; self.pg.combo[k].set(val[0] if val else "Standard")
 
     def combo_ales(self, k, val):
         if not self.doc: return
@@ -893,6 +995,13 @@ Enter или правая кнопка — завершить команду; п
         elif k == "цвет":
             v = dict(CULORI)[val[2:]]
             if not self.ed.schimba_culoare(v): self.mesaj("Выберите объекты, затем цвет.")
+        elif k == "стильтекста":
+            if val.startswith("Управление"): self.un.stiluri_dialog(); self.pg.combo[k].set(self.doc.header.get("$TEXTSTYLE", "Standard"))
+            else: self.un.seteaza_stil(val)
+        elif k in ("экспорт", "параметрылиста"):
+            if val == "Все листы": self.pg.combo[k].set("Экспорт: Все листы")
+            elif val == "Переопределить": self.pg.combo[k].set("Параметры листа: Переопределить")
+            self.mesaj(self.pg.combo[k].get())
         elif k == "высота":
             try: self.et.inaltime = float(val); self.mesaj(f"Высота текста: {val}")
             except ValueError: pass
@@ -901,6 +1010,9 @@ Enter или правая кнопка — завершить команду; п
         self.dialog_straturi()
 
     def dialog_straturi(self):
+        return self.un.straturi()
+
+    def dialog_straturi_vechi(self):
         if not self.doc: return self.mesaj("Нет открытого чертежа.")
         d = tk.Toplevel(self.root); d.title("Диспетчер свойств слоев"); d.configure(bg=CORP); d.geometry("820x480"); d.transient(self.root)
         bara = tk.Frame(d, bg=CORP); bara.pack(fill="x", padx=6, pady=6)

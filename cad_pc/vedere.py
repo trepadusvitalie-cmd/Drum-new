@@ -5,7 +5,7 @@ import tkinter as tk
 from ezdxf import colors as ezcolors, path as ezpath
 from stil import *
 
-SARITE = {"ATTDEF", "WIPEOUT", "VIEWPORT", "OLE2FRAME", "XLINE", "RAY"}
+SARITE = {"ATTDEF", "WIPEOUT", "VIEWPORT", "OLE2FRAME"}
 
 
 def _hex(rgb): return "#%02x%02x%02x" % tuple(int(v) for v in rgb)
@@ -18,7 +18,10 @@ class Vedere:
         self.s = 1.0; self.cx = 0.0; self.cy = 0.0
         self.grila = True; self.ascunse = set(); self._dupa = None
         self.selectie = set(); self.bbox = {}
-        self.img = {}; self.dosar = ""; self._foto = []   # handle -> (fișier, x0, y0, x1, y1) pentru imaginile raster
+        self.img = {}; self.dosar = ""; self._foto = []
+        self.izolate = None; self.ascunse_h = set(); self.estompare = 50; self.atribute = "normal"
+        from geo import Harta
+        self.harta = Harta(self)   # handle -> (fișier, x0, y0, x1, y1) pentru imaginile raster
         from imagini import CachePreviz
         self.previz = CachePreviz(cv, lambda: self._mai_tarziu(10))
         self.foaie = None; self.sf = 1.0; self.fx = 0.0; self.fy = 0.0; self._img = None; self._cheie = None; self.versiune = 0
@@ -49,11 +52,12 @@ class Vedere:
         self.deseneaza()
 
     def _deseneaza_foaie(self):
+        """foaia ca în AutoCAD: fundal gri, hârtie albă cu umbră, zona de tipărire punctată, ramele viewport-urilor"""
         import tiparire
-        cv = self.cv; cv.delete("e"); cv.delete("g"); W, H = self.wh()
-        cv.create_rectangle(0, 0, W, H, fill="#4a4f57", outline="", tags="g")
+        cv = self.cv; cv.delete("e"); cv.delete("g"); cv.delete("harta"); W, H = self.wh()
+        cv.create_rectangle(0, 0, W, H, fill="#8a8a8a", outline="", tags="g")
         w, h = self.hartie[0] * self.sf, self.hartie[1] * self.sf; x0, y0 = self.fx - w / 2, self.fy - h / 2
-        cv.create_rectangle(x0 + 6, y0 + 6, x0 + w + 6, y0 + h + 6, fill="#2a2d33", outline="", tags="e")
+        cv.create_rectangle(x0 + 5, y0 + 5, x0 + w + 5, y0 + h + 5, fill="#4d4d4d", outline="", tags="e")
         dpi = int(max(10, min(self.sf * 25.4, 5000 / max(self.hartie) * 25.4)))
         cheie = (self.foaie, round(dpi), self.versiune)
         if cheie != self._cheie:
@@ -61,14 +65,26 @@ class Vedere:
                 self._img = tk.PhotoImage(data=tiparire.png_foaie(self.doc, self.foaie, dpi)); self._cheie = cheie
             except Exception:
                 import traceback; traceback.print_exc(); self._img = None
+        cv.create_rectangle(x0, y0, x0 + w, y0 + h, fill="white", outline="", tags="e")
         if self._img is not None:
             k = w / max(1, self._img.width())
             img = self._img if abs(k - 1) < 0.02 else (self._img.zoom(max(1, round(k))) if k > 1 else self._img.subsample(max(1, round(1 / k))))
             self._vizibil = img; cv.create_image(self.fx, self.fy, image=img, tags="e")
-        else:
-            cv.create_rectangle(x0, y0, x0 + w, y0 + h, fill="white", outline="", tags="e")
-        cv.create_rectangle(x0, y0, x0 + w, y0 + h, outline="#9aa0a8", tags="e")
-        cv.create_rectangle(x0 + 10 * self.sf, y0 + 10 * self.sf, x0 + w - 10 * self.sf, y0 + h - 10 * self.sf, outline="#b0b0b0", dash=(4, 3), tags="e")
+        bx0, by0, bx1, by1 = tiparire.cutie_foaie(self.doc, self.foaie)
+        ecr = lambda X, Y: (x0 + (X - bx0) * self.sf, y0 + (by1 - Y) * self.sf)
+        m = tiparire.margini_foaie(self.doc, self.foaie)                          # zona tipăribilă (din setările foii)
+        a, b = ecr(bx0 + m[0], by1 - m[3]); c, d = ecr(bx1 - m[2], by0 + m[1])
+        cv.create_rectangle(a, b, c, d, outline="#9a9a9a", dash=(4, 3), tags="e")
+        try:
+            for vp in self.doc.layouts.get(self.foaie):
+                if vp.dxftype() != "VIEWPORT" or vp.dxf.get("id", 2) == 1: continue
+                cx_, cy_, vw, vh = vp.dxf.center.x, vp.dxf.center.y, vp.dxf.width, vp.dxf.height
+                a, b = ecr(cx_ - vw / 2, cy_ + vh / 2); c, d = ecr(cx_ + vw / 2, cy_ - vh / 2)
+                sel = ("vp" + vp.dxf.handle) in self.selectie
+                cv.create_rectangle(a, b, c, d, outline="#3a7bd5" if sel else "#202020", width=2 if sel else 1, tags=("e", "vp", "hvp" + vp.dxf.handle))
+                if sel:
+                    for gx, gy in ((a, b), (c, b), (a, d), (c, d)): cv.create_rectangle(gx - 5, gy - 5, gx + 5, gy + 5, fill="#2a6fd6", outline="white", tags="e")
+        except Exception: pass
         cv.tag_raise("ov"); cv.tag_raise("cur")
 
     def reconstruieste(self):
@@ -76,7 +92,9 @@ class Vedere:
         self.versiune += 1
         self.ph = {}; self._lay = self.straturi(); self.bbox = {}; self.img = {}
         if self.layout is None: return
-        for e in self.layout: self._adauga(e)
+        try: ents = self.layout.entities_in_redraw_order()
+        except Exception: ents = self.layout
+        for e in ents: self._adauga(e)
 
     @property
     def prim(self):
@@ -87,6 +105,7 @@ class Vedere:
         try: self._entitate(e, h, None, None, 0)
         except Exception: pass
         self.ph[h] = self._curent; self._cutie(h)
+        if e.dxftype() in ("XLINE", "RAY"): self.bbox.pop(h, None)         # nu intră în „Показать все”
 
     def actualizeaza(self, handles):
         """refă doar entitățile schimbate (rapid și pe desene mari)"""
@@ -113,6 +132,18 @@ class Vedere:
         return l is None or (l.is_on() and not l.is_frozen())
 
     def _culoare(self, e, strat, cul_parinte):
+        c = self._culoare0(e, strat, cul_parinte); l = self._lay.get(strat)
+        if l is not None and self.estompare and l.is_locked():                 # „Затенение блокированных слоев”
+            k = self.estompare / 100; r, g, b = (int(c[i:i + 2], 16) for i in (1, 3, 5)); f = (0x21, 0x28, 0x30)
+            c = "#%02x%02x%02x" % tuple(int(v * (1 - k) + w * k) for v, w in zip((r, g, b), f))
+        return c
+
+    def _culoare0(self, e, strat, cul_parinte):
+        if e.dxftype() == "HATCH" and getattr(e, "has_gradient_data", False):
+            try:
+                g = e.gradient; c1, c2 = g.color1, g.color2 or g.color1
+                return _hex(tuple((a + b) / 2 for a, b in zip(c1, c2)))
+            except Exception: pass
         if e.dxf.hasattr("true_color"): return _hex(ezcolors.int2rgb(e.dxf.true_color))
         c = e.dxf.get("color", 256)
         if c == 0: return cul_parinte or "#ffffff"
@@ -137,7 +168,8 @@ class Vedere:
             except Exception: pass
             if t == "INSERT":
                 for a in e.attribs:
-                    if not a.dxf.get("flags", 0) & 1: self._text(a, h, strat, self._culoare(a, strat, cul))
+                    if self.atribute == "niciunul": continue
+                    if self.atribute == "toate" or not a.dxf.get("flags", 0) & 1: self._text(a, h, strat, self._culoare(a, strat, cul))
             return
         if t in ("TEXT", "ATTRIB"): return self._text(e, h, strat, cul)
         if t == "MTEXT": return self._mtext(e, h, strat, cul)
@@ -146,6 +178,18 @@ class Vedere:
         if t in ("SOLID", "TRACE", "3DFACE"):
             v = [e.dxf.vtx0, e.dxf.vtx1, e.dxf.vtx3, e.dxf.vtx2] if t != "3DFACE" else [e.dxf.vtx0, e.dxf.vtx1, e.dxf.vtx2, e.dxf.vtx3]
             self._curent.append(("p", [c for p in v for c in (p.x, p.y)], cul, h, True, strat)); return
+        if t in ("XLINE", "RAY"):
+            p, d = e.dxf.start, e.dxf.unit_vector; L = 1e5
+            a = (p.x - d.x * L, p.y - d.y * L) if t == "XLINE" else (p.x, p.y)
+            self._curent.append(("p", [a[0], a[1], p.x + d.x * L, p.y + d.y * L], cul, h, False, strat)); return
+        if t == "HATCH" and e.dxf.get("solid_fill", 0) != 1 and adanc == 0:
+            try:
+                from ezdxf.render import hatching
+                n = 0
+                for a, b in hatching.hatch_entity(e):
+                    self._curent.append(("p", [a.x, a.y, b.x, b.y], cul, h, False, strat)); n += 1
+                    if n > 4000: break
+            except Exception: pass
         if t == "HATCH":
             plin = e.dxf.get("solid_fill", 0) == 1
             for p in ezpath.from_hatch(e):
@@ -258,13 +302,9 @@ class Vedere:
         W, H = self.wh(); return (sx - W / 2) / self.s + self.cx, (H / 2 - sy) / self.s + self.cy
 
     def limite(self):
-        xs, ys = [], []
-        for p in (q for l in self.ph.values() for q in l):
-            if not self.strat_vizibil(p[-1]): continue
-            if p[0] == "t": xs.append(p[1]); ys.append(p[2])
-            else: xs += p[1][0::2]; ys += p[1][1::2]
-        if not xs: return None
-        return min(xs), min(ys), max(xs), max(ys)
+        b = [bb for h, bb in self.bbox.items() if self.ph.get(h) and self.strat_vizibil(self.ph[h][0][-1])]   # dreptele infinite nu au cutie
+        if not b: return None
+        return min(x[0] for x in b), min(x[1] for x in b), max(x[2] for x in b), max(x[3] for x in b)
 
     def zoom_extinde(self):
         if self.foaie: return self.arata_foaie(self.foaie)
@@ -301,8 +341,11 @@ class Vedere:
         if self.grila: self._grila(W, H)
         s, cx, cy = self.s, self.cx, self.cy; W2, H2 = W / 2, H / 2
         x0w, y0w = self.lume(-50, H + 50); x1w, y1w = self.lume(W + 50, -50)
-        sel = self.selectie; vis = {}
-        for p in (q for l in self.ph.values() for q in l):
+        sel = self.selectie; vis = {}; iz = self.izolate; asc = self.ascunse_h
+        if self.harta.sursa: self.harta.deseneaza(W, H)
+        for hh, lst in self.ph.items():
+          if (iz is not None and hh not in iz) or hh in asc: continue
+          for p in lst:
             st = p[-1]
             if st not in vis: vis[st] = self.strat_vizibil(st)
             if not vis[st]: continue
@@ -325,6 +368,7 @@ class Vedere:
             elif p[4] and len(pts) >= 6: cv.create_polygon(pts, fill=col, outline=col, tags=tag)
             else: cv.create_line(pts, fill=col, width=2 if p[3] in sel else 1, dash=(6, 3) if p[3] in sel else None, tags=tag)
         if self.img: self._deseneaza_imagini(W, H)
+        if self.harta.sursa: cv.tag_lower("harta")
         cv.tag_raise("ov"); cv.tag_raise("cur")
 
     def _grila(self, W, H):

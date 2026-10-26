@@ -65,7 +65,7 @@ class Etichete:
             col = dict(CULORI)[cc.get()]
             self.app.ed.instantaneu([] if nou else [e.dxf.handle]); msp = self.doc.modelspace()
             if nou:
-                at = {"layer": cs.get(), "color": col}
+                at = {"layer": cs.get(), "color": col, "style": self.doc.header.get("$TEXTSTYLE", "Standard") if self.doc.header.get("$TEXTSTYLE", "Standard") in self.doc.styles else "Standard"}
                 if mtext:
                     ent = msp.add_mtext(t.replace("\n", "\\P"), dxfattribs=dict(at, char_height=h, rotation=r)); ent.set_location(punct)
                 else:

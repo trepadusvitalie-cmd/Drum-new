@@ -81,6 +81,7 @@ class Simboluri:
 
     def insereaza(self, nume, p):
         """apelat de editare când se dă clic pentru punctul de inserare"""
+        if hasattr(self.app, "mn"): self.app.mn.bloc_inserat(nume)
         blk = self.doc.blocks.get(nume); atrdef = [e for e in blk if e.dxftype() == "ATTDEF"]
         valori = {a.dxf.tag: a.dxf.text for a in atrdef}
         def pune(val):

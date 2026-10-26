@@ -24,7 +24,7 @@ FILE = {
   ("Группы", [("M", "Группа", "▣", "#7fb3ff", "ГРУППА")]),
   ("Утилиты", [("M", "Измерить", "📏", "#f0c040", "ИЗМЕРИТЬ"), [("m", "", "⌖", "#e8ebef", "КООРД"), ("m", "", "▣", "#e8ebef", "БЫСТРВЫБ"), ("m", "", "⊞", "#e8ebef", "КАЛЬК")]]),
   ("Буфер обмена", [("M", "Вставить", "📋", "#f0c040", "ВСТАВИТЬБУФ"), [("m", "", "✂", "#e8ebef", "ВЫРЕЗАТЬ"), ("m", "", "⧉", "#e8ebef", "КОПБУФ")]]),
-  ("Вид", [("M", "Базовый", "▱", "#e8ebef", "ВИД")]),
+  ("Вид", [("M", "Базовый", "▱", "#e8ebef", "БАЗОВЫЙ")]),
  ],
  "Вставка": [
   ("Блок", [("M", "Вставка", "⊕", "#7fb3ff", "ВСТАВИТЬ"), ("M", "Обнаружить", "⌕", "#7fb3ff", "НАЙТИ"),
@@ -33,7 +33,7 @@ FILE = {
                          ("M", "Управление\nатрибутами", "☷", "#e8ebef", "ДИСПАТР"), ("M", "Редактор\nблоков", "✎", "#e8ebef", "БЛОКРЕД")]),
   ("Ссылка", [("M", "Присоединить", "📎", "#7fb3ff", "ПРИСОЕД"), ("M", "Подрезать", "⬚", "#7fb3ff", "ПОДРЕЗАТЬ"), ("M", "Регулировать", "◐", "#7fb3ff", "РЕГУЛИРОВАТЬ"),
               [("m", "Слои подложки", "☰", "#e8ebef", "СЛОИПОДЛ"), ("m", "*Контуры — различные*", "⬚", "#e8ebef", "КОНТУРЫ"), ("m", "Включить привязку к подложкам", "⌖", "#e8ebef", "ПРИВПОДЛ")]]),
-  ("Импорт", [("M", "Импорт\nPDF", "📄", "#e05050", "ИМПОРТPDF"), [("m", "Распознавание текста SHX", "Ⓐ", "#e8ebef", "SHX"), ("m", "Параметры распознавания", "⚙", "#e8ebef", "SHXПАР")],
+  ("Импорт", [("M", "Импорт\nPDF", "📄", "#e05050", "ИМПОРТPDF"), ("M", "Экспорт\nГИС", "🗺", "#5fd36b", "ЭКСПОРТГИС"), [("m", "Распознавание текста SHX", "Ⓐ", "#e8ebef", "SHX"), ("m", "Параметры распознавания", "⚙", "#e8ebef", "SHXПАР")],
               ("M", "Объединить\nтекст", "A", "#e8ebef", "ОБЪЕДТЕКСТ")]),
   ("Данные", [("M", "Поле", "▤", "#7fb3ff", "ПОЛЕ"), [("m", "Обновление поля", "⟳", "#e8ebef", "ОБНПОЛЕ"), ("m", "OLE-объект", "▣", "#e8ebef", "OLE"), ("m", "Гиперссылка", "🔗", "#e8ebef", "ГИПЕРССЫЛКА")]]),
   ("Связывание и извлечение", [("M", "Связь\nс данными", "⛁", "#f0c040", "СВЯЗЬДАННЫЕ"), [("m", "", "⇩", "#e8ebef", "ИЗВЛЕЧЬ"), ("m", "", "⇧", "#e8ebef", "ЭКСПОРТДАННЫХ"), ("m", "", "⇆", "#e8ebef", "ИМПОРТДАННЫХ")]]),
@@ -82,7 +82,12 @@ FILE = {
  "Вывод": [
   ("Печать", [("M", "Печать", "🖶", "#e8ebef", "ПЕЧАТЬ"), ("M", "Пакетная\nпечать", "🖶", "#7fb3ff", "ПАКЕТПЕЧАТЬ"), ("M", "Предварительный просмотр", "🔍", "#e8ebef", "ПРЕДВАР"),
               [("m", "Диспетчер параметров листов", "☰", "#e8ebef", "ПАРАМЛИСТ"), ("m", "Подробности о виде", "ⓘ", "#e8ebef", "ПОДРОБНО"), ("m", "Диспетчер плоттеров", "🖶", "#e8ebef", "ПЛОТТЕРЫ")]]),
-  ("Экспорт в DWF/PDF", [("M", "Экспорт", "PDF", "#e05050", "ЭКСПОРТPDF"), [("c", 26, "экспорт"), ("c", 26, "параметрылиста"), ("m", "", "🔍  ⬇  ⬇", "#e8ebef", "ЭКСПОРТPDF")]]),
+  ("Экспорт в DWF/PDF", [("M", "Экспорт", "PDF", "#e05050", "ЭКСПОРТ_PDF"), ("M", "Экспорт\nГИС", "🗺", "#5fd36b", "ЭКСПОРТГИС"), [("c", 26, "экспорт"), ("c", 26, "параметрылиста"), ("m", "", "🔍  ⬇  ⬇", "#e8ebef", "ЭКСПОРТPDF")]]),
+ ],
+ "Лист": [
+  ("Макет", [("M", "Новый\nлист", "▭", "#7fb3ff", "ЛИСТ"), ("M", "Параметры\nлиста", "☰", "#e8ebef", "ПАРАМЛИСТ")]),
+  ("Видовые экраны листа", [("M", "Модель", "▣", "#7fb3ff", "МОДЕЛЬ"), [("m", "Развернуть ВЭкран", "⤢", "#e8ebef", "МОДЕЛЬ"), ("m", "Блокировать", "🔒", "#f0c040", "ВЭБЛОК")]]),
+  ("Печать и публикация", [("M", "Печать", "🖶", "#e8ebef", "ПЕЧАТЬ"), ("M", "Экспорт\nPDF", "PDF", "#e05050", "ЭКСПОРТPDF"), ("M", "Все листы\nв PDF", "PDF", "#e05050", "ЭКСПОРТВСЕ")]),
  ],
  "Надстройки": [("Приложения", [("M", "Autodesk App\nStore", "⬢", "#e8ebef", "МАГАЗИН")])],
  "Совместная работа": [("Общий доступ", [("M", "Общий\nдоступ", "➤", "#7fb3ff", "ОБЩИЙ")]), ("Сравнение", [("M", "Сравнение файлов\nDWG", "⧉", "#e05050", "СРАВНИТЬ")])],
@@ -113,9 +118,32 @@ SUB = {
     "ВСТАВИТЬ": "blocuri",
     "МАССИВ": [("Прямоугольный массив", "⊞", "МАССИВПРЯМ"), ("Массив по траектории", "⋰", "МАССИВТРАЕКТ"), ("Круговой массив", "⁂", "МАССИВКРУГ")],
     "ОБРЕЗАТЬ": [("Обрезать", "✂", "ОБРЕЗАТЬ"), ("Удлинить", "⇥", "УДЛИНИТЬ")],
-    "СОПРЯЖЕНИЕ": [("Сопряжение", "⌒", "СОПРЯЖЕНИЕ"), ("Фаска", "⟋", "ФАСКА"), ("Плавное соединение", "∿", "СОЕДИНЕНИЕ")],
+    "СОПРЯЖЕНИЕ": [("Сопряжение", "⌒", "СОПРЯЖЕНИЕ"), ("Фаска", "⟋", "ФАСКА"), ("Соединение кривых", "∿", "СОЕДИНЕНИЕ")],
     "ВСТАВИТЬБУФ": [("Вставить", "📋", "ВСТАВИТЬБУФ"), ("Вставить как блок", "📋", "ВСТАВИТЬБЛОК"), ("Вставить как гиперссылку", "📋", "ВСТАВИТЬГИПЕР"),
                     ("Вставить с исходными координатами", "📋", "ВСТАВИТЬИСХ"), ("Специальная вставка", "📋", "СПЕЦВСТАВКА")],
+    "КРУГ": [("Центр, радиус", "◎", "КРУГ"), ("Центр, диаметр", "⌀", "КРУГЦД"), None, ("2 точки", "◯", "КРУГ2Т"), ("3 точки", "◯", "КРУГ3Т"), None,
+             ("2 точки касания, радиус", "◔", "КРУГККР"), ("3 точки касания", "◔", "КРУГ3К")],
+    "ДУГА": [("3 точки", "◠", "ДУГА3Т"), None, ("Начало, центр, конец", "◠", "ДУГАНЦК"), ("Начало, центр, угол", "◠", "ДУГАНЦУ"), ("Начало, центр, длина", "◠", "ДУГАНЦД"), None,
+             ("Начало, конец, угол", "◠", "ДУГАНКУ"), ("Начало, конец, направление", "◠", "ДУГАНКН"), ("Начало, конец, радиус", "◠", "ДУГАНКР"), None,
+             ("Центр, начало, конец", "◠", "ДУГАЦНК"), ("Центр, начало, угол", "◠", "ДУГАЦНУ"), ("Центр, начало, длина", "◠", "ДУГАЦНД"), None, ("Продолжить", "↩", "ДУГАПРОД")],
+    "ШТРИХ": [("Штриховка", "▨", "ШТРИХ"), ("Градиент", "▤", "ГРАДИЕНТ"), ("Контур", "▭", "КОНТУР")],
+    "ОБЛАКО": [("Прямоугольное", "☁", "ОБЛАКОПРЯМ"), ("Многоугольное", "☁", "ОБЛАКОМНОГ"), ("От руки", "☁", "ОБЛАКОРУКА")],
+    "ПОРЯДОК": [("На передний план", "⧉", "ПОРВПЕРЕД"), ("На задний план", "⧉", "ПОРНАЗАД"), ("Перед объектами", "⧉", "ПОРПЕРЕД"), ("За объектами", "⧉", "ПОРЗА"), None,
+                ("Текст на передний план", "A", "ТЕКСТВПЕРЕД"), ("Размеры на передний план", "↔", "РАЗМВПЕРЕД"), ("Выноски на передний план", "↗", "ВЫНВПЕРЕД"),
+                ("Все аннотации на передний план", "A↔", "АННВПЕРЕД"), ("Штриховку на задний план", "▨", "ШТРИХНАЗАД")],
+    "АТРРЕД": [("Один", "✎", "АТРРЕД"), ("Несколько", "✎", "АТРРЕДН")],
+    "АТРОТОБ": [("Сохранить отображение атрибутов", "✔", "АТРОТОБН"), ("Показать все атрибуты", "💡", "АТРОТОБВСЕ"), ("Скрыть все атрибуты", "○", "АТРОТОБНЕТ")],
+    "ИМПОРТPDF": [("Импорт PDF", "📄", "ИМПОРТPDF"), ("Импорт DGN", "DGN", "ИМПОРТDGN"), ("Импорт", "⇩", "ИМПОРТЧЕРТ")],
+    "БЛОК": [("Создать блок", "✚", "БЛОК"), ("Запись блока на диск", "💾", "ПБЛОК")],
+    "ГЕОМЕСТО": [("Из карт Esri", "🌐", "ГЕОESRI"), ("Из карт Bing", "🌐", "ГЕОBING"), ("Из файла", "📄", "ГЕОФАЙЛ")],
+    "ЭКСПОРТ_PDF": [("DWFx", "DWFx", "ЭКСПОРТDWFX"), ("DWF", "DWF", "ЭКСПОРТDWF"), ("PDF", "PDF", "ЭКСПОРТ_PDF")],
+    "ЭКСПОРТГИС": [("Shapefile (SHP)", "🗺", "ЭКСПОРТSHP"), ("Esri File Geodatabase (GDB)", "🗺", "ЭКСПОРТGDB"), ("Excel (XLSX)", "▦", "ЭКСПОРТXLSX"),
+                   ("Excel 97-2003 (XLS)", "▦", "ЭКСПОРТXLS"), ("Google Earth (KML)", "🌐", "ЭКСПОРТKML"), ("Google Earth (KMZ)", "🌐", "ЭКСПОРТKMZ")],
+    "БАЗОВЫЙ": [("Из пространства модели", "A", "ВИДМОДЕЛЬ"), ("Из Inventor", "I", "ВИДINVENTOR")],
+    "ВЫРЕЗАТЬ": [("Вырезать", "✂", "ВЫРЕЗАТЬ"), ("Вырезать с базовой точкой", "✂", "ВЫРЕЗАТЬБАЗ")],
+    "КОПБУФ": [("Копировать в буфер", "⧉", "КОПБУФ"), ("Копировать с базовой точкой", "⧉", "КОПБАЗ")],
+    "РАЗМПРОД": [("Продолжить", "⇥", "РАЗМПРОД"), ("Базовый", "⇤", "РАЗМБАЗ")],
+    "ПСЕВДОНИМЫ": [("Редактировать псевдонимы", "A", "ПСЕВДОНИМЫ"), ("Редактировать список автоисправления", ">_", "АВТОИСПР"), ("Редактировать список синонимов", ">_", "СИНОНИМЫ")],
     "ИЗМЕРИТЬ": [("Быстрое", "📏", "ИЗМЕРИТЬ"), ("Расстояние", "↔", "ИЗМЕРИТЬ"), ("Радиус", "◔", "РАДИУСИЗМ"), ("Угол", "∠", "УГОЛИЗМ"),
                  ("Площадь", "◺", "ПЛОЩАДЬ"), ("Объем", "⛁", "ОБЪЕМ")],
 }
@@ -134,23 +162,65 @@ SUB_GRUP = {
     "Блок": [("Вставить блок", "⊕", "ВСТАВИТЬ"), ("Редактировать атрибуты", "Ⓐ", "АТРРЕД"), ("Экспорт атрибутов в Excel", "⇧", "ATTOUT"), ("Импорт атрибутов из Excel", "⇩", "ATTIN")],
 }
 
+SFATURI = {
+    "ОТРЕЗОК": "Создание прямолинейных сегментов. Каждый сегмент – отдельный объект.", "ПЛИНИЯ": "Создание двумерной полилинии из отрезков.",
+    "КРУГ": "Создание круга. ▾ – другие способы построения.", "ДУГА": "Создание дуги. ▾ – 11 способов построения.",
+    "ШТРИХ": "Заполнение замкнутой области штриховкой. ▾ – градиент и контур.", "СЛОЙ": "Диспетчер свойств слоев: цвет, вкл/выкл, заморозка, блокировка, печать.",
+    "ВСТАВИТЬ": "Вставка блока (символа). ▾ – последние, избранные и блоки из библиотек.", "ТАБЛИЦА": "Вставка таблицы: пустой, из Excel или из атрибутов блоков.",
+    "ВЫБРАТЬВСЕ": "Выбор всех объектов, кроме объектов на замороженных или заблокированных слоях (Ctrl+A).", "ЭКСПОРТГИС": "Экспорт в SHP, GDB, XLS, XLSX, KML, KMZ (MOLDREF99).",
+    "ГЕОМЕСТО": "Карта под чертежом (Esri) или точки и линии из KML/KMZ/GPX в координатах MOLDREF99.", "ПРИСОЕД": "Растровое изображение (TIFF/GeoTIFF) в реальных координатах.",
+    "ИЗМЕРИТЬ": "Расстояние, радиус, угол, площадь.", "ПЕЧАТЬ": "Печать на принтер или в PDF, форматы A0–A5.",
+}
+
+# panourile extinse (săgeata din titlul grupului), ca în AutoCAD: rânduri de iconițe + elemente cu text
+# ("r", [(icoană, culoare, comandă, sfat), …]) = rând de iconițe;  ("e", icoană, text, comandă) = element;  "-" = separator
+PANOURI = {
+    "Рисование": [("r", [("∿", "#7fb3ff", "СПЛАЙН", "Сплайн по определяющим точкам"), ("⟋", "#7fb3ff", "ПРЯМАЯ", "Прямая (бесконечная)"), ("↗", "#7fb3ff", "ЛУЧ", "Луч"),
+                         ("·", "#7fb3ff", "ТОЧКА", "Несколько точек"), ("⁘", "#7fb3ff", "ДЕЛИТЬ", "Поделить"), ("⁙", "#7fb3ff", "РАЗМЕТИТЬ", "Разметить")]),
+                  ("r", [("▭", "#e8ebef", "КОНТУР", "Контур"), ("▨", "#e8ebef", "ШТРИХ", "Штриховка"), ("◉", "#e8ebef", "КОЛЬЦО", "Кольцо"), ("☁", "#e8ebef", "ОБЛАКО", "Облако для пометок ▾"),
+                         ("◎", "#e8ebef", "СПИРАЛЬ", "Спираль"), ("▰", "#e8ebef", "ОБЛАСТЬ", "Область")])],
+    "Редактирование": [("r", [("⧉", "#e8ebef", "УДАЛИТЬДУБЛ", "Удалить дубликаты"), ("⫶", "#e8ebef", "РАЗОРВАТЬ", "Разорвать"), ("⎯", "#e8ebef", "СОЕДИНИТЬ", "Соединить"),
+                              ("⌇", "#e8ebef", "ПОЛРЕД", "Редактировать полилинию"), ("▦", "#e8ebef", "ШТРИХРЕД", "Редактировать штриховку")]),
+                       ("r", [("⇉", "#e8ebef", "ВЫРОВНЯТЬ", "Выровнять"), ("⇄", "#e8ebef", "ОБРАТИТЬ", "Обратить"), ("⊡", "#e8ebef", "РАСЧЛЕНИТЬ", "Расчленить"),
+                              ("🧹", "#f0c040", "ОЧИСТИТЬ", "Очистить"), ("⧈", "#7fb3ff", "ПОРЯДОК", "Порядок прорисовки ▾")])],
+    "Слои": [("r", [("◐", "#f0c040", "СЛОЙИЗО", "Изолировать слои выбранных объектов"), ("◑", "#f0c040", "СЛОЙНЕИЗО", "Отменить изоляцию слоев"),
+                    ("❄", "#7fc8ff", "СЛОЙЗАМ", "Заморозить слой объекта"), ("○", "#f0c040", "СЛОЙОТКЛ", "Отключить слой объекта"), ("⇆", "#e8ebef", "СЛОЙТЕКОБ", "Сделать текущим слой объекта")]),
+             ("r", [("💡", "#f0c040", "СЛОЙВКЛ", "Включить все слои"), ("☀", "#f0c040", "СЛОЙРАЗМ", "Разморозить все слои"), ("🔒", "#f0c040", "СЛОЙБЛОК", "Блокировать слой объекта"),
+                    ("🔓", "#f0c040", "СЛОЙРАЗБЛОК", "Разблокировать все слои"), ("⇩", "#e8ebef", "СЛОЙНАТЕК", "Перенести на текущий слой")]),
+             ("r", [("⧉", "#e8ebef", "СЛОЙОБЪЕД", "Объединить слои"), ("✖", "#e05050", "СЛОЙУДАЛ", "Удалить слой (с объектами)")]), "-",
+             ("e", "☰", "Несохраненная конфигурация слоев", "СЛОЙ"), ("e", "◐", "Затенение блокированных слоев: 0 / 30 / 50 / 70 %", "ЗАТЕНЕНИЕ")],
+    "Аннотации": [("e", "A", "Текстовый стиль ▾", "СТИЛЬ"), ("e", "↔", "Размерный стиль: Standard", "РЗМСТИЛЬ"), ("e", "↗", "Стиль мультивыноски: Standard", "МЛСТИЛЬ"),
+                  ("e", "▦", "Стиль таблиц: Standard", "ТАБЛСТИЛЬ")],
+    "Группы": [("e", "▣", "Группа", "ГРУППА"), ("e", "⊡", "Разгруппировать", "РАЗГРУППИРОВАТЬ"), ("e", "✎", "Редактировать группу", "РЕДГРУППА"),
+               ("e", "☑", "Выбор группы вкл/выкл", "ВЫБОРГРУППЫ"), "-", ("e", "☰", "Диспетчер групп", "ДИСПГРУПП"), ("e", "⬚", "Ограничивающая рамка группы", "РАМКАГРУППЫ")],
+    "Утилиты": [("e", "⌖", "Координаты", "КООРД"), ("e", "⁘", "Отображение точек...", "ДИАЛТОЧ")],
+    "Размеры": [("r", [("⟷", "#e8ebef", "РАЗМЛИНЕЙНЫЙ", "Линейный"), ("⤡", "#e8ebef", "РАЗМПАРАЛ", "Параллельный"), ("◔", "#e8ebef", "РАЗМРАДИУС", "Радиус"),
+                       ("⌀", "#e8ebef", "РАЗМДИАМЕТР", "Диаметр"), ("⇥", "#e8ebef", "РАЗМПРОД", "Продолжить"), ("⇤", "#e8ebef", "РАЗМБАЗ", "Базовый")])],
+    "Определение блока": [("e", "⌖", "Задать базовую точку", "БАЗА"), ("e", "⟳", "Синхронизация", "АТРСИНХР")],
+}
+
 
 class Panglica:
     def __init__(self, app, parinte):
         self.app = app; self.pagini = {}; self.file = {}; self.combo = {}; self.activ = None
+        self.grupuri = {}; self.titluri_l = []; self.titluri = True; self.ascunse = {"Лист"}
         bf = tk.Frame(parinte, bg=TITLU, height=H_FILE); bf.pack(fill="x"); bf.pack_propagate(False)
         for n in FILE:
             l = tk.Label(bf, text=n, bg=TITLU, fg=TEXT, font=F_FILA, padx=9); l.pack(side="left", fill="y")
             l.bind("<Button-1>", lambda e, n=n: self.arata(n)); self.file[n] = l
             l.bind("<Enter>", lambda e, n=n: self.file[n].config(bg=HOVER) if n != self.activ else None)
             l.bind("<Leave>", lambda e, n=n: self.file[n].config(bg=TITLU) if n != self.activ else None)
-        b = tk.Label(bf, text=" ▭ ▾", bg=TITLU, fg=TEXT, font=F_FILA); b.pack(side="left", padx=8)
+        b = tk.Label(bf, text=" ▭ ▾", bg=TITLU, fg=TEXT, font=F_FILA); b.pack(side="left", padx=8); self.b_comuta = b
+        self.file["Лист"].config(bg="#2c5d8a"); self.file["Лист"].pack_forget()
+        bf.bind("<Button-3>", lambda e: self.app.mn.context_panglica(e))
+        for l in self.file.values(): l.bind("<Button-3>", lambda e: self.app.mn.context_panglica(e))
         b.bind("<Button-1>", lambda e: self.comuta())
         self.corp = tk.Frame(parinte, bg=CORP, height=H_CORP); self.corp.pack(fill="x"); self.corp.pack_propagate(False)
         self.vizibil = True
         for n, grupuri in FILE.items():
             f = tk.Frame(self.corp, bg=CORP); self.pagini[n] = f
-            for titlu, coloane in grupuri: self._grup(f, titlu, coloane)
+            for titlu, coloane in grupuri: self._grup(f, titlu, coloane, n)
+            f.bind("<Button-3>", lambda e: self.app.mn.context_panglica(e))
         self.arata("Главная")
 
     def comuta(self):
@@ -167,11 +237,28 @@ class Panglica:
         self.activ = n
 
     # ---------------------------------------------------------------- un grup
-    def _grup(self, pag, titlu, coloane):
-        g = tk.Frame(pag, bg=CORP); g.pack(side="left", fill="y")
+    def arata_fila(self, n, da):
+        (self.ascunse.discard if da else self.ascunse.add)(n)
+        for k, l in self.file.items(): l.pack_forget()
+        for k, l in self.file.items():
+            if k not in self.ascunse: l.pack(side="left", fill="y", before=self.b_comuta)
+        if not da and self.activ == n: self.arata("Главная")
+
+    def arata_grup(self, fr, da):
+        if da: fr.pack(side="left", fill="y")
+        else: fr.pack_forget()
+
+    def arata_titluri(self, da):
+        self.titluri = da
+        for l in self.titluri_l: l.pack(side="bottom", fill="x") if da else l.pack_forget()
+
+    def _grup(self, pag, titlu, coloane, fila=None):
+        g = tk.Frame(pag, bg=CORP); g.pack(side="left", fill="y"); self.grupuri.setdefault(fila, []).append((titlu, g))
         sus = tk.Frame(g, bg=CORP); sus.pack(side="top", fill="both", expand=True, padx=3, pady=(3, 0))
-        jos = tk.Label(g, text=titlu + " ▾" if len(titlu) < 30 else titlu, bg=CORP, fg=TEXT, font=F_GRUP); jos.pack(side="bottom", fill="x")
-        if titlu in SUB_GRUP:
+        are = titlu in SUB_GRUP or titlu in PANOURI
+        jos = tk.Label(g, text=titlu + " ▾" if are else titlu, bg=CORP, fg=TEXT, font=F_GRUP); jos.pack(side="bottom", fill="x"); self.titluri_l.append(jos)
+        jos.bind("<Button-3>", lambda e: self.app.mn.context_panglica(e))
+        if are:
             jos.bind("<Button-1>", lambda e, t=titlu, w=jos: self.submeniu_grup(t, w))
             jos.bind("<Enter>", lambda e, w=jos: w.config(bg=HOVER)); jos.bind("<Leave>", lambda e, w=jos: w.config(bg=CORP))
         for col in coloane:
@@ -187,6 +274,11 @@ class Panglica:
         for c in w.winfo_children():
             c.bind("<Button-1>", lambda e: self.app.executa(cmd)); c.bind("<Enter>", lambda e: self._bg(w, HOVER)); c.bind("<Leave>", lambda e: self._bg(w, CORP))
 
+    def _sfat(self, w, text, cmd):
+        from unelte import Sfat
+        t = (text or "").replace("\n", " ").strip() or cmd.capitalize()
+        Sfat(w, f"{t}\n\n{SFATURI.get(cmd, 'Щелчок – выполнить команду.')}\n\n>_ {cmd}")
+
     def _bg(self, w, bg):
         w.config(bg=bg)
         for c in w.winfo_children(): c.config(bg=bg)
@@ -196,12 +288,24 @@ class Panglica:
         b = tk.Frame(p, bg=CORP); b.pack(side="left", fill="y", padx=1)
         tk.Label(b, text=ic, bg=CORP, fg=cul, font=F_ICON if len(ic) < 3 else (F_ICON[0], -15, "bold"), height=1).pack(side="top", pady=(2, 0))
         tk.Label(b, text=text, bg=CORP, fg=TEXT, font=F_BTN, justify="center").pack(side="top")
-        self._buton(b, cmd)
+        self._buton(b, cmd); self._sfat(b, text, cmd)
         if cmd in SUB:
             s = tk.Label(b, text="▾", bg=CORP, fg=TEXT, font=(F, -10)); s.pack(side="top")
             s.bind("<Button-1>", lambda e, c=cmd, w=b: self.submeniu(c, w)); b.winfo_children()[1].bind("<Button-1>", lambda e, c=cmd, w=b: self.submeniu(c, w))
 
     def submeniu_grup(self, titlu, w):
+        if titlu in PANOURI:
+            from unelte import Popup
+            p = Popup(self.app, w)
+            for el in PANOURI[titlu]:
+                if el == "-": p.separator()
+                elif el[0] == "r": p.rand_iconite(el[1])
+                else: p.element(el[1], el[2], el[3])
+            if titlu in SUB_GRUP:
+                p.separator()
+                for x in SUB_GRUP[titlu]:
+                    if x is not None: p.element(x[1], x[0], x[2])
+            p.titlu(titlu); return p.arata()
         m = tk.Menu(self.app.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", bd=0, font=(F, -13))
         for x in SUB_GRUP[titlu]:
             if x is None: m.add_separator()
@@ -217,7 +321,7 @@ class Panglica:
             if not nume: m.add_command(label="      (в чертеже нет блоков)", state="disabled")
             for n in nume[:40]: m.add_command(label="  ⬚   " + n, command=lambda n=n: self.app.executa("ВСТАВИТЬ " + n))
             m.add_separator()
-            for t in ("Последние блоки...", "Избранные блоки...", "Блоки из библиотек..."): m.add_command(label="      " + t, command=lambda: self.app.executa("ВСТАВИТЬ"))
+            for t, c in (("Последние блоки...", "БЛОКИПОСЛ"), ("Избранные блоки...", "БЛОКИИЗБР"), ("Блоки из библиотек...", "БЛОКИБИБЛ")): m.add_command(label="      " + t, command=lambda c=c: self.app.executa(c))
         else:
             for x in el:
                 if x is None: m.add_separator()
@@ -230,7 +334,10 @@ class Panglica:
             for x in it:
                 _, text, ic, cul, cmd = x
                 b = tk.Frame(r, bg=CORP); b.pack(side="left")
-                tk.Label(b, text=ic, bg=CORP, fg=cul, font=F_ICON_MIC, width=2).pack(side="left"); self._buton(b, cmd)
+                tk.Label(b, text=ic, bg=CORP, fg=cul, font=F_ICON_MIC, width=2).pack(side="left"); self._buton(b, cmd); self._sfat(b, text, cmd)
+                if cmd in SUB:
+                    sg = tk.Label(r, text="▾", bg=CORP, fg=TEXT, font=(F, -9)); sg.pack(side="left")
+                    sg.bind("<Button-1>", lambda e, c=cmd, w=b: self.submeniu(c, w))
             return
         if it[0] == "c" and it[2] == "цвет":
             from lista_culori import ListaCulori
@@ -253,7 +360,7 @@ class Panglica:
         b = tk.Frame(p, bg=CORP); b.pack(side="top", anchor="w", fill="x")
         tk.Label(b, text=ic, bg=CORP, fg=cul, font=F_ICON_MIC, width=2 if len(ic) < 3 else len(ic)).pack(side="left")
         if text: tk.Label(b, text=text, bg=CORP, fg=TEXT, font=F_MIC).pack(side="left", padx=(2, 4))
-        self._buton(b, cmd)
+        self._buton(b, cmd); self._sfat(b, text, cmd)
         if cmd in SUB:
             s = tk.Label(b, text="▾", bg=CORP, fg=TEXT, font=(F, -10)); s.pack(side="left")
             s.bind("<Button-1>", lambda e, c=cmd, w=b: self.submeniu(c, w))

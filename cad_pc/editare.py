@@ -130,12 +130,19 @@ class Editare:
 
     def clic(self, e):
         if self.doc is None: return
-        if self.v.foaie: return self.app.mesaj("Лист: просмотр и печать. Редактирование — на вкладке «Модель».")
+        if self.v.foaie:                                   # pe foaie: se poate selecta rama viewport-ului
+            cv = self.app.cv; vp = None
+            for it in cv.find_overlapping(e.x - 4, e.y - 4, e.x + 4, e.y + 4):
+                for t in cv.gettags(it):
+                    if t.startswith("hvp"): vp = t[3:]
+            self.v.selectie = {"vp" + vp} if vp else set(); self.v.deseneaza()
+            return self.app.mesaj("Видовой экран выбран. Правая кнопка – «Развернуть ВЭкран»." if vp else "Лист: редактирование модели – на вкладке «Модель».")
         if self.stare: return self.punct(self.punct_ecran(e.x, e.y))
         h = self.la_entitate(e.x, e.y)
         if h:
-            if e.state & 0x1: self.sel.discard(h)          # Shift = scoate din selecție
-            else: self.sel.add(h)
+            grup = self.app.un.extinde_grup(h) if hasattr(self.app, "un") else {h}
+            if e.state & 0x1: self.sel -= grup             # Shift = scoate din selecție
+            else: self.sel |= grup
             return self.arata_selectia()
         self._fer = (e.x, e.y)                              # începe selecția cu fereastră
 
@@ -233,6 +240,19 @@ class Editare:
     def valoare(self, t):
         """text scris în linia de comandă cât o comandă cere ceva: număr, punct „x,y” sau Da/Nu"""
         st = self.stare; t = (t or "").strip()
+        if st["cmd"] in ("REPETAT", "PUNCTE", "PUNCT"):
+            if not t:
+                if st["cmd"] == "REPETAT":
+                    fin = st.get("fin"); self.opreste("Готово.")
+                    if fin: fin()
+                return
+            m = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*[,;]\s*(-?\d+(?:\.\d+)?)", t)
+            if m: return self.punct((float(m.group(1)), float(m.group(2))))
+            try: n = float(t.replace(",", "."))
+            except ValueError: return self.app.mesaj("Нужна точка (щелчок или x,y) или число.")
+            if st["cmd"] == "REPETAT" and st.get("numar"): return st["numar"](n)
+            if st["cmd"] == "PUNCTE" and st.get("numere") and st["puncte"]: return self._puncte_avans(n)
+            return self.app.mesaj("Нужна точка (щелчок на чертеже или x,y).")
         if not t:
             if st["cmd"] in ("ОТРЕЗОК", "ПЛИНИЯ", "КОПИРОВАТЬ", "ПЛОЩАДЬ"): return self.termina()
             if st["cmd"] == "ЗЕРКАЛО" and st.get("intreaba"): return self._oglinda(False)
@@ -292,6 +312,17 @@ class Editare:
             self.app.prompt({"ИЗМЕРИТЬ": "Вторая точка:", "УГОЛИЗМ": "Вершина угла:" if len(pts) == 1 else "Вторая сторона угла:",
                              "ПЛОЩАДЬ": "Следующая точка или [Enter = посчитать]:"}[c])
             return
+        if c == "PUNCT":                                   # o comandă din alt modul cere un singur punct
+            self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); return st["cb"](p)
+        if c == "PUNCTE":                                  # cere n puncte, apoi cb(listă)
+            return self._puncte_avans(p)
+        if c == "REPETAT":                                 # clic după clic, până la Esc (ex.: atribute „Несколько”)
+            self.app.cv.delete("snap"); st["cb"](p); return self.app.prompt(st["rep"]) if self.stare else None
+        if c == "BAZABUF":
+            self.stare = None; self.app.prompt(None); self.app.cv.delete("snap")
+            self.copiaza_buf(); self.clip_baza = p
+            if st.get("taie"): self.sterge()
+            return self.app.mesaj("Базовая точка задана: " + ("вырезано" if st.get("taie") else "скопировано") + " в буфер.")
         if c == "ВСТАВКА":
             self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); return self.app.sim.insereaza(st["bloc"], p)
         if c == "БЛОКБАЗА":
@@ -307,6 +338,12 @@ class Editare:
                 except Exception: pass
                 noi.add(c2.dxf.handle)
             self.sel = noi; self.gata_modificare(f"Вставлено объектов: {len(noi)}"); return self.opreste("Готово.")
+
+    def _puncte_avans(self, val):
+        st = self.stare; st["puncte"].append(val)
+        if not isinstance(val, float): st["baza"] = val
+        if len(st["puncte"]) < st["n"]: return self.app.prompt(st["prompturi"][len(st["puncte"])])
+        self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); self.app.cv.delete("prev"); return st["cb"](st["puncte"])
 
     def termina(self):
         st = self.stare
@@ -372,7 +409,7 @@ class Editare:
         self.sel = noi; self.gata_modificare(f"Расчленено объектов: {n}")
 
     def copiaza_buf(self):
-        self.clip = [self.ent(h).copy() for h in self.sel if self.ent(h) is not None]
+        self.clip = [self.ent(h).copy() for h in self.sel if self.ent(h) is not None]; self.clip_baza = None
         self.app.mesaj(f"Скопировано в буфер: {len(self.clip)} объектов.")
 
     def lipeste_buf(self):
@@ -380,7 +417,7 @@ class Editare:
         xs = []; ys = []
         for e in self.clip:
             b = self.v.bbox.get(e.dxf.handle) if e.dxf.handle else None
-        p0 = self.puncte_prindere_copie(self.clip[0])
+        p0 = getattr(self, "clip_baza", None) or self.puncte_prindere_copie(self.clip[0])
         self.incepe("ВСТАВИТЬБУФ", "Точка вставки:", nevoie_sel=False, baza0=p0); self.stare["baza"] = None
 
     def lipeste_original(self):

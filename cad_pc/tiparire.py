@@ -51,12 +51,33 @@ def dimensiune_foaie(doc, foaie):
     return FORMATE[IMPLICIT]
 
 
+def margini_foaie(doc, foaie):
+    """marginile netipăribile ale foii (stânga, jos, dreapta, sus) în mm"""
+    try:
+        dl = doc.layouts.get(foaie).dxf_layout.dxf
+        m = [dl.get("left_margin", 10), dl.get("bottom_margin", 10), dl.get("right_margin", 10), dl.get("top_margin", 10)]
+        if dl.get("plot_rotation", 0) in (1, 3): m = [m[1], m[2], m[3], m[0]]
+        return [v if v > 0 else 5 for v in m]
+    except Exception: return [10, 10, 10, 10]
+
+
+def cutie_foaie(doc, foaie):
+    """hârtia în coordonatele spațiului foii: originea AutoCAD = colțul zonei tipăribile"""
+    w, h = dimensiune_foaie(doc, foaie); m = margini_foaie(doc, foaie)
+    return -m[0], -m[1], w - m[0], h - m[1]
+
+
 def png_foaie(doc, foaie, dpi):
     dpi = int(dpi)
     from ezdxf.addons.drawing import layout as dl
-    w, h = dimensiune_foaie(doc, foaie)
+    from ezdxf.math import BoundingBox2d
+    w, h = dimensiune_foaie(doc, foaie); x0, y0, x1, y1 = cutie_foaie(doc, foaie)
     be = _randeaza(doc, foaie, False)
-    return be.get_pixmap_bytes(dl.Page(w, h, dl.Units.mm, margins=dl.Margins.all(0)), fmt="png", settings=dl.Settings(fit_page=True), dpi=dpi)
+    try:
+        return be.get_pixmap_bytes(dl.Page(w, h, dl.Units.mm, margins=dl.Margins.all(0)), fmt="png", settings=dl.Settings(fit_page=True), dpi=dpi,
+                                   render_box=BoundingBox2d([(x0, y0), (x1, y1)]))
+    except TypeError:
+        return be.get_pixmap_bytes(dl.Page(w, h, dl.Units.mm, margins=dl.Margins.all(0)), fmt="png", settings=dl.Settings(fit_page=True), dpi=dpi)
 
 
 def imprimante():

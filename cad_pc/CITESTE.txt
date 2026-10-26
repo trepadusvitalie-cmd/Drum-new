@@ -63,3 +63,23 @@ Viteza si memorie (desene mari)
 - desenul se pregateste in fundal la deschidere; la o modificare se redeseneaza doar obiectele schimbate
 - anularea tine doar copiile obiectelor atinse (cu limita de memorie)
 - programul lucreaza cu prioritate scazuta si lasa 2 nuclee ale procesorului libere
+
+CAD PC 3.3
+- Export GIS (Вставка / Вывод → «Экспорт ГИС» sau comenzile SHP, KML): SHP, GDB, XLS, XLSX, KML, KMZ – din selectie sau tot desenul;
+  sistemul MOLDREF99 / Moldova TM (EPSG:4026); KML/KMZ se transforma automat in WGS84 (Google Earth)
+- Задать местоположение ▾: harta Esri sub desen (satelit / strazi / topo, cu internet), Bing (inchis de Microsoft -> Esri),
+  «Из файла» = puncte si linii din KML / KMZ / GPX in coordonate MOLDREF99
+- Таблица (dialog ca in AutoCAD: gol, din Excel sau din atributele blocurilor; punct sau zona)
+- Штриховка ▾: hasura cu model / gradient / contur (contururi inchise selectate sau clic in interior; insule)
+- Диспетчер свойств слоев nou (filtre, cautare, Печать, Цвет, Тип/Вес линий, Прозрачность, Пояснение, redenumire)
+- Panourile extinse (sageata din titlul grupului): Рисование, Редактирование, Слои (izolare, inghetare, unire, stergere,
+  estompare straturi blocate), Аннотации, Группы, Утилиты, Размеры, Определение блока
+- Круг ▾ (6 moduri), Дуга ▾ (11 moduri), Облако ▾, Кольцо, Сплайн, Прямая, Луч, Точка, Делить, Разметить
+- Сопряжение ▾ / Фаска / Соединение кривых, Массив ▾ (dreptunghiular, polar, pe traiectorie), cote (liniara, aliniata,
+  raza, diametru, Продолжить ▾ / Базовый), Порядок прорисовки ▾, grupuri, izolare obiecte
+- Импорт PDF ▾ (linii, texte, umpleri) / DGN / Импорт desen; Создать блок ▾ → Запись блока на диск; Вставка ▾ →
+  Последние / Избранные / Блоки из библиотек; atribute: Несколько, afisare, sincronizare; Задать базовую точку
+- Foaia (Layout) ca in AutoCAD: fundal gri, hartie alba, zona de tiparire, rama viewport-ului (clic / Ctrl+A), fila «Лист»;
+  Экспорт: Текущий лист / Все листы (un PDF cu toate foile)
+- Clic dreapta: pe desen, pe tab-ul fisierului, pe „+”, pe tab-urile foilor, pe panglica; >_▾ = comenzi recente;
+  sfaturi la butoane; «Параметры» (fundal, salvare, tiparire, selectie); pseudonime proprii pentru comenzi
