@@ -221,12 +221,38 @@ class Panglica:
             f = tk.Frame(self.corp, bg=CORP); self.pagini[n] = f
             for titlu, coloane in grupuri: self._grup(f, titlu, coloane, n)
             f.bind("<Button-3>", lambda e: self.app.mn.context_panglica(e))
+        self.h_corp = H_CORP; self.dx = 0
+        self.st = tk.Label(self.corp, text="◀", bg="#2b313a", fg="white", font=(F, -14, "bold"), padx=3)
+        self.dr = tk.Label(self.corp, text="▶", bg="#2b313a", fg="white", font=(F, -14, "bold"), padx=3)
+        self.st.bind("<Button-1>", lambda e: self._defileaza(+360)); self.dr.bind("<Button-1>", lambda e: self._defileaza(-360))
+        self.corp.bind("<Configure>", lambda e: self._defileaza(0))
         self.arata("Главная")
+        parinte.after(50, self._ajusteaza)
+
+    def _ajusteaza(self):
+        """înălțimea panglicii după conținut (pe Windows cu scară 125–150% textul e mai mare, altfel se tăia)"""
+        self.corp.update_idletasks()
+        h = max([f.winfo_reqheight() for f in self.pagini.values()] + [H_CORP]) + 2
+        if h != self.h_corp:
+            self.h_corp = h
+            if self.vizibil: self.corp.config(height=h)
+        self._defileaza(0)
+
+    def _defileaza(self, d):
+        """când filele nu încap pe lățime: săgeți ◀ ▶ (ca în AutoCAD, panourile rămân întregi)"""
+        if not self.activ: return
+        f = self.pagini[self.activ]; W = self.corp.winfo_width(); w = f.winfo_reqwidth()
+        if w <= W: self.dx = 0; self.st.place_forget(); self.dr.place_forget()
+        else:
+            self.dx = max(min(0, self.dx + d), W - w - 24)
+            self.dr.place(relx=1, x=0, y=0, relheight=1, anchor="ne") if self.dx > W - w - 24 else self.dr.place_forget()
+            self.st.place(x=0, y=0, relheight=1) if self.dx < 0 else self.st.place_forget()
+        f.place(x=self.dx, y=0, width=max(w, W), relheight=1); self.st.lift(); self.dr.lift()
 
     def comuta(self):
         """ascunde / arată corpul panglicii (ca săgeata din AutoCAD)"""
         self.vizibil = not self.vizibil
-        self.corp.config(height=H_CORP if self.vizibil else 1)
+        self.corp.config(height=self.h_corp if self.vizibil else 1)
 
     def arata(self, n):
         if not self.vizibil: self.comuta()
@@ -234,7 +260,8 @@ class Panglica:
         for k, f in self.pagini.items():
             if k == n: f.place(x=0, y=0, relwidth=1, relheight=1)
             else: f.place_forget()
-        self.activ = n
+        self.activ = n; self.dx = 0
+        if hasattr(self, "st"): self.corp.after_idle(lambda: self._defileaza(0))
 
     # ---------------------------------------------------------------- un grup
     def arata_fila(self, n, da):
