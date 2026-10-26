@@ -49,5 +49,5 @@ Etapa 3 – simboluri, pagini, tiparire
 - ЭКСПОРТPDF / meniul A → Экспорт → PDF.
 
 Titlu si logo (optional, doar la tine)
-- titlu.txt langa CAD_PC.exe = textul din bara de sus (ex.: CAD PC – Moldtelecom)
+- titlu.txt langa CAD_PC.exe = textul din bara de sus (ex.: CAD PC – numele firmei)
 - logo.png langa CAD_PC.exe = sigla afisata langa titlu si pe pagina de start
