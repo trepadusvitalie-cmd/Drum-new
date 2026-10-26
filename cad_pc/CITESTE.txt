@@ -1,0 +1,29 @@
+CAD PC 2025 – etapa 1
+=====================
+Program care arata ca AutoCAD 2025 (interfata in rusa) si lucreaza cu desene DWG si DXF.
+
+Instalare (o singura data)
+1. Dezarhiveaza in C:\gisteren\tools\cad_pc
+2. Ruleaza CONSTRUIESTE_EXE.bat  ->  dist\CAD_PC\CAD_PC.exe  (si dist\CAD_PC_autonom.exe)
+   (sau PORNESTE.bat ca sa pornesti direct, fara exe)
+
+DWG
+- Se deschide si se salveaza prin ODA File Converter (gratuit, opendesign.com) daca e instalat,
+  altfel prin AutoCAD-ul de pe calculator (AutoCAD 2025 merge). DXF se deschide mereu, fara nimic in plus.
+- Originalul nu se atinge la deschidere; la salvare se face o copie .bak.
+
+Ce merge in etapa 1
+- Meniul „A” (Создать, Открыть, Сохранить, Сохранить как, Импорт, Экспорт, Закрыть, Последние документы)
+- Panglica: toate filele din capturi (Главная, Вставка, Аннотации, Параметризация, Вид, Управление, Вывод, Express Tools…)
+- Tab-urile „Начало” + desenul, pagina de start cu fisierele recente
+- Desenul: linii, polilinii, cercuri, arce, elipse, spline, hasuri, texte, MTEXT, blocuri cu atribute, cote
+- Rotita mouse-ului = zoom; rotita apasata = pan; dublu clic pe rotita = tot desenul
+- Straturi: lista din panglica (stratul curent) si „Свойства слоя” (pornit/oprit, inghetat, blocat, culoare, strat nou/sters)
+- Linia de comanda: ОТКРЫТЬ, СОХРАНИТЬ, СОХРАНИТЬКАК, ПОКАЗАТЬ (Z), СЛОЙ (LA), РЕГЕН, СЕТКА (F7), ОРТО (F8);
+  scrii direct pe desen si merge in linia de comanda; Enter gol repeta ultima comanda
+- Bara de jos: Модель / Layout, МОДЕЛЬ, grila, orto si celelalte comutatoare
+
+Urmeaza
+- Etapa 2: selectare, mutare, copiere, rotire, stergere, anulare; etichete (text nou, editare, cautare/inlocuire,
+  numerotare automata, atribute, export/import Excel)
+- Etapa 3: simboluri (blocuri), pagini Модель / Layout, tiparire si PDF
