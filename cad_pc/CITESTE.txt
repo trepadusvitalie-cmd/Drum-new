@@ -51,3 +51,15 @@ Etapa 3 – simboluri, pagini, tiparire
 Titlu si logo (optional, doar la tine)
 - titlu.txt langa CAD_PC.exe = textul din bara de sus (ex.: CAD PC – numele firmei)
 - logo.png langa CAD_PC.exe = sigla afisata langa titlu si pe pagina de start
+
+Imagini raster (TIFF / GeoTIFF, JPG, PNG) – in coordonate reale
+- Вставка → „Присоединить” sau comanda ПРИСОЕД / IMAGEATTACH / TIFF
+- pozitia se ia singura din fisierul .tfw (.tifw, .jgw, .pgw, .wld) de langa imagine sau din GeoTIFF;
+  daca nu are, scrii coltul stinga-jos X, Y si marimea pixelului
+- se salveaza in DWG/DXF ca imagine legata (ca in AutoCAD): tine fisierul TIFF langa desen sau la aceeasi cale
+- imaginile mari se micsoreaza in memorie la 4096 px pentru ecran, ca sa nu se umple RAM-ul
+
+Viteza si memorie (desene mari)
+- desenul se pregateste in fundal la deschidere; la o modificare se redeseneaza doar obiectele schimbate
+- anularea tine doar copiile obiectelor atinse (cu limita de memorie)
+- programul lucreaza cu prioritate scazuta si lasa 2 nuclee ale procesorului libere

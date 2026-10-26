@@ -84,7 +84,7 @@ class Simboluri:
         blk = self.doc.blocks.get(nume); atrdef = [e for e in blk if e.dxftype() == "ATTDEF"]
         valori = {a.dxf.tag: a.dxf.text for a in atrdef}
         def pune(val):
-            self.app.ed.instantaneu()
+            self.app.ed.instantaneu([])
             ins = self.doc.modelspace().add_blockref(nume, p, dxfattribs={"layer": self.app.strat_curent(), "xscale": self.scara, "yscale": self.scara, "rotation": self.rot})
             if val: ins.add_auto_attribs(val)
             self.app.ed.sel = {ins.dxf.handle}; self.app.ed.gata_modificare(f"Вставлен блок «{nume}».")
@@ -138,7 +138,7 @@ class Simboluri:
         for n in blocuri(self.doc): lb.insert("end", n)
         def ok(e=None):
             if not lb.curselection(): return
-            n = lb.get(lb.curselection()[0]); d.destroy(); ed.instantaneu(); msp = self.doc.modelspace(); noi = set()
+            n = lb.get(lb.curselection()[0]); d.destroy(); ed.instantaneu([e.dxf.handle for e in ins]); msp = self.doc.modelspace(); noi = set()
             for e in ins:
                 val = {a.dxf.tag: a.dxf.text for a in e.attribs}
                 at = {k: e.dxf.get(k) for k in ("layer", "xscale", "yscale", "rotation", "color") if e.dxf.hasattr(k)}
@@ -167,7 +167,7 @@ class Simboluri:
         def ok(e=None):
             alese = [lb.get(i) for i in lb.curselection()] or nume
             from ezdxf.addons import Importer
-            self.app.ed.instantaneu(); imp = Importer(src, self.doc); imp.import_blocks(alese); imp.finalize()
+            imp = Importer(src, self.doc); imp.import_blocks(alese); imp.finalize()
             rez["n"] = alese[0]; d.destroy(); self.app.mesaj(f"Импортировано блоков: {len(alese)} из {os.path.basename(p)}"); self.app.marcheaza()
         lb.bind("<Double-Button-1>", ok)
         b = tk.Label(d, text="Импортировать", bg=ALBASTRU, fg="white", font=F_MIC, padx=12, pady=5); b.pack(side="top", padx=10, fill="x"); b.bind("<Button-1>", ok)

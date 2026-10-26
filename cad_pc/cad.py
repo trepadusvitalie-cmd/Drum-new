@@ -9,6 +9,7 @@ from vedere import Vedere
 from editare import Editare
 from etichete import Etichete, CULORI
 from simboluri import Simboluri
+from imagini import Imagini
 import tiparire
 
 def _langa_exe(nume):
@@ -66,6 +67,7 @@ COMENZI = {
     "ПЕЧАТЬ": "c_print", "PLOT": "c_print", "PRINT": "c_print", "ПАКЕТПЕЧАТЬ": "c_print", "ПРЕДВАР": "c_print", "PREVIEW": "c_print",
     "ЭКСПОРТPDF": "c_pdf", "EXPORTPDF": "c_pdf", "ПУБЛИКАЦИЯ": "c_pdf", "PUBLISH": "c_pdf",
     "ЛИСТ": "foaie_noua", "LAYOUT": "foaie_noua",
+    "ПРИСОЕД": "c_imagine", "ИЗОБР": "c_imagine", "IMAGEATTACH": "c_imagine", "IMAGE": "c_imagine", "IAT": "c_imagine", "ATTACH": "c_imagine", "TIFF": "c_imagine",
     "УГОЛИЗМ": "c_unghi", "РАДИУСИЗМ": "c_raza", "КООРД": "c_coord", "ID": "c_coord", "ВСТАВИТЬИСХ": "c_liporig", "PASTEORIG": "c_liporig",
 }
 
@@ -93,7 +95,7 @@ class App:
         z = tk.Frame(root, bg=DESEN); z.pack(fill="both", expand=True)
         self.cv = tk.Canvas(z, bg=DESEN, highlightthickness=0, cursor="none" if sys.platform == "win32" else "crosshair")
         self.cv.pack(fill="both", expand=True)
-        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.sim = Simboluri(self); self.ultim_mouse = (0, 0); self._prompt = None
+        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.sim = Simboluri(self); self.img = Imagini(self); self.ultim_mouse = (0, 0); self._prompt = None
         self._linie_comanda(z)
         self._start(z)
         self._legaturi()
@@ -698,15 +700,15 @@ Enter или правая кнопка — завершить команду; п
         self.root.config(cursor="watch"); self.root.update_idletasks()
         def lucru():
             try:
-                doc = fisiere.deschide(p); self.root.after(0, lambda: self._deschis(doc, p))
+                doc = fisiere.deschide(p); pv = self.v.pregateste(doc); self.root.after(0, lambda: self._deschis(doc, p, pv))
             except Exception as ex:
                 traceback.print_exc(); self.root.after(0, lambda: (self.root.config(cursor=""), messagebox.showerror(TITLU_APP, f"Не удалось открыть файл:\n{ex}")))
         threading.Thread(target=lucru, daemon=True).start()
 
-    def _deschis(self, doc, p):
+    def _deschis(self, doc, p, gata=None):
         self.root.config(cursor=""); self.doc = doc; self.cale = p; self.modificat = False
         self.ed.sel = set(); self.ed.anulari = []; self.ed.refaceri = []; self.v.selectie = set(); self.v.foaie = None; self.foaie_act = "Model"
-        self.arata_desen(); self.v.incarca(doc); self._suprapuneri(); self._titlu(); self._actualizeaza_straturi()
+        self.v.dosar = os.path.dirname(os.path.abspath(p)); self.arata_desen(); self.v.incarca(doc, gata=gata); self._suprapuneri(); self._titlu(); self._actualizeaza_straturi()
         self._taburi_layout(["Model"] + [l.name for l in doc.layouts if l.name != "Model"])
         n = sum(1 for _ in doc.modelspace())
         self.mesaj(f"Открыт {os.path.basename(p)}: {n} объектов, {len(doc.layers)} слоев.")
@@ -821,6 +823,7 @@ Enter или правая кнопка — завершить команду; п
     def c_bloc(self): self.sim.creeaza() if self.doc else None
     def c_inlocbloc(self): self.sim.inlocuieste() if self.doc else None
     def c_print(self): tiparire.dialog(self)
+    def c_imagine(self): self.img.importa()
     def c_pdf(self): tiparire.dialog(self, doar_pdf=True)
 
     def schimba_foaie(self, n):
@@ -936,7 +939,20 @@ Enter или правая кнопка — завершить команду; п
         umple()
 
 
+def prioritate_mica():
+    """Windows: prioritate sub normal și 2 nuclee lăsate libere, ca PC-ul să nu se blocheze"""
+    if os.name != "nt": return
+    try:
+        import ctypes
+        k = ctypes.windll.kernel32; h = k.GetCurrentProcess()
+        k.SetPriorityClass(h, 0x4000)                      # BELOW_NORMAL_PRIORITY_CLASS
+        n = os.cpu_count() or 1
+        if n > 2: k.SetProcessAffinityMask(h, ctypes.c_size_t((1 << (n - 2)) - 1))
+    except Exception: pass
+
+
 def main():
+    prioritate_mica()
     root = tk.Tk(); App(root, sys.argv[1] if len(sys.argv) > 1 else None); root.mainloop()
 
 

@@ -63,7 +63,7 @@ class Etichete:
             try: h = float(eh.get().replace(",", ".")); r = float(er.get().replace(",", "."))
             except ValueError: return messagebox.showerror("Текст", "Высота и поворот – числа.", parent=d)
             col = dict(CULORI)[cc.get()]
-            self.app.ed.instantaneu(); msp = self.doc.modelspace()
+            self.app.ed.instantaneu([] if nou else [e.dxf.handle]); msp = self.doc.modelspace()
             if nou:
                 at = {"layer": cs.get(), "color": col}
                 if mtext:
@@ -89,7 +89,7 @@ class Etichete:
             intr.append((a, _rand(d, a.dxf.tag, _intrare(a.dxf.text), i + 1)))
         if intr: intr[0][1].focus_set()
         def ok():
-            self.app.ed.instantaneu()
+            self.app.ed.instantaneu([ins.dxf.handle])
             for a, w in intr: a.dxf.text = w.get()
             d.destroy(); self.app.ed.gata_modificare("Атрибуты изменены.")
         _butoane(d, ok, len(intr) + 2)
@@ -103,7 +103,7 @@ class Etichete:
         cc = _rand(d, "Цвет:", lambda p: ttk.Combobox(p, values=[n for n, _ in CULORI], state="readonly"), 2)
         cc.set(next((n for n, v in CULORI if v == ents[0].dxf.get("color", 256)), "ПоСлою"))
         def ok():
-            self.app.ed.instantaneu(); col = dict(CULORI)[cc.get()]
+            self.app.ed.instantaneu([e.dxf.handle for e in ents]); col = dict(CULORI)[cc.get()]
             for e in ents: e.dxf.layer = cs.get(); e.dxf.color = col
             d.destroy(); self.app.ed.gata_modificare("Свойства изменены.")
         _butoane(d, ok, 3)
@@ -151,7 +151,7 @@ class Etichete:
             if not m: return
             alese = list(gasite) if toate else list(tv.selection())
             if not alese: return lbl.config(text="Выберите строки в списке или «Заменить все».")
-            self.app.ed.instantaneu(); n = 0
+            self.app.ed.instantaneu({gasite[i][1].dxf.handle for i in alese}); n = 0
             for iid in alese:
                 ent, top = gasite[iid]
                 if ent.dxftype() == "MTEXT": ent.text = m.sub(ei.get(), ent.text)
@@ -194,7 +194,7 @@ class Etichete:
             try: n = float(e0.get().replace(",", ".")); pas = float(ep.get().replace(",", "."))
             except ValueError: return messagebox.showerror("Auto Number", "Номер и шаг – числа.", parent=d)
             k = cs.current(); cheie = {0: lambda e: (poz(e)[0], -poz(e)[1]), 1: lambda e: (-poz(e)[1], poz(e)[0]), 2: lambda e: (poz(e)[1], poz(e)[0]), 3: lambda e: (-poz(e)[0], -poz(e)[1])}[k]
-            ed.instantaneu(); txt_f = ef.get()
+            ed.instantaneu([e.dxf.handle for e in ents]); txt_f = ef.get()
             for e in sorted(ents, key=cheie):
                 nr = str(int(n)) if float(n).is_integer() else str(n)
                 if e.dxftype() == "INSERT":
@@ -248,7 +248,8 @@ class Etichete:
         from openpyxl import load_workbook
         p = filedialog.askopenfilename(title="Импорт атрибутов из Excel", filetypes=[("Excel", "*.xlsx")])
         if not p: return
-        wb = load_workbook(p, data_only=True); self.app.ed.instantaneu(); n = 0; t = 0
+        wb = load_workbook(p, data_only=True); n = 0; t = 0
+        self.app.ed.instantaneu([e.dxf.handle for e in self.doc.modelspace() if e.dxftype() in ("INSERT", "TEXT", "MTEXT")])
         if "Атрибуты" in wb.sheetnames:
             ws = wb["Атрибуты"]; cap = [str(c.value or "") for c in ws[1]]
             for r in ws.iter_rows(min_row=2, values_only=True):

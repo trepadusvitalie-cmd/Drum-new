@@ -1,7 +1,7 @@
 """Etapa 2 – editarea: selecție (clic, fereastră, intersecție), mutare, copiere, rotire, scalare, oglindire, ștergere,
 desfacere, anulare/refacere și desenare simplă (linie, polilinie, cerc). Comenzile cer puncte ca în AutoCAD:
 clic pe desen sau valoare scrisă în linia de comandă."""
-import io, math, re
+import io, math, re, zlib
 import ezdxf
 from ezdxf.math import Matrix44, Vec3
 from stil import *
@@ -54,29 +54,67 @@ class Editare:
         b = self.v.bbox.get(h)
         return [(b[0], b[1]), (b[2], b[3])] if b else []
 
-    # ---------------------------------------------------------------- anulare / refacere (instantanee ale desenului)
-    def instantaneu(self):
-        if self.doc is None: return
-        s = io.StringIO(); self.doc.write(s); self.anulari = (self.anulari + [s.getvalue()])[-40:]; self.refaceri = []
+    # ---------------------------------------------------------------- anulare / refacere
+    # Se păstrează doar copiile obiectelor atinse și lista obiectelor din model de dinainte (nu tot desenul):
+    # rapid și cu puțin RAM și pe desene mari. Pentru schimbări generale (straturi, tabele) – copie comprimată a desenului.
+    def _handles(self):
+        return {e.dxf.handle for e in self.doc.modelspace()}
 
-    def _restaureaza(self, txt):
-        doc = ezdxf.read(io.StringIO(txt))
-        self.app.doc = doc; self.v.doc = doc; self.v.layout = doc.modelspace(); self.sel = set()
-        self.v.reconstruieste(); self.v.selectie = set(); self.v.deseneaza(); self.app.cv.delete("grip")
-        self.app.marcheaza(); self.app._actualizeaza_straturi()
+    def instantaneu(self, handles=None, complet=False):
+        if self.doc is None: return
+        if complet:
+            s = io.StringIO(); self.doc.write(s); rec = ("full", zlib.compress(s.getvalue().encode("utf-8"), 3))
+        else:
+            hs = set(self.sel if handles is None else handles); copii = {}
+            for h in hs:
+                e = self.ent(h)
+                if e is not None and e.is_alive:
+                    try: copii[h] = e.copy()
+                    except Exception: pass
+            rec = ("ent", self._handles(), copii)
+        self.anulari = (self.anulari + [rec])[-60:]; self.refaceri = []
+        # limită de memorie: cel mult ~150 000 de obiecte copiate în toată istoria (selecții mari pe desene mari)
+        while len(self.anulari) > 1 and sum(len(r[2]) if r[0] == "ent" else 20000 for r in self.anulari) > 150000: self.anulari.pop(0)
+
+    def _aplica_rec(self, rec):
+        """readuce desenul la starea din înregistrare; întoarce înregistrarea inversă și ce trebuie redesenat"""
+        if rec[0] == "full":
+            s = io.StringIO(); self.doc.write(s); inv = ("full", zlib.compress(s.getvalue().encode("utf-8"), 3))
+            doc = ezdxf.read(io.StringIO(zlib.decompress(rec[1]).decode("utf-8")))
+            self.app.doc = doc; self.v.doc = doc; self.v.layout = doc.modelspace(); self.v.reconstruieste(); self.app._actualizeaza_straturi()
+            return inv
+        _, inainte, copii = rec; msp = self.doc.modelspace(); cur = self._handles()
+        de_sters = (cur - inainte) | {h for h in copii if h in cur}
+        inv_copii = {}
+        for h in de_sters:
+            e = self.ent(h)
+            if e is None: continue
+            try: inv_copii[h] = e.copy()
+            except Exception: pass
+            msp.delete_entity(e)
+        dupa_stergere = self._handles(); noi = set()
+        for c in copii.values():
+            c2 = c.copy(); msp.add_entity(c2); noi.add(c2.dxf.handle)
+        self.v.actualizeaza(de_sters | noi)
+        return ("ent", dupa_stergere, inv_copii)
 
     def anuleaza(self):
         if not self.anulari: return self.app.mesaj("Нечего отменять.")
-        s = io.StringIO(); self.doc.write(s); self.refaceri.append(s.getvalue())
-        self._restaureaza(self.anulari.pop()); self.app.mesaj("Отменено.")
+        self.refaceri.append(self._aplica_rec(self.anulari.pop())); self._dupa_anulare("Отменено.")
 
     def reface(self):
         if not self.refaceri: return self.app.mesaj("Нечего повторять.")
-        s = io.StringIO(); self.doc.write(s); self.anulari.append(s.getvalue())
-        self._restaureaza(self.refaceri.pop()); self.app.mesaj("Повторено.")
+        self.anulari.append(self._aplica_rec(self.refaceri.pop())); self._dupa_anulare("Повторено.")
+
+    def _dupa_anulare(self, mesaj):
+        self.sel = set(); self.v.selectie = set(); self.v.deseneaza(); self.app.cv.delete("grip"); self.app.marcheaza(); self.app.mesaj(mesaj)
 
     def gata_modificare(self, mesaj=None):
-        self.v.reconstruieste(); self.sel = {h for h in self.sel if self.ent(h) is not None and self.ent(h).is_alive}
+        rec = self.anulari[-1] if self.anulari else None
+        if rec and rec[0] == "ent":                       # redesenez doar ce s-a schimbat
+            self.v.actualizeaza((self._handles() - rec[1]) | set(rec[2]))
+        else: self.v.reconstruieste()
+        self.sel = {h for h in self.sel if self.ent(h) is not None and self.ent(h).is_alive}
         self.arata_selectia(); self.app.marcheaza()
         if mesaj: self.app.mesaj(mesaj)
 
@@ -232,7 +270,7 @@ class Editare:
         if c in ("ОТРЕЗОК", "ПЛИНИЯ"):
             st["puncte"].append(p); st["baza"] = p
             if c == "ОТРЕЗОК" and len(st["puncte"]) >= 2:
-                self.instantaneu(); a, b = st["puncte"][-2], st["puncte"][-1]
+                self.instantaneu([]); a, b = st["puncte"][-2], st["puncte"][-1]
                 self.doc.modelspace().add_line(a, b, dxfattribs={"layer": self.app.strat_curent()}); self.gata_modificare()
             return self.app.prompt("Следующая точка или [Enter = завершить]:")
         if c == "КРУГ":
@@ -262,7 +300,7 @@ class Editare:
             self.stare = None; self.app.prompt(None); self.app.cv.delete("snap")
             return self.app.et.dialog_text(None, p, mtext=st.get("mtext", False))
         if c == "ВСТАВИТЬБУФ":
-            self.instantaneu(); bx, by = st["baza0"]; m = Matrix44.translate(p[0] - bx, p[1] - by, 0); msp = self.doc.modelspace(); noi = set()
+            self.instantaneu([]); bx, by = st["baza0"]; m = Matrix44.translate(p[0] - bx, p[1] - by, 0); msp = self.doc.modelspace(); noi = set()
             for e in self.clip:
                 c2 = e.copy(); msp.add_entity(c2)
                 try: c2.transform(m)
@@ -278,7 +316,7 @@ class Editare:
             per = sum(math.hypot(pts[(i + 1) % n][0] - pts[i][0], pts[(i + 1) % n][1] - pts[i][1]) for i in range(n))
             self.app.cv.delete("masura"); self.app.mesaj(f"Площадь = {a:.4f},  Периметр = {per:.4f}"); return self.opreste("Измерено.")
         if st and st["cmd"] == "ПЛИНИЯ" and len(st["puncte"]) >= 2:
-            self.instantaneu(); self.doc.modelspace().add_lwpolyline(st["puncte"], dxfattribs={"layer": self.app.strat_curent()}); self.gata_modificare()
+            self.instantaneu([]); self.doc.modelspace().add_lwpolyline(st["puncte"], dxfattribs={"layer": self.app.strat_curent()}); self.gata_modificare()
         self.opreste("Готово.")
 
     def _aplica(self, m, copie, mesaj):
@@ -309,7 +347,7 @@ class Editare:
         self._aplica(m, not sterge, "Отражено"); self.opreste("Отражено.")
 
     def _cerc(self, r):
-        self.instantaneu(); self.doc.modelspace().add_circle(self.stare["baza"], r, dxfattribs={"layer": self.app.strat_curent()})
+        self.instantaneu([]); self.doc.modelspace().add_circle(self.stare["baza"], r, dxfattribs={"layer": self.app.strat_curent()})
         self.gata_modificare(); self.opreste("Круг построен.")
 
     # ---------------------------------------------------------------- comenzi directe
@@ -347,7 +385,7 @@ class Editare:
 
     def lipeste_original(self):
         if not self.clip: return self.app.mesaj("Буфер пуст.")
-        self.instantaneu(); msp = self.doc.modelspace(); noi = set()
+        self.instantaneu([]); msp = self.doc.modelspace(); noi = set()
         for e in self.clip:
             c2 = e.copy(); msp.add_entity(c2); noi.add(c2.dxf.handle)
         self.sel = noi; self.gata_modificare(f"Вставлено с исходными координатами: {len(noi)}")
