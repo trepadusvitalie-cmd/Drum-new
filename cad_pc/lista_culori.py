@@ -45,8 +45,8 @@ class ListaCulori(tk.Frame):
 
     def deschide(self):
         if self.popup and self.popup.winfo_exists(): return self.inchide()
-        p = tk.Toplevel(self); p.overrideredirect(True); p.configure(bg="#3b4453", highlightthickness=1, highlightbackground=SEP)
-        p.geometry(f"+{self.winfo_rootx()}+{self.winfo_rooty() + self.winfo_height()}")
+        top = self.winfo_toplevel()
+        p = tk.Frame(top, bg="#3b4453", highlightthickness=1, highlightbackground=SEP)
         def rand(text, val):
             r = tk.Frame(p, bg="#3b4453"); r.pack(fill="x", padx=2, pady=1)
             sw = tk.Canvas(r, width=16, height=16, bg="#3b4453", highlightthickness=0); sw.create_rectangle(1, 1, 15, 15, fill="#ffffff", outline="#9aa0a8"); sw.pack(side="left", padx=4)
@@ -65,6 +65,9 @@ class ListaCulori(tk.Frame):
         ix.bind("<Button-1>", lambda e: self._din_grila(ix, e))
         d = tk.Label(p, text="🎨  Дополнительные цвета...", bg="#3b4453", fg=TEXT, font=F_MIC, anchor="w"); d.pack(fill="x", padx=6, pady=(2, 6))
         d.bind("<Button-1>", lambda e: self.alege_rgb())
+        p.update_idletasks()
+        x = min(self.winfo_rootx() - top.winfo_rootx(), top.winfo_width() - p.winfo_reqwidth() - 4)
+        p.place(x=x, y=self.winfo_rooty() - top.winfo_rooty() + self.winfo_height()); p.lift()
         self.popup = p
         self.after(150, lambda: self.winfo_toplevel().bind_all("<Button-1>", self._afara, add="+"))
 

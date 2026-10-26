@@ -63,9 +63,10 @@ class ListaStraturi(tk.Frame):
         if doc is None: return
         if self.popup and self.popup.winfo_exists(): return self.inchide()
         straturi = sorted(doc.layers, key=lambda l: (l.dxf.name != "0", l.dxf.name.lower()))
-        p = tk.Toplevel(self); p.overrideredirect(True); p.configure(bg="#2b313a", highlightthickness=1, highlightbackground=SEP)
+        top = self.winfo_toplevel()
+        p = tk.Frame(top, bg="#2b313a", highlightthickness=1, highlightbackground=SEP)
         h = min(len(straturi), 18) * RH + 4
-        p.geometry(f"{self.lat + 20}x{h}+{self.winfo_rootx()}+{self.winfo_rooty() + self.winfo_height()}")
+        p.place(x=self.winfo_rootx() - top.winfo_rootx(), y=self.winfo_rooty() - top.winfo_rooty() + self.winfo_height(), width=self.lat + 22, height=h + 2); p.lift()
         cv = tk.Canvas(p, bg="#2b313a", highlightthickness=0, width=self.lat + 4, height=h)
         sb = tk.Scrollbar(p, orient="vertical", command=cv.yview); cv.configure(yscrollcommand=sb.set, scrollregion=(0, 0, self.lat, len(straturi) * RH + 4))
         cv.pack(side="left", fill="both", expand=True)

@@ -82,9 +82,12 @@ class App:
     # ---------------------------------------------------------------- bara de sus: „A”, acces rapid, titlu, căutare
     def _bara_sus(self):
         b = tk.Frame(self.root, bg=TITLU, height=32); b.pack(fill="x"); b.pack_propagate(False)
-        a = tk.Label(b, text=" A ", bg=ROSU_A, fg="white", font=(F, -15, "bold")); a.pack(side="left", padx=(6, 0), pady=4)
-        tk.Label(b, text="▾", bg=TITLU, fg=TEXT, font=(F, -10)).pack(side="left", padx=(1, 8))
-        a.bind("<Button-1>", lambda e: self.meniu_a())
+        a = tk.Canvas(b, width=24, height=24, bg=TITLU, highlightthickness=0); a.pack(side="left", padx=(6, 0), pady=4)
+        a.create_rectangle(1, 1, 23, 23, fill=ROSU_A, outline="#e2393f"); a.create_text(12, 12, text="A", fill="white", font=(F, -15, "bold"))
+        sa = tk.Label(b, text="▾", bg=TITLU, fg=TEXT, font=(F, -10), padx=3); sa.pack(side="left", padx=(1, 8))
+        for w in (a, sa):
+            w.bind("<Button-1>", lambda e: self.meniu_a())
+            w.bind("<Enter>", lambda e: sa.config(bg=HOVER)); w.bind("<Leave>", lambda e: sa.config(bg=TITLU))
         self._qat = {}; self._qat_bara = tk.Frame(b, bg=TITLU); self._qat_bara.pack(side="left")
         self._qat_vars = {}
         self._umple_qat()
@@ -469,8 +472,9 @@ Enter или правая кнопка — завершить команду; п
     def meniu_a(self):
         """meniul „A” ca în AutoCAD: stânga comenzile, dreapta ultimele documente sau opțiunile comenzii de sub mouse"""
         if getattr(self, "_meniu", None) and self._meniu.winfo_exists(): return self._inchide_meniu()
-        m = tk.Toplevel(self.root); m.overrideredirect(True); m.configure(bg="#3b4453"); m.transient(self.root); self._meniu = m
-        x = self.root.winfo_rootx() + 4; y = self.root.winfo_rooty() + 32; m.geometry(f"520x630+{x}+{y}")
+        # cadru în interiorul ferestrei (pe Windows, ferestrele fără bară deschise din clic nu apăreau)
+        m = tk.Frame(self.root, bg="#3b4453", highlightthickness=1, highlightbackground=SEP); self._meniu = m
+        m.place(x=4, y=32, width=520, height=min(630, max(300, self.root.winfo_height() - 60))); m.lift()
         st = tk.Frame(m, bg="#3b4453", width=160); st.pack(side="left", fill="y"); st.pack_propagate(False)
         dr = tk.Frame(m, bg="#2b313a"); dr.pack(side="left", fill="both", expand=True)
         def gata(f): self._inchide_meniu(); f()
@@ -532,7 +536,7 @@ Enter или правая кнопка — завершить команду; п
                 w.bind("<Button-1>", lambda e, f=f: gata(f)); w.bind("<Enter>", intra)
                 w.bind("<Leave>", lambda e, r=r: [c.config(bg="#3b4453") for c in [r] + r.winfo_children()])
         recente()
-        m.bind("<Escape>", lambda e: self._inchide_meniu())
+        self.root.bind("<Escape>", lambda e: self._inchide_meniu(), add="+")
         # se închide la un clic în afara meniului (nu la pierderea focusului – pe Windows asta îl închidea imediat)
         self.root.after(200, lambda: self.root.bind_all("<Button-1>", self._clic_afara_meniu, add="+"))
 
