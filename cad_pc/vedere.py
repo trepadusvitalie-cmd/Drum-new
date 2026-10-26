@@ -18,6 +18,7 @@ class Vedere:
         self.s = 1.0; self.cx = 0.0; self.cy = 0.0
         self.grila = True; self.ascunse = set(); self._dupa = None
         self.selectie = set(); self.bbox = {}
+        self.foaie = None; self.sf = 1.0; self.fx = 0.0; self.fy = 0.0; self._img = None; self._cheie = None; self.versiune = 0
 
     # ---------------------------------------------------------------- încărcare
     def incarca(self, doc, layout="Model"):
@@ -27,8 +28,41 @@ class Vedere:
     def straturi(self):
         return {l.dxf.name: l for l in self.doc.layers} if self.doc else {}
 
+    # ---------------------------------------------------------------- foi (Layout): hârtia albă cu desenul randat
+    def arata_foaie(self, nume):
+        self.foaie = None if nume in (None, "Model") else nume
+        if self.foaie:
+            import tiparire
+            self.hartie = tiparire.dimensiune_foaie(self.doc, self.foaie); W, H = self.wh()
+            self.sf = min(W * 0.85 / self.hartie[0], H * 0.85 / self.hartie[1]); self.fx, self.fy = W / 2, H / 2
+        self.deseneaza()
+
+    def _deseneaza_foaie(self):
+        import tiparire
+        cv = self.cv; cv.delete("e"); cv.delete("g"); W, H = self.wh()
+        cv.create_rectangle(0, 0, W, H, fill="#4a4f57", outline="", tags="g")
+        w, h = self.hartie[0] * self.sf, self.hartie[1] * self.sf; x0, y0 = self.fx - w / 2, self.fy - h / 2
+        cv.create_rectangle(x0 + 6, y0 + 6, x0 + w + 6, y0 + h + 6, fill="#2a2d33", outline="", tags="e")
+        dpi = int(max(10, min(self.sf * 25.4, 5000 / max(self.hartie) * 25.4)))
+        cheie = (self.foaie, round(dpi), self.versiune)
+        if cheie != self._cheie:
+            try:
+                self._img = tk.PhotoImage(data=tiparire.png_foaie(self.doc, self.foaie, dpi)); self._cheie = cheie
+            except Exception:
+                import traceback; traceback.print_exc(); self._img = None
+        if self._img is not None:
+            k = w / max(1, self._img.width())
+            img = self._img if abs(k - 1) < 0.02 else (self._img.zoom(max(1, round(k))) if k > 1 else self._img.subsample(max(1, round(1 / k))))
+            self._vizibil = img; cv.create_image(self.fx, self.fy, image=img, tags="e")
+        else:
+            cv.create_rectangle(x0, y0, x0 + w, y0 + h, fill="white", outline="", tags="e")
+        cv.create_rectangle(x0, y0, x0 + w, y0 + h, outline="#9aa0a8", tags="e")
+        cv.create_rectangle(x0 + 10 * self.sf, y0 + 10 * self.sf, x0 + w - 10 * self.sf, y0 + h - 10 * self.sf, outline="#b0b0b0", dash=(4, 3), tags="e")
+        cv.tag_raise("ov"); cv.tag_raise("cur")
+
     def reconstruieste(self):
         """recalculează primitivele (după o modificare a desenului sau a straturilor)"""
+        self.versiune += 1
         self.prim = []; self._lay = self.straturi(); self.bbox = {}
         if self.layout is None: return
         for e in self.layout:
@@ -145,6 +179,7 @@ class Vedere:
         return min(xs), min(ys), max(xs), max(ys)
 
     def zoom_extinde(self):
+        if self.foaie: return self.arata_foaie(self.foaie)
         b = self.limite(); W, H = self.wh()
         if not b: self.s, self.cx, self.cy = 1.0, 0, 0
         else:
@@ -153,12 +188,16 @@ class Vedere:
         self.deseneaza()
 
     def zoom(self, f, sx, sy):
+        if self.foaie:
+            if not (0.3 < self.sf * f < 40): return
+            self.sf *= f; self.fx = sx + (self.fx - sx) * f; self.fy = sy + (self.fy - sy) * f; self._mai_tarziu(); return
         wx, wy = self.lume(sx, sy); self.s *= f
         W, H = self.wh(); self.cx = wx - (sx - W / 2) / self.s; self.cy = wy + (sy - H / 2) / self.s
         self.cv.scale("e", sx, sy, f, f); self.cv.delete("g")       # imediat (rapid), apoi redesenare completă
         self._mai_tarziu()
 
     def deplaseaza(self, dx, dy):
+        if self.foaie: self.fx += dx; self.fy += dy; self.cv.move("e", dx, dy); return
         self.cx -= dx / self.s; self.cy += dy / self.s; self.cv.move("e", dx, dy); self.cv.move("g", dx, dy)
 
     def _mai_tarziu(self, ms=140):
@@ -167,7 +206,9 @@ class Vedere:
 
     # ---------------------------------------------------------------- desenare
     def deseneaza(self):
-        self._dupa = None; cv = self.cv; cv.delete("e"); cv.delete("g")
+        self._dupa = None
+        if self.foaie: return self._deseneaza_foaie()
+        cv = self.cv; cv.delete("e"); cv.delete("g")
         W, H = self.wh()
         if self.grila: self._grila(W, H)
         s, cx, cy = self.s, self.cx, self.cy; W2, H2 = W / 2, H / 2

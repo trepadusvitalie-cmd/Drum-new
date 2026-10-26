@@ -8,8 +8,24 @@ import fisiere, panglica
 from vedere import Vedere
 from editare import Editare
 from etichete import Etichete, CULORI
+from simboluri import Simboluri
+import tiparire
 
-TITLU_APP = "CAD PC 2025"
+def _langa_exe(nume):
+    """fișiere puse de utilizator lângă exe (titlu.txt, logo.png) – nu fac parte din codul programului"""
+    d = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(d, nume)
+
+
+def _titlu_app():
+    try:
+        t = open(_langa_exe("titlu.txt"), encoding="utf-8-sig").read().strip()
+        if t: return t
+    except Exception: pass
+    return "CAD PC 2025"
+
+
+TITLU_APP = _titlu_app()
 ACI = {1: "#ff0000", 2: "#ffff00", 3: "#00ff00", 4: "#00ffff", 5: "#0000ff", 6: "#ff00ff", 7: "#ffffff", 8: "#808080", 9: "#c0c0c0"}
 NUME_CUL = {1: "Красный", 2: "Желтый", 3: "Зеленый", 4: "Голубой", 5: "Синий", 6: "Фиолетовый", 7: "Белый", 8: "8", 9: "9"}
 
@@ -44,6 +60,12 @@ COMENZI = {
     "АТРРЕД": "c_atr", "EATTEDIT": "c_atr", "ATTEDIT": "c_atr", "ДИСПАТР": "c_atr", "BATTMAN": "c_atr",
     # măsurători și altele
     "ИЗМЕРИТЬ": "c_dist", "DIST": "c_dist", "DI": "c_dist", "MEASUREGEOM": "c_dist", "ПЛОЩАДЬ": "c_arie", "AREA": "c_arie", "AA": "c_arie",
+    # etapa 3: simboluri, foi, tipărire
+    "ВСТАВИТЬ": "c_insert", "INSERT": "c_insert", "I": "c_insert", "БЛОКИ": "c_insert", "BLOCKSPALETTE": "c_insert",
+    "БЛОК": "c_bloc", "BLOCK": "c_bloc", "B": "c_bloc", "ЗАМЕНИТЬБЛОК": "c_inlocbloc", "BLOCKREPLACE": "c_inlocbloc",
+    "ПЕЧАТЬ": "c_print", "PLOT": "c_print", "PRINT": "c_print", "ПАКЕТПЕЧАТЬ": "c_print", "ПРЕДВАР": "c_print", "PREVIEW": "c_print",
+    "ЭКСПОРТPDF": "c_pdf", "EXPORTPDF": "c_pdf", "ПУБЛИКАЦИЯ": "c_pdf", "PUBLISH": "c_pdf",
+    "ЛИСТ": "foaie_noua", "LAYOUT": "foaie_noua",
     "УГОЛИЗМ": "c_unghi", "РАДИУСИЗМ": "c_raza", "КООРД": "c_coord", "ID": "c_coord", "ВСТАВИТЬИСХ": "c_liporig", "PASTEORIG": "c_liporig",
 }
 
@@ -71,7 +93,7 @@ class App:
         z = tk.Frame(root, bg=DESEN); z.pack(fill="both", expand=True)
         self.cv = tk.Canvas(z, bg=DESEN, highlightthickness=0, cursor="none" if sys.platform == "win32" else "crosshair")
         self.cv.pack(fill="both", expand=True)
-        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.ultim_mouse = (0, 0); self._prompt = None
+        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.sim = Simboluri(self); self.ultim_mouse = (0, 0); self._prompt = None
         self._linie_comanda(z)
         self._start(z)
         self._legaturi()
@@ -94,7 +116,9 @@ class App:
         sg = tk.Label(b, text="▾", bg=TITLU, fg=TEXT, font=(F, -10)); sg.pack(side="left", padx=4)
         sg.bind("<Button-1>", lambda e: self.meniu_qat(sg))
         tk.Label(b, text="➤ Общий доступ", bg=TITLU, fg="#8ab8ff", font=F_MIC).pack(side="left", padx=6)
-        self.lbl_titlu = tk.Label(b, text=TITLU_APP, bg=TITLU, fg=TEXT, font=F_TITLU); self.lbl_titlu.place(relx=0.5, rely=0.5, anchor="center")
+        self.logo = self._logo(26)
+        self.lbl_titlu = tk.Label(b, text=TITLU_APP, bg=TITLU, fg=TEXT, font=F_TITLU, image=self.logo or "", compound="left", padx=6)
+        self.lbl_titlu.place(relx=0.5, rely=0.5, anchor="center")
         h = tk.Label(b, text="?  ▾", bg=TITLU, fg=TEXT, font=(F, -13, "bold"), padx=8); h.pack(side="right")
         h.bind("<Button-1>", lambda e: self.meniu_sus("ajutor", h))
         c = tk.Label(b, text="⩓ ▾", bg=TITLU, fg=TEXT, font=(F, -14), padx=6); c.pack(side="right")
@@ -149,27 +173,35 @@ class App:
     def meniu_foi(self, w):
         m = tk.Menu(self.root, tearoff=0, bg="#3b4453", fg=TEXT, activebackground=HOVER, activeforeground="white", bd=0, font=F_MIC)
         m.add_command(label="＋  Новый лист", command=self.foaie_noua)
-        m.add_command(label="▤  Из шаблона...", command=lambda: self.mesaj("Листы из шаблона — в этапе 3."))
+        m.add_command(label="▤  Из шаблона...", command=self.foaie_noua)
         m.add_separator()
-        m.add_command(label="☰  Диспетчер параметров листов...", command=lambda: self.mesaj("Параметры листов — в этапе 3 (печать, PDF)."))
+        m.add_command(label="☰  Диспетчер параметров листов...", command=self.c_print)
         m.add_command(label="✔  Выбрать все листы", command=lambda: self.mesaj("Выбраны все листы."))
-        m.add_command(label="🖶  Опубликовать выбранные листы...", state="disabled")
+        m.add_command(label="🖶  Опубликовать выбранные листы...", command=self.c_pdf)
         m.add_separator()
         m.add_command(label="⇡  Закрепить над строкой состояния", command=lambda: self.mesaj("Вкладки листов: над строкой состояния."))
         m.add_command(label="•  Закрепить на уровне строки состояния", command=lambda: self.mesaj("Вкладки листов: на уровне строки состояния."))
         m.add_separator()
         nume = ["Model"] + ([l.name for l in self.doc.layouts if l.name != "Model"] if self.doc else ["Layout1"])
         for n in nume:
-            m.add_command(label=("  •  " if n == "Model" else "      ") + ("Модель" if n == "Model" else n),
-                          command=lambda n=n: self.mesaj(f"Лист «{n}»: просмотр листов — в этапе 3."))
+            m.add_command(label=("  •  " if n == getattr(self, "foaie_act", "Model") else "      ") + ("Модель" if n == "Model" else n),
+                          command=lambda n=n: self.schimba_foaie(n))
         m.tk_popup(w.winfo_rootx(), w.winfo_rooty() - 22 * (len(nume) + 8) - 30)
 
     def foaie_noua(self):
         if not self.doc: return self.mesaj("Нет открытого чертежа.")
         i = 1
         while f"Layout{i}" in [l.name for l in self.doc.layouts]: i += 1
-        self.doc.layouts.new(f"Layout{i}"); self.marcheaza()
-        self._taburi_layout(["Model"] + [l.name for l in self.doc.layouts if l.name != "Model"]); self.mesaj(f"Создан лист Layout{i}.")
+        lay = self.doc.layouts.new(f"Layout{i}")
+        try:                                              # foaie A3 culcată cu un viewport care arată tot modelul
+            lay.page_setup(size=(420, 297), margins=(10, 10, 10, 10), units="mm")
+            b = self.v.limite() if not self.v.foaie else None
+            if b:
+                cx, cy = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2; vh = max(b[3] - b[1], (b[2] - b[0]) * 277 / 400) * 1.05
+                lay.add_viewport(center=(210, 148.5), size=(400, 277), view_center_point=(cx, cy), view_height=vh)
+        except Exception: traceback.print_exc()
+        self.marcheaza(); self.v.versiune += 1
+        self.schimba_foaie(f"Layout{i}"); self.mesaj(f"Создан лист Layout{i} (A3) с видовым экраном на всю модель.")
 
     def meniu_cmd(self, w):
         m = tk.Menu(self.root, tearoff=0, bg="#f0f0f0", fg="#1b1b1b", activebackground="#cfe3ff", activeforeground="#000", bd=1, font=F_MIC)
@@ -229,6 +261,15 @@ class App:
 Enter или правая кнопка — завершить команду; пустой Enter — повторить последнюю команду.""")
         t.config(state="disabled")
 
+    def _logo(self, inaltime):
+        """logo.png de lângă exe, micșorat la înălțimea dată (dacă există)"""
+        p = _langa_exe("logo.png")
+        if not os.path.exists(p): return None
+        try:
+            img = tk.PhotoImage(file=p); k = max(1, round(img.height() / inaltime))
+            return img.subsample(k, k) if k > 1 else img
+        except Exception: return None
+
     # ---------------------------------------------------------------- tab-urile documentelor
     def _bara_documente(self):
         b = tk.Frame(self.root, bg=FILE, height=28); b.pack(fill="x"); b.pack_propagate(False)
@@ -269,8 +310,9 @@ Enter или правая кнопка — завершить команду; п
         for w in self.tab_lay.winfo_children(): w.destroy()
         for n in nume:
             t = "Модель" if n == "Model" else n
-            l = tk.Label(self.tab_lay, text=t, bg=CORP if n == "Model" else STARE, fg="white", font=(F, -12, "bold") if n == "Model" else F_MIC, padx=12)
-            l.pack(side="left", fill="y"); l.bind("<Button-1>", lambda e, n=n: self.mesaj(f"Лист «{n}»: листы будут доступны в версии 3 (Модель / Layout, печать, PDF)."))
+            act = n == getattr(self, "foaie_act", "Model")
+            l = tk.Label(self.tab_lay, text=t, bg=CORP if act else STARE, fg="white", font=(F, -12, "bold") if act else F_MIC, padx=12)
+            l.pack(side="left", fill="y"); l.bind("<Button-1>", lambda e, n=n: self.schimba_foaie(n))
             tk.Label(self.tab_lay, text="/", bg=STARE, fg=SEP, font=F_MIC).pack(side="left")
         pl = tk.Label(self.tab_lay, text="＋", bg=STARE, fg=TEXT, font=F_ICON_MIC, padx=8); pl.pack(side="left")
         pl.bind("<Button-1>", lambda e: self.foaie_noua())
@@ -440,7 +482,8 @@ Enter или правая кнопка — завершить команду; п
     # ---------------------------------------------------------------- pagina „Начало”
     def _start(self, z):
         s = tk.Frame(z, bg="#1b2027"); self.pagina_start = s
-        tk.Label(s, text="CAD PC 2025", bg="#1b2027", fg="white", font=(F, -34, "bold")).pack(anchor="w", padx=60, pady=(50, 4))
+        self.logo_mare = self._logo(90)
+        tk.Label(s, text=TITLU_APP, bg="#1b2027", fg="white", font=(F, -34, "bold"), image=self.logo_mare or "", compound="left", padx=12).pack(anchor="w", padx=60, pady=(50, 4))
         tk.Label(s, text="DWG / DXF — просмотр, редактирование, надписи, экспорт", bg="#1b2027", fg=GRI, font=(F, -14)).pack(anchor="w", padx=60)
         r = tk.Frame(s, bg="#1b2027"); r.pack(anchor="w", padx=60, pady=24)
         for txt, cmd in (("Новый  ▾", self.nou), ("Открыть...", self.deschide)):
@@ -499,7 +542,7 @@ Enter или правая кнопка — завершить команду; п
                 l.bind("<Button-1>", lambda e, p=p: gata(lambda: self.deschide_cale(p)))
                 l.bind("<Enter>", lambda e, l=l: l.config(bg=HOVER)); l.bind("<Leave>", lambda e, l=l: l.config(bg="#2b313a"))
             jos = tk.Frame(dr, bg="#2b313a"); jos.pack(side="bottom", fill="x", pady=8)
-            b = tk.Label(jos, text="Выход из CAD PC 2025", bg="#3b4453", fg=TEXT, font=F_MIC, padx=8, pady=3); b.pack(side="right", padx=6)
+            b = tk.Label(jos, text="Выход из " + TITLU_APP, bg="#3b4453", fg=TEXT, font=F_MIC, padx=8, pady=3); b.pack(side="right", padx=6)
             b.bind("<Button-1>", lambda e: gata(self.iesire))
             tk.Label(jos, text="Параметры", bg="#3b4453", fg=TEXT, font=F_MIC, padx=8, pady=3).pack(side="right")
         sub = {
@@ -513,10 +556,10 @@ Enter или правая кнопка — завершить команду; п
             "Импорт": [("⇩", "DWG / DXF", "Открыть чертеж", self.deschide)],
             "Экспорт": [("⇧", "DXF", "Сохранить копию в DXF", lambda: self.salveaza_ca("DXF")),
                         ("⇧", "DWG", "Сохранить копию в DWG", self.salveaza_ca),
-                        ("📄", "PDF", "Будет в этапе 3 (листы, печать)", lambda: self.executa("ЭКСПОРТPDF"))],
-            "Публикация": [("🗂", "Публикация в PDF", "Будет в этапе 3", lambda: self.executa("ПУБЛИКАЦИЯ"))],
-            "Печать": [("🖶", "Печать", "Будет в этапе 3", lambda: self.executa("ПЕЧАТЬ")),
-                       ("🔍", "Предварительный просмотр", "Будет в этапе 3", lambda: self.executa("ПРЕДВАР"))],
+                        ("📄", "PDF", "Модель или лист в PDF (A0–A5)", self.c_pdf)],
+            "Публикация": [("🗂", "Публикация в PDF", "Модель или лист в PDF", self.c_pdf)],
+            "Печать": [("🖶", "Печать", "Печать на принтер или в PDF (A0–A5)", self.c_print),
+                       ("🔍", "Предварительный просмотр", "Просмотр перед печатью", self.c_print)],
             "Утилиты": [("☰", "Свойства слоев", "Диспетчер слоев", self.dialog_straturi),
                         ("🔎", "Найти и заменить", "Поиск текста в чертеже", lambda: self.executa("НАЙТИ"))],
             "Закрыть": [("✖", "Текущий чертеж", "", self.inchide), ("✖", "Выход", "Закрыть CAD PC", self.iesire)],
@@ -573,7 +616,7 @@ Enter или правая кнопка — завершить команду; п
         r.bind("<Control-x>", lambda e: self.c_taie() if self.focus_desen() else None); r.bind("<Control-f>", lambda e: self.c_cauta())
         r.bind("<F3>", lambda e: self.comuta_stare("osnap"))
         r.bind("<Control-o>", lambda e: self.deschide()); r.bind("<Control-s>", lambda e: self.salveaza()); r.bind("<Control-S>", lambda e: self.salveaza_ca())
-        r.bind("<Control-n>", lambda e: self.nou()); r.bind("<F7>", lambda e: self.comuta_grila()); r.bind("<F8>", lambda e: self.comuta_orto())
+        r.bind("<Control-n>", lambda e: self.nou()); r.bind("<Control-p>", lambda e: self.c_print()); r.bind("<F7>", lambda e: self.comuta_grila()); r.bind("<F8>", lambda e: self.comuta_orto())
         r.protocol("WM_DELETE_WINDOW", self.iesire)
 
     def focus_desen(self):
@@ -662,7 +705,7 @@ Enter или правая кнопка — завершить команду; п
 
     def _deschis(self, doc, p):
         self.root.config(cursor=""); self.doc = doc; self.cale = p; self.modificat = False
-        self.ed.sel = set(); self.ed.anulari = []; self.ed.refaceri = []; self.v.selectie = set()
+        self.ed.sel = set(); self.ed.anulari = []; self.ed.refaceri = []; self.v.selectie = set(); self.v.foaie = None; self.foaie_act = "Model"
         self.arata_desen(); self.v.incarca(doc); self._suprapuneri(); self._titlu(); self._actualizeaza_straturi()
         self._taburi_layout(["Model"] + [l.name for l in doc.layouts if l.name != "Model"])
         n = sum(1 for _ in doc.modelspace())
@@ -774,6 +817,19 @@ Enter или правая кнопка — завершить команду; п
     def c_mtext(self): self.ed.incepe("ТЕКСТ", "МТЕКСТ  Точка вставки:", nevoie_sel=False, mtext=True)
     def c_cauta(self, txt=""):
         self.et.cauta_inlocuieste(txt if txt != "Поиск текста" else "")
+    def c_insert(self, nume=""): self.sim.dialog_inserare(nume.strip() or None)
+    def c_bloc(self): self.sim.creeaza() if self.doc else None
+    def c_inlocbloc(self): self.sim.inlocuieste() if self.doc else None
+    def c_print(self): tiparire.dialog(self)
+    def c_pdf(self): tiparire.dialog(self, doar_pdf=True)
+
+    def schimba_foaie(self, n):
+        if not self.doc: return
+        if self.ed.stare: self.ed.opreste()
+        self.foaie_act = n; self.v.arata_foaie(n); self._taburi_layout(["Model"] + [l.name for l in self.doc.layouts if l.name != "Model"])
+        self.stare["model"][0].config(text="МОДЕЛЬ" if n == "Model" else "ЛИСТ")
+        self.mesaj("Модель" if n == "Model" else f"Лист «{n}»: колесо — масштаб, нажатое колесо — панорама; печать — Ctrl+P.")
+
     def c_dist(self): self.ed.incepe("ИЗМЕРИТЬ", "ИЗМЕРИТЬ  Первая точка:", nevoie_sel=False)
     def c_arie(self): self.ed.incepe("ПЛОЩАДЬ", "ПЛОЩАДЬ  Первая угловая точка:", nevoie_sel=False)
     def c_unghi(self): self.ed.incepe("УГОЛИЗМ", "УГОЛ  Точка на первой стороне:", nevoie_sel=False)

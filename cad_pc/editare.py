@@ -92,6 +92,7 @@ class Editare:
 
     def clic(self, e):
         if self.doc is None: return
+        if self.v.foaie: return self.app.mesaj("Лист: просмотр и печать. Редактирование — на вкладке «Модель».")
         if self.stare: return self.punct(self.punct_ecran(e.x, e.y))
         h = self.la_entitate(e.x, e.y)
         if h:
@@ -253,6 +254,10 @@ class Editare:
             self.app.prompt({"ИЗМЕРИТЬ": "Вторая точка:", "УГОЛИЗМ": "Вершина угла:" if len(pts) == 1 else "Вторая сторона угла:",
                              "ПЛОЩАДЬ": "Следующая точка или [Enter = посчитать]:"}[c])
             return
+        if c == "ВСТАВКА":
+            self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); return self.app.sim.insereaza(st["bloc"], p)
+        if c == "БЛОКБАЗА":
+            self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); return self.app.sim.termina_bloc(st["bloc"], p)
         if c == "ТЕКСТ":
             self.stare = None; self.app.prompt(None); self.app.cv.delete("snap")
             return self.app.et.dialog_text(None, p, mtext=st.get("mtext", False))

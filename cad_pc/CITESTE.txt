@@ -38,5 +38,16 @@ Etapa 2 – editare si etichete
 - Meniurile din bara de stare (☰, ▾ la привязка / полярное / объектная привязка / масштаб, ⚙), bara de acces rapid ▾,
   meniul ☰ al tab-urilor, ☰ Модель/Layout (Новый лист), 🔧 din linia de comanda, „?” si coordonatele
 
-Urmeaza
-- Etapa 3: simboluri (blocuri: inserare, editare, inlocuire), pagini Модель / Layout cu vizualizare, tiparire si PDF
+Etapa 3 – simboluri, pagini, tiparire
+- ВСТАВИТЬ (I) / „Вставка ▾”: alegi blocul (cu previzualizare), scara si rotatia, apoi clic unde se pune;
+  daca blocul are atribute, se cer valorile. „Из библиотеки (DWG/DXF)...”: iei simboluri din alt desen.
+- БЛОК (B): din obiectele selectate faci un simbol nou (nume + punct de baza).
+- ЗАМЕНИТЬБЛОК: blocurile selectate se inlocuiesc cu alt simbol (atributele se pastreaza dupa nume).
+- Pagini: tab-urile de jos Модель / Layout; „+” sau ☰ → „Новый лист” = foaie A3 cu tot modelul; pe foaie: rotita = zoom.
+- ПЕЧАТЬ (Ctrl+P): imprimanta sau „Сохранить в PDF”, format A0–A5 (implicit A3), orientare, alb-negru, margini,
+  „Просмотр...”; se poate tipari Модель sau oricare foaie.
+- ЭКСПОРТPDF / meniul A → Экспорт → PDF.
+
+Titlu si logo (optional, doar la tine)
+- titlu.txt langa CAD_PC.exe = textul din bara de sus (ex.: CAD PC – Moldtelecom)
+- logo.png langa CAD_PC.exe = sigla afisata langa titlu si pe pagina de start
