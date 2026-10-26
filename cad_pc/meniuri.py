@@ -61,52 +61,75 @@ class Meniuri:
 
     # ================================================================ clic dreapta pe desen
     def context_desen(self, e):
-        a = self.app; m = tk.Menu(a.root, **M_STIL); ult = getattr(a, "ultima", None)
-        if ult: m.add_command(label=f"Повторить {ult}", command=lambda: a.executa(ult))
+        """meniul de clic dreapta, ca în AutoCAD: iconițe în stânga, litera subliniată = tasta rapidă"""
+        a = self.app; m = tk.Menu(a.root, **M_STIL); ult = getattr(a, "ultima", None); sel = bool(self.ed.sel)
+        def el(meniu, text, cmd, ic=" ", sub=-1, acc="", activ=True):
+            meniu.add_command(label=f"{ic}  {text}", command=cmd, underline=(sub + len(ic) + 2) if sub >= 0 else -1, accelerator=acc,
+                              state="normal" if activ else "disabled")
+        def cascada(text, meniu, sub=-1): m.add_cascade(label=f"    {text}", menu=meniu, underline=(sub + 4) if sub >= 0 else -1)
+        el(m, f"Повторить {ult or ''}", lambda: a.executa(ult), sub=0, activ=bool(ult))
         rec = tk.Menu(m, **M_STIL)
         for c in self.recente(): rec.add_command(label=c, command=lambda c=c: a.executa(c))
-        m.add_cascade(label="Последний ввод", menu=rec); m.add_separator()
+        cascada("Последний ввод", rec, 0); m.add_separator()
         if a.v.foaie:
-            m.add_command(label="Развернуть ВЭкран", command=lambda: a.schimba_foaie("Model"))
-            m.add_command(label="Подрезать видовой экран", command=lambda: a.mesaj("Подрезка ВЭ: будет в следующей версии."))
-            m.add_separator()
+            el(m, "Развернуть ВЭкран", lambda: a.schimba_foaie("Model"), "⤢", 0)
+            el(m, "Подрезать видовой экран", lambda: a.mesaj("Подрезка ВЭ: будет в следующей версии."), "⬚", 0); m.add_separator()
         buf = tk.Menu(m, **M_STIL)
-        for t, c, k in (("Вырезать", "ВЫРЕЗАТЬ", "Ctrl+X"), ("Вырезать с базовой точкой", "ВЫРЕЗАТЬБАЗ", "Ctrl+Shift+X"), ("Копировать", "КОПБУФ", "Ctrl+C"),
-                        ("Копировать с базовой точкой", "КОПБАЗ", "Ctrl+Shift+C"), ("Вставить", "ВСТАВИТЬБУФ", "Ctrl+V"), ("Вставить как блок", "ВСТАВИТЬБЛОК", "Ctrl+Shift+V"),
-                        ("Вставить с исходными координатами", "ВСТАВИТЬИСХ", ""), ("Специальная вставка...", "ВСТАВИТЬБУФ", "")):
-            buf.add_command(label=t, accelerator=k, command=lambda c=c: a.executa(c))
-        m.add_cascade(label="Буфер обмена", menu=buf); m.add_separator()
+        for ic, t, c, k, u in (("✂", "Вырезать", "ВЫРЕЗАТЬ", "Ctrl+X", 0), ("✂", "Вырезать с базовой точкой", "ВЫРЕЗАТЬБАЗ", "Ctrl+Shift+X", 2),
+                               ("⧉", "Копировать", "КОПБУФ", "Ctrl+C", 0), ("⧉", "Копировать с базовой точкой", "КОПБАЗ", "Ctrl+Shift+C", 1),
+                               ("📋", "Вставить", "ВСТАВИТЬБУФ", "Ctrl+V", 1), ("📋", "Вставить как блок", "ВСТАВИТЬБЛОК", "Ctrl+Shift+V", 10),
+                               ("🔗", "Вставить как гиперссылку", "ВСТАВИТЬБУФ", "", 10), ("📋", "Вставить с исходными координатами", "ВСТАВИТЬИСХ", "", 2),
+                               ("📋", "Специальная вставка...", "ВСТАВИТЬБУФ", "", 0)):
+            nevoie = c in ("ВЫРЕЗАТЬ", "ВЫРЕЗАТЬБАЗ", "КОПБУФ", "КОПБАЗ")
+            el(buf, t, lambda c=c: a.executa(c), ic, u, k, activ=sel if nevoie else True)
+        cascada("Буфер обмена", buf, 0); m.add_separator()
         iz = tk.Menu(m, **M_STIL)
-        for t, c in (("Изолировать объекты", "ИЗОЛИРОВАТЬ"), ("Скрыть объекты", "СКРЫТЬ"), ("Завершить изоляцию объектов", "НЕИЗОЛИРОВАТЬ")):
-            iz.add_command(label=t, command=lambda c=c: a.executa(c))
-        m.add_cascade(label="Изолировать", menu=iz); m.add_separator()
-        if self.ed.sel:
-            for t, c in (("Стереть", "СТЕРЕТЬ"), ("Переместить", "ПЕРЕНЕСТИ"), ("Копировать выбранные", "КОПИРОВАТЬ"), ("Масштаб", "МАСШТАБ"), ("Повернуть", "ПОВЕРНУТЬ")):
-                m.add_command(label=t, command=lambda c=c: a.executa(c))
+        for ic, t, c in (("◐", "Изолировать объекты", "ИЗОЛИРОВАТЬ"), ("◑", "Скрыть объекты", "СКРЫТЬ"), ("○", "Завершить изоляцию объектов", "НЕИЗОЛИРОВАТЬ")):
+            el(iz, t, lambda c=c: a.executa(c), ic, 0)
+        cascada("Изолировать", iz, 0); m.add_separator()
+        if sel:
+            for ic, t, c, u in (("✎", "Стереть", "СТЕРЕТЬ", 0), ("✥", "Переместить", "ПЕРЕНЕСТИ", 3), ("⧉", "Копировать выбранные", "КОПИРОВАТЬ", 0),
+                                ("⤢", "Масштаб", "МАСШТАБ", 2), ("↻", "Повернуть", "ПОВЕРНУТЬ", 5)):
+                el(m, t, lambda c=c: a.executa(c), ic, u)
             po = tk.Menu(m, **M_STIL)
             for t, c in (("На передний план", "ПОРВПЕРЕД"), ("На задний план", "ПОРНАЗАД"), ("Перед объектами", "ПОРПЕРЕД"), ("За объектами", "ПОРЗА")):
                 po.add_command(label=t, command=lambda c=c: a.executa(c))
-            m.add_cascade(label="Порядок прорисовки", menu=po)
+            cascada("Порядок прорисовки", po, 2)
             gr = tk.Menu(m, **M_STIL); gr.add_command(label="Группа", command=lambda: a.executa("ГРУППА")); gr.add_command(label="Разгруппировать", command=lambda: a.executa("РАЗГРУППИРОВАТЬ"))
-            m.add_cascade(label="Группа", menu=gr); m.add_separator()
-            m.add_command(label="Добавить выбранные", command=self.adauga_selectat); m.add_separator()
-            m.add_command(label="Выбрать подобные", command=self.selecteaza_similare); m.add_command(label="Отменить выбор", command=self.ed.goleste)
+            cascada("Группа", gr, 0); m.add_separator()
+            el(m, "Добавить выбранные", self.adauga_selectat, "⊕", 0); m.add_separator()
+            el(m, "Выбрать подобные", self.selecteaza_similare, "▣", 8); el(m, "Отменить выбор", self.ed.goleste, "✖", 0)
         else:
-            m.add_command(label="Отменить", command=lambda: a.executa("ОТМЕНИТЬ"), accelerator="Ctrl+Z")
-            m.add_command(label="Повторить", command=lambda: a.executa("ПОВТОРИТЬ"), accelerator="Ctrl+Y")
-            m.add_command(label="Панорамирование", command=lambda: a.mesaj("Панорамирование: нажатое колесо мыши.")); m.add_command(label="Зумирование", command=lambda: a.executa("ПОКАЗАТЬ"))
-            m.add_command(label="Штурвалы", command=lambda: a.mesaj("Штурвалы: колесо – масштаб, нажатое колесо – панорама, двойной щелчок колесом – показать все."))
-            m.add_separator(); rec2 = tk.Menu(m, **M_STIL); rec2.add_command(label="Запись", command=lambda: a.mesaj("Рекордер операций: будет в следующей версии.")); rec2.add_command(label="Остановить", state="disabled")
-            m.add_cascade(label="Рекордер операций", menu=rec2)
+            ua = self.ed.anulari[-1] if self.ed.anulari else None
+            el(m, f"Отменить {ult.capitalize() if ult else ''}", lambda: a.executa("ОТМЕНИТЬ"), "↶", 0, activ=bool(ua))
+            el(m, "Повторить", lambda: a.executa("ПОВТОРИТЬ"), "↷", 1, "Ctrl+Y", activ=bool(self.ed.refaceri))
+            el(m, "Панорамирование", lambda: a.mesaj("Панорамирование: нажатое колесо мыши."), "✋", 5)
+            el(m, "Зумирование", lambda: a.executa("ПОКАЗАТЬ"), "±", 0)
+            el(m, "Штурвалы", lambda: a.mesaj("Штурвалы: колесо – масштаб, нажатое колесо – панорама, двойной щелчок колесом – показать все."), "◎", 0)
+            m.add_separator(); rec2 = tk.Menu(m, **M_STIL)
+            pr = tk.Menu(rec2, **M_STIL); pr.add_command(label="(нет записанных макросов)", state="disabled"); rec2.add_cascade(label="Просмотр", menu=pr); rec2.add_separator()
+            rec2.add_command(label="○  Запись", command=lambda: a.mesaj("Рекордер операций: будет в следующей версии.")); rec2.add_command(label="☐  Остановить", state="disabled")
+            cascada("Рекордер операций", rec2, 0)
         m.add_separator()
         fs = tk.Menu(m, **M_STIL)
-        for t in ("Без фильтра", "Вершина", "Кромка", "Грань", "Журнал тела", "Компонент вида чертежа"): fs.add_command(label=t, command=lambda t=t: a.mesaj(f"Фильтр подобъектов: {t}"))
-        m.add_cascade(label="Фильтр выбора подобъектов", menu=fs)
-        m.add_command(label="Быстрый выбор...", command=self.selectie_rapida); m.add_command(label="БыстрКальк", command=self.calculator)
-        m.add_command(label="Подсчет", command=lambda: a.mesaj(f"Выбрано объектов: {len(self.ed.sel)}"), state="normal" if self.ed.sel else "disabled")
-        m.add_command(label="Найти...", command=lambda: a.executa("НАЙТИ")); m.add_command(label="Свойства", command=lambda: a.executa("СВОЙСТВА"))
-        m.add_command(label="Параметры...", command=self.parametri)
+        for ic, t in (("▢", "Без фильтра"), ("▪", "Вершина"), ("▭", "Кромка"), ("▦", "Грань"), ("▤", "Журнал тела"), ("▣", "Компонент вида чертежа")):
+            fs.add_command(label=f"{ic}  {t}", command=lambda t=t: a.mesaj(f"Фильтр подобъектов: {t}"))
+        cascada("Фильтр выбора подобъектов", fs, 0)
+        el(m, "Преобразовать MS в PS", self.ms_in_ps, "⇆", 0, activ=sel)
+        el(m, "Быстрый выбор...", self.selectie_rapida, "▣", 0); el(m, "БыстрКальк", self.calculator, "▦", 4)
+        el(m, "Подсчет", lambda: a.mesaj(f"Выбрано объектов: {len(self.ed.sel)}"), "#", 0, activ=sel)
+        el(m, "Найти...", lambda: a.executa("НАЙТИ"), "Ⓐ", 0)
+        if sel: el(m, "Свойства", lambda: a.executa("СВОЙСТВА"), "☰", 0)
+        el(m, "Параметры...", self.parametri, "✔", 0)
         m.tk_popup(e.x_root, e.y_root)
+
+    def ms_in_ps(self):
+        """Преобразовать MS в PS: obiectele selectate din model se copiază pe foaie (ultima foaie sau una nouă), încadrate"""
+        a = self.app
+        foi = [l.name for l in self.doc.layouts if l.name != "Model"]
+        if not foi: a.foaie_noua(); foi = [l.name for l in self.doc.layouts if l.name != "Model"]
+        self.ed.copiaza_buf(); a.schimba_foaie(getattr(a, "_ultima_foaie", None) if getattr(a, "_ultima_foaie", None) in foi else foi[0])
+        self.ed.incepe("ВСТАВИТЬБУФ", "Точка вставки на листе:", nevoie_sel=False, baza0=(0, 0))
 
     def recente(self):
         r = []

@@ -59,17 +59,38 @@ class Vedere:
         w, h = self.hartie[0] * self.sf, self.hartie[1] * self.sf; x0, y0 = self.fx - w / 2, self.fy - h / 2
         cv.create_rectangle(x0 + 5, y0 + 5, x0 + w + 5, y0 + h + 5, fill="#4d4d4d", outline="", tags="e")
         dpi = int(max(10, min(self.sf * 25.4, 5000 / max(self.hartie) * 25.4)))
-        cheie = (self.foaie, round(dpi), self.versiune)
-        if cheie != self._cheie:
-            try:
-                self._img = tk.PhotoImage(data=tiparire.png_foaie(self.doc, self.foaie, dpi)); self._cheie = cheie
-            except Exception:
-                import traceback; traceback.print_exc(); self._img = None
+        dpi = int(2 ** round(math.log2(dpi)))                          # trepte (16, 32, 64…): nu refac imaginea la fiecare rotire a rotiței
+        cheie = (self.foaie, dpi, self.versiune)
+        if cheie != self._cheie and getattr(self, "_in_lucru", None) != cheie:
+            self._in_lucru = cheie; doc, foaie = self.doc, self.foaie
+            def lucru():
+                try: date = tiparire.png_foaie(doc, foaie, dpi)
+                except Exception:
+                    import traceback; traceback.print_exc(); date = None
+                self._gata_png = (cheie, date)
+            import threading; threading.Thread(target=lucru, daemon=True).start()
+            def verifica():
+                g = getattr(self, "_gata_png", None)
+                if g is None or g[0] != self._in_lucru: return self.cv.after(120, verifica)
+                self._gata_png = None; self._in_lucru = None
+                if g[1]:
+                    try:
+                        from PIL import Image
+                        import io as _io
+                        self._img = Image.open(_io.BytesIO(g[1])); self._img.load(); self._cheie = g[0]; self._foto_foaie = None
+                    except Exception: self._img = None
+                if self.foaie == g[0][0]: self.deseneaza()
+            self.cv.after(120, verifica)
         cv.create_rectangle(x0, y0, x0 + w, y0 + h, fill="white", outline="", tags="e")
-        if self._img is not None:
-            k = w / max(1, self._img.width())
-            img = self._img if abs(k - 1) < 0.02 else (self._img.zoom(max(1, round(k))) if k > 1 else self._img.subsample(max(1, round(1 / k))))
-            self._vizibil = img; cv.create_image(self.fx, self.fy, image=img, tags="e")
+        if self._img is not None and self._cheie and self._cheie[0] == self.foaie:
+            from PIL import Image, ImageTk
+            dim = (max(1, int(w)), max(1, int(h)))
+            if dim[0] * dim[1] > 40e6: dim = (int(dim[0] * 0.5), int(dim[1] * 0.5))   # limită de memorie la zoom foarte mare
+            f = getattr(self, "_foto_foaie", None)
+            if f is None or f[0] != dim or f[1] is not self._img:
+                f = (dim, self._img, ImageTk.PhotoImage(self._img.resize(dim, Image.BILINEAR))); self._foto_foaie = f
+            self._vizibil = f[2]; cv.create_image(self.fx, self.fy, image=f[2], tags="e")
+        elif getattr(self, "_in_lucru", None): cv.create_text(self.fx, self.fy, text="Регенерация листа…", fill="#888", font=(F, -16), tags="e")
         bx0, by0, bx1, by1 = tiparire.cutie_foaie(self.doc, self.foaie); self._cut = (bx0, by1, x0, y0)
         ecr = lambda X, Y: (x0 + (X - bx0) * self.sf, y0 + (by1 - Y) * self.sf)
         m = tiparire.margini_foaie(self.doc, self.foaie)                          # zona tipăribilă (din setările foii)

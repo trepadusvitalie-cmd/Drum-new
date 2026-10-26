@@ -137,7 +137,7 @@ class Editare:
 
     def clic(self, e):
         if self.doc is None: return
-        if self.v.foaie and self.stare and self.stare["cmd"] == "ВСТАВИТЬБУФ":
+        if self.v.foaie and self.stare and self.stare["cmd"] in ("ВСТАВИТЬБУФ", "PUNCT", "PUNCTE"):
             return self.punct(self.v.foaie_lume(e.x, e.y))
         if self.v.foaie:                                   # pe foaie: se poate selecta rama viewport-ului
             cv = self.app.cv; vp = None

@@ -285,6 +285,18 @@ class Unelte:
         buton(f, "OK", ok, bg=ALBASTRU).pack(side="left", padx=4); buton(f, "Отмена", d.destroy).pack(side="left")
         d.bind("<Return>", ok)
 
+    def lipeste_tabel(self, txt):
+        """Ctrl+V cu un tabel copiat din Excel: devine tabel în desen (pe foaie sau în model), la punctul ales"""
+        rows = [r.split("\t") for r in txt.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+        rows = [r for r in rows if any(c.strip() for c in r)][:500]
+        if not rows: return self.app.mesaj("Буфер пуст.")
+        n = max(len(r) for r in rows); date = [[c.strip() for c in r] + [""] * (n - len(r)) for r in rows]
+        T = self.tabel
+        if self.app.v.foaie: T.update(h=2.5, lat=max(15.0, min(45.0, 3.0 * max(len(c) for r in date for c in r) or 15)))
+        T["col"] = n; T["rand"] = len(date) - 1
+        self.app.mesaj(f"Таблица из буфера: {len(date)} строк × {n} столбцов. Укажите точку вставки (левый верхний угол).")
+        self.ed.incepe("PUNCT", "Точка вставки таблицы:", nevoie_sel=False, cb=lambda p: self._tabel(p, ["Заголовок", "Заголовок", "Данные"], date))
+
     def _date_excel(self):
         from tkinter import filedialog
         p = filedialog.askopenfilename(title="Связь с данными – файл Excel", filetypes=[("Excel", "*.xlsx *.xlsm")])
@@ -318,7 +330,10 @@ class Unelte:
         if p2 is not None:                                          # zona: lățimea și înălțimea rândurilor din dreptunghi
             x0, x1 = min(p[0], p2[0]), max(p[0], p2[0]); y1, yb = max(p[1], p2[1]), min(p[1], p2[1]); y0 = y1
             lat = (x1 - x0) / nc; rh = (y1 - yb) / len(randuri)
-        msp = self.doc.modelspace(); self.ed.instantaneu([]); s = self.app.strat_curent(); W = lat * nc
+        foaie = self.app.v.foaie
+        msp = self.doc.layouts.get(foaie) if foaie else self.doc.modelspace()
+        if not foaie: self.ed.instantaneu([])
+        s = self.app.strat_curent(); W = lat * nc
         at = {"layer": s}; noi = []
         stil_txt = self.doc.header.get("$TEXTSTYLE", "Standard")
         if stil_txt not in self.doc.styles: stil_txt = "Standard"
@@ -343,6 +358,10 @@ class Unelte:
         try:
             g = self.doc.groups.new(); g.extend(noi)                # tabelul = un grup: se selectează / mută împreună
         except Exception: pass
+        if foaie:
+            self.ed.anulari = (self.ed.anulari + [("foaie", foaie, [e.dxf.handle for e in noi])])[-60:]; self.ed.refaceri = []
+            self.app.v.versiune += 1; self.app.v.deseneaza(); self.app.marcheaza()
+            return self.app.mesaj(f"Таблица {nc} × {len(randuri)} вставлена на лист «{foaie}».")
         self.ed.sel = {e.dxf.handle for e in noi}; self.ed.gata_modificare(f"Таблица {nc} × {len(randuri)} вставлена. Двойной щелчок по тексту – изменить ячейку.")
         self.app.marcheaza()
 

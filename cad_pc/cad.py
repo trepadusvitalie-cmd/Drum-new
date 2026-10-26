@@ -884,7 +884,13 @@ Enter или правая кнопка — завершить команду; п
             self.v.deseneaza(); return self.mesaj(f"Выбрано видовых экранов: {len(self.v.selectie)}")
         self.ed.tot()
     def c_copbuf(self): self.ed.copiaza_buf() if self.doc else None
-    def c_lipbuf(self): self.ed.lipeste_buf() if self.doc else None
+    def c_lipbuf(self):
+        if not self.doc: return
+        try: txt = self.root.clipboard_get()
+        except Exception: txt = ""
+        if txt and "\t" in txt and txt != getattr(self, "_clip_folosit", None):     # tabel copiat din Excel / Word
+            return self.un.lipeste_tabel(txt)
+        self.ed.lipeste_buf()
     def c_taie(self):
         if self.doc and self.ed.sel: self.ed.copiaza_buf(); self.ed.sterge()
     def c_muta(self): self.ed.incepe("ПЕРЕНЕСТИ", "ПЕРЕНЕСТИ  Базовая точка:")
