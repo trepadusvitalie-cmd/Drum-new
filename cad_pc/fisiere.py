@@ -23,6 +23,24 @@ def oda_exe():
     return shutil.which("ODAFileConverter")
 
 
+def libredwg_exe():
+    """LibreDWG (GPLv3, inclus în CAD_PC.exe): dwg2dxf.exe – deschide DWG fără AutoCAD și fără ODA"""
+    for baza in (getattr(sys, "_MEIPASS", ""), os.path.dirname(sys.executable), os.path.dirname(os.path.abspath(__file__))):
+        p = os.path.join(baza, "libredwg", "dwg2dxf.exe")
+        if baza and os.path.isfile(p): return p
+    return shutil.which("dwg2dxf")
+
+
+def _libredwg(dwg, dxf):
+    exe = libredwg_exe(); si = None
+    if sys.platform == "win32":
+        si = subprocess.STARTUPINFO(); si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    copie = os.path.join(tempfile.mkdtemp(dir=TMP), "in.dwg"); shutil.copy2(dwg, copie)
+    r = subprocess.run([exe, "-y", "-o", dxf, copie], cwd=os.path.dirname(exe), startupinfo=si, timeout=600, capture_output=True)
+    if not os.path.exists(dxf) or os.path.getsize(dxf) < 100:
+        raise EroareFisier("LibreDWG nu a putut citi fișierul (" + (r.stderr or b"").decode("utf-8", "replace").strip()[-300:] + ")")
+
+
 def autocad():
     """AutoCAD-ul de pe calculator, prin COM (pornește ascuns dacă nu e deschis)"""
     try:
@@ -40,11 +58,17 @@ def autocad():
 
 def ce_convertor():
     if oda_exe(): return "ODA File Converter"
+    if _are_autocad(): return "AutoCAD"
+    if libredwg_exe(): return "LibreDWG"
+    return None
+
+
+def _are_autocad():
     if sys.platform == "win32":
         try:
-            import winreg; winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, "AutoCAD.Application"); return "AutoCAD"
+            import winreg; winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, "AutoCAD.Application"); return True
         except Exception: pass
-    return None
+    return False
 
 
 def _oda(src, dst_dir, fmt, ver):
@@ -62,6 +86,9 @@ def _repeta(f, *a):
     """AutoCAD ocupat (pornește, are o comandă activă) răspunde „call rejected”: mai încerc până la 60 s"""
     for i in range(120):
         try: return f(*a)
+        except AttributeError:                            # pywin32 raportează „<unknown>.Open” când AutoCAD e ocupat
+            if i < 119: time.sleep(0.5); continue
+            raise
         except Exception as ex:
             cod = getattr(ex, "hresult", None) or (ex.args[0] if getattr(ex, "args", None) else None)
             if cod in (-2147418111, -2147417846, -2147417848) and i < 119: time.sleep(0.5); continue
@@ -94,12 +121,15 @@ def dwg_in_dxf(dwg):
     out_dir = tempfile.mkdtemp(dir=TMP); dxf = os.path.join(out_dir, os.path.splitext(os.path.basename(dwg))[0] + ".dxf")
     if oda_exe():
         _oda(dwg, out_dir, "DXF", "ACAD2018")
-    elif ce_convertor() == "AutoCAD":
+    elif _are_autocad():
         try: _acad(dwg, dxf, 65)
-        except EroareFisier: raise
         except Exception as ex:
-            raise EroareFisier("AutoCAD nu a putut transforma fișierul DWG (" + (str(ex) or type(ex).__name__) + ").\n\n"
-                               "Soluția sigură: instalează ODA File Converter (gratuit):\nhttps://www.opendesign.com/guestfiles/oda_file_converter")
+            if not libredwg_exe():
+                raise EroareFisier("AutoCAD nu a putut transforma fișierul DWG (" + (str(ex) or type(ex).__name__) + ").\n\n"
+                                   "Soluția sigură: instalează ODA File Converter (gratuit):\nhttps://www.opendesign.com/guestfiles/oda_file_converter")
+            _libredwg(dwg, dxf)                            # AutoCAD a refuzat: încerc cu LibreDWG (inclus)
+    elif libredwg_exe():
+        _libredwg(dwg, dxf)
     else:
         raise EroareFisier("Pentru DWG e nevoie de ODA File Converter (gratuit, opendesign.com) sau de AutoCAD instalat.\n"
                            "Poți deschide direct fișierele DXF.")
@@ -114,7 +144,7 @@ def dxf_in_dwg(dxf, dwg, versiune="AutoCAD 2018"):
         rez = os.path.join(out_dir, os.path.splitext(os.path.basename(dxf))[0] + ".dwg")
         if not os.path.exists(rez): raise EroareFisier("Transformarea DXF → DWG a eșuat.")
         shutil.move(rez, dwg)
-    elif ce_convertor() == "AutoCAD":
+    elif _are_autocad():
         _acad(dxf, dwg, ac_dwg)
     else:
         raise EroareFisier("Pentru salvarea în DWG e nevoie de ODA File Converter (gratuit) sau de AutoCAD instalat.\nSalvează ca DXF.")
