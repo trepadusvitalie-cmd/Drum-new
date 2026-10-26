@@ -175,8 +175,8 @@ class Editare:
                     if t.startswith("hvp"): vp = t[3:]
             self.v.selectie = {"vp" + vp} if vp else set(); self.v.deseneaza()
             return self.app.mesaj("Видовой экран выбран. Правая кнопка – «Развернуть ВЭкран»." if vp else "Лист: редактирование модели – на вкладке «Модель».")
-        if self.stare: return self.punct(self.punct_ecran(e.x, e.y))
-        g = self._la_maner(e.x, e.y)
+        if self.stare and self.stare["cmd"] != "SELECTIE": return self.punct(self.punct_ecran(e.x, e.y))
+        g = self._la_maner(e.x, e.y) if not self.stare else None
         if g:                                              # clic pe un mâner albastru: ** РАСТЯНУТЬ ** ca în AutoCAD
             h, p0 = g; self.stare = dict(cmd="GRIP", h=h, p0=p0, baza=p0, puncte=[])
             sx, sy = self.v.ecran(*p0); self.app.cv.create_rectangle(sx - 5, sy - 5, sx + 5, sy + 5, fill="#e8423f", outline="white", tags="grip")
@@ -190,14 +190,14 @@ class Editare:
         self._fer = (e.x, e.y)                              # începe selecția cu fereastră
 
     def trage(self, e):
-        if self.stare or not self._fer: return
+        if (self.stare and self.stare["cmd"] != "SELECTIE") or not self._fer: return
         cv = self.app.cv; cv.delete("fer"); x0, y0 = self._fer
         dreapta = e.x >= x0
         cv.create_rectangle(x0, y0, e.x, e.y, outline="#4f8ff7" if dreapta else "#5fd36b", dash=() if dreapta else (5, 3),
                             fill="#4f8ff7" if dreapta else "#5fd36b", stipple="gray12", tags="fer")
 
     def elibereaza(self, e):
-        if self.stare or not self._fer: return
+        if (self.stare and self.stare["cmd"] != "SELECTIE") or not self._fer: return
         x0, y0 = self._fer; self._fer = None; self.app.cv.delete("fer")
         if abs(e.x - x0) < 4 and abs(e.y - y0) < 4:
             if not (e.state & 0x1) and self.sel: self.sel = set(); self.arata_selectia()
@@ -251,7 +251,10 @@ class Editare:
     # ---------------------------------------------------------------- comenzi interactive (cer puncte)
     def incepe(self, cmd, prompt, nevoie_sel=True, **date):
         if self.doc is None: return self.app.mesaj("Нет открытого чертежа.")
-        if nevoie_sel and not self.sel: return self.app.mesaj(f"{cmd}: сначала выберите объекты (щелчок или рамка), затем снова команду.")
+        if nevoie_sel and not self.sel:                    # ca în AutoCAD: întâi comanda, apoi alegi obiectele, Enter
+            self.stare = dict(cmd="SELECTIE", urm=(cmd, prompt, date), baza=None, puncte=[])
+            t = f"{cmd}  Выберите объекты (щелчок или рамка), Enter / правая кнопка – продолжить:"
+            self.app.mesaj(t); return self.app.prompt(t)
         self.stare = dict(cmd=cmd, baza=None, puncte=[], **date); self.app.mesaj(prompt); self.app.prompt(prompt)
 
     def opreste(self, mesaj="*Прервано*"):
@@ -283,6 +286,9 @@ class Editare:
     def valoare(self, t):
         """text scris în linia de comandă cât o comandă cere ceva: număr, punct „x,y” sau Da/Nu"""
         st = self.stare; t = (t or "").strip()
+        if st["cmd"] == "SELECTIE":
+            if not self.sel: return self.app.mesaj("Ничего не выбрано. Выберите объекты или Esc.")
+            cmd, prompt, date = st["urm"]; self.stare = None; return self.incepe(cmd, prompt, **date)
         if st["cmd"] in ("REPETAT", "PUNCTE", "PUNCT"):
             if not t:
                 if st["cmd"] == "REPETAT":
