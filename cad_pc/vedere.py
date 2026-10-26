@@ -70,7 +70,7 @@ class Vedere:
             k = w / max(1, self._img.width())
             img = self._img if abs(k - 1) < 0.02 else (self._img.zoom(max(1, round(k))) if k > 1 else self._img.subsample(max(1, round(1 / k))))
             self._vizibil = img; cv.create_image(self.fx, self.fy, image=img, tags="e")
-        bx0, by0, bx1, by1 = tiparire.cutie_foaie(self.doc, self.foaie)
+        bx0, by0, bx1, by1 = tiparire.cutie_foaie(self.doc, self.foaie); self._cut = (bx0, by1, x0, y0)
         ecr = lambda X, Y: (x0 + (X - bx0) * self.sf, y0 + (by1 - Y) * self.sf)
         m = tiparire.margini_foaie(self.doc, self.foaie)                          # zona tipăribilă (din setările foii)
         a, b = ecr(bx0 + m[0], by1 - m[3]); c, d = ecr(bx1 - m[2], by0 + m[1])
@@ -86,6 +86,11 @@ class Vedere:
                     for gx, gy in ((a, b), (c, b), (a, d), (c, d)): cv.create_rectangle(gx - 5, gy - 5, gx + 5, gy + 5, fill="#2a6fd6", outline="white", tags="e")
         except Exception: pass
         cv.tag_raise("ov"); cv.tag_raise("cur")
+
+    def foaie_lume(self, sx, sy):
+        """punct de pe ecran → coordonate pe hârtie (mm, spațiul foii)"""
+        bx0, by1, x0, y0 = getattr(self, "_cut", (0, 0, 0, 0))
+        return bx0 + (sx - x0) / self.sf, by1 - (sy - y0) / self.sf
 
     def reconstruieste(self):
         """recalculează primitivele (după o modificare a desenului sau a straturilor)"""

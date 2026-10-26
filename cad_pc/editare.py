@@ -78,6 +78,13 @@ class Editare:
 
     def _aplica_rec(self, rec):
         """readuce desenul la starea din înregistrare; întoarce înregistrarea inversă și ce trebuie redesenat"""
+        if rec[0] == "foaie":                              # obiecte lipite pe o foaie: anularea le scoate
+            lay = self.doc.layouts.get(rec[1])
+            for h in rec[2]:
+                e = self.ent(h)
+                if e is not None and e.is_alive: lay.delete_entity(e)
+            self.v.versiune += 1; self.v.deseneaza(); return ("nimic",)
+        if rec[0] == "nimic": return ("nimic",)
         if rec[0] == "full":
             s = io.StringIO(); self.doc.write(s); inv = ("full", zlib.compress(s.getvalue().encode("utf-8"), 3))
             doc = ezdxf.read(io.StringIO(zlib.decompress(rec[1]).decode("utf-8")))
@@ -130,6 +137,8 @@ class Editare:
 
     def clic(self, e):
         if self.doc is None: return
+        if self.v.foaie and self.stare and self.stare["cmd"] == "ВСТАВИТЬБУФ":
+            return self.punct(self.v.foaie_lume(e.x, e.y))
         if self.v.foaie:                                   # pe foaie: se poate selecta rama viewport-ului
             cv = self.app.cv; vp = None
             for it in cv.find_overlapping(e.x - 4, e.y - 4, e.x + 4, e.y + 4):
@@ -330,6 +339,8 @@ class Editare:
         if c == "ТЕКСТ":
             self.stare = None; self.app.prompt(None); self.app.cv.delete("snap")
             return self.app.et.dialog_text(None, p, mtext=st.get("mtext", False))
+        if c == "ВСТАВИТЬБУФ" and self.v.foaie:
+            return self._lipeste_pe_foaie(p)
         if c == "ВСТАВИТЬБУФ":
             self.instantaneu([]); bx, by = st["baza0"]; m = Matrix44.translate(p[0] - bx, p[1] - by, 0); msp = self.doc.modelspace(); noi = set()
             for e in self.clip:
@@ -338,6 +349,28 @@ class Editare:
                 except Exception: pass
                 noi.add(c2.dxf.handle)
             self.sel = noi; self.gata_modificare(f"Вставлено объектов: {len(noi)}"); return self.opreste("Готово.")
+
+    def _lipeste_pe_foaie(self, p):
+        """lipirea pe o foaie (Layout): obiectele intră în spațiul foii; dacă sunt mai mari decât hârtia, se micșorează cât zona tipăribilă"""
+        import tiparire
+        lay = self.doc.layouts.get(self.v.foaie)
+        cb = getattr(self, "clip_cutie", None)
+        if cb: x0, y0, x1, y1 = cb
+        else: x0, y0 = self.clip_baza or (0, 0); x1, y1 = x0 + 1, y0 + 1
+        w, h = tiparire.dimensiune_foaie(self.doc, self.v.foaie); mg = tiparire.margini_foaie(self.doc, self.v.foaie)
+        lw, lh = w - mg[0] - mg[2], h - mg[1] - mg[3]; k = 1.0
+        if (x1 - x0) > lw or (y1 - y0) > lh: k = min(lw / max(x1 - x0, 1e-9), lh / max(y1 - y0, 1e-9))
+        sw, sh = (x1 - x0) * k, (y1 - y0) * k                         # rămâne în zona tipăribilă (originea foii = colțul ei)
+        px = max(0.0, min(p[0], lw - sw)); py = max(0.0, min(p[1], lh - sh))
+        m = Matrix44.translate(-x0, -y0, 0) @ Matrix44.scale(k, k, k) @ Matrix44.translate(px, py, 0); noi = []
+        for e in self.clip:
+            c2 = e.copy(); lay.add_entity(c2)
+            try: c2.transform(m)
+            except Exception: pass
+            noi.append(c2.dxf.handle)
+        self.anulari = (self.anulari + [("foaie", self.v.foaie, noi)])[-60:]; self.refaceri = []
+        self.v.versiune += 1; self.stare = None; self.app.prompt(None); self.app.cv.delete("snap"); self.v.deseneaza(); self.app.marcheaza()
+        self.app.mesaj(f"Вставлено на лист «{self.v.foaie}»: {len(noi)} объектов" + (f", масштаб 1:{1 / k:.0f} (вписано в лист)." if k < 1 else "."))
 
     def _puncte_avans(self, val):
         st = self.stare; st["puncte"].append(val)
@@ -409,7 +442,10 @@ class Editare:
         self.sel = noi; self.gata_modificare(f"Расчленено объектов: {n}")
 
     def copiaza_buf(self):
-        self.clip = [self.ent(h).copy() for h in self.sel if self.ent(h) is not None]; self.clip_baza = None
+        hs = [h for h in self.sel if self.ent(h) is not None]
+        self.clip = [self.ent(h).copy() for h in hs]; self.clip_baza = None
+        bb = [self.v.bbox[h] for h in hs if h in self.v.bbox]           # cutia originalelor (copiile nu au handle)
+        self.clip_cutie = (min(b[0] for b in bb), min(b[1] for b in bb), max(b[2] for b in bb), max(b[3] for b in bb)) if bb else None
         self.app.mesaj(f"Скопировано в буфер: {len(self.clip)} объектов.")
 
     def lipeste_buf(self):
