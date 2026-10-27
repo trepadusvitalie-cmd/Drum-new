@@ -1038,9 +1038,12 @@ Enter или правая кнопка — завершить команду; п
     def combo_ales(self, k, val):
         if not self.doc: return
         if k == "слой":
-            n = val[2:]
-            if self.ed.sel: self.ed.schimba_strat(n)                  # ca în AutoCAD: cu obiecte selectate, lista schimbă stratul lor
+            n = val[2:] if val.startswith("● ") else val
+            if self.ed.sel:                                            # ca în AutoCAD: cu obiecte selectate, lista schimbă stratul lor
+                self.ed.schimba_strat(n); self.mesaj(f"Объекты ({len(self.ed.sel)}) перенесены на слой «{n}».")
             else: self.doc.header["$CLAYER"] = n; self.mesaj(f"Текущий слой: {n}")
+            cb = self.pg.combo.get("слой")
+            if cb is not None: cb.set("● " + n)                        # lista arată stratul ales
         elif k == "цвет":
             v = dict(CULORI)[val[2:]]
             if not self.ed.schimba_culoare(v): self.mesaj("Выберите объекты, затем цвет.")
