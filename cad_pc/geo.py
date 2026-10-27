@@ -321,12 +321,44 @@ def import_geo(app, cale=None):
 
 
 # ---------------------------------------------------------------- harta de fundal (Esri)
+ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/{}/MapServer/tile/{{z}}/{{y}}/{{x}}"
+# hărțile de fundal (ca „Basemap” din ArcGIS Pro): nume → straturi (primul = fundal, restul = etichete transparente peste)
 SURSE = {
-    "Спутник (Esri World Imagery)": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    "Улицы (Esri World Street Map)": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-    "Топография (Esri World Topo Map)": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    "Imagery (Спутник)": ["World_Imagery"],
+    "Imagery Hybrid (Спутник + подписи)": ["World_Imagery", "Reference/World_Boundaries_and_Places", "Reference/World_Transportation"],
+    "Streets (Улицы)": ["World_Street_Map"],
+    "Topographic (Топография)": ["World_Topo_Map"],
+    "Terrain with Labels (Рельеф с подписями)": ["World_Terrain_Base", "Reference/World_Reference_Overlay"],
+    "Light Gray Canvas (Светло-серая)": ["Canvas/World_Light_Gray_Base", "Canvas/World_Light_Gray_Reference"],
+    "Dark Gray Canvas (Темно-серая)": ["Canvas/World_Dark_Gray_Base", "Canvas/World_Dark_Gray_Reference"],
+    "Oceans (Океаны)": ["Ocean/World_Ocean_Base", "Ocean/World_Ocean_Reference"],
+    "National Geographic Style": ["NatGeo_World_Map"],
+    "Shaded Relief (Отмывка рельефа)": ["World_Shaded_Relief"],
+    "Physical (Физическая)": ["World_Physical_Map"],
+    "OpenStreetMap": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
 }
+SURSE_VECHI = {"Спутник (Esri World Imagery)": "Imagery (Спутник)", "Улицы (Esri World Street Map)": "Streets (Улицы)", "Топография (Esri World Topo Map)": "Topographic (Топография)"}
+
+
+def url_strat(s):
+    return s if s.startswith("http") else ESRI.format(s)
+
+
 ATRIBUIRE = "Карта: Esri, Maxar, Earthstar Geographics, участники OpenStreetMap"
+
+
+def placa(strat, z, x, y, timeout=15):
+    """o placă de hartă (din cache-ul de pe disc sau de pe internet) → imagine PIL RGBA, sau None"""
+    from PIL import Image
+    import urllib.request, hashlib
+    f = os.path.join(_dosar_cache(), hashlib.md5(strat.encode()).hexdigest()[:10] + f"_{z}_{x}_{y}.img")
+    try:
+        if os.path.exists(f): im = Image.open(f)
+        else:
+            req = urllib.request.Request(url_strat(strat).format(z=z, x=x, y=y), headers={"User-Agent": "CAD-PC/3.3 (desktop CAD; contact: local user)"})
+            data = urllib.request.urlopen(req, timeout=timeout).read(); open(f, "wb").write(data); im = Image.open(io.BytesIO(data))
+        im.load(); return im.convert("RGBA")
+    except Exception: return None
 
 
 def _dosar_cache():
@@ -344,33 +376,35 @@ def _tile_ll(x, y, z):
     return lat, lon
 
 
+def Image_alpha(a, b):
+    from PIL import Image
+    if b.size != a.size: b = b.resize(a.size)
+    return Image.alpha_composite(a, b)
+
+
 class Harta:
     """plăcile hărții sub desen: pentru fiecare placă vizibilă calculez colțurile în MOLDREF99 și o întind pe ecran"""
     def __init__(self, v):
         self.v = v; self.sursa = None; self.c = {}; self.in_lucru = set(); self.foto = []; self._verif = None; self.lock = threading.Lock()
 
-    def porneste(self, sursa): self.sursa = sursa; self.v.deseneaza()
+    def porneste(self, sursa): self.sursa = SURSE_VECHI.get(sursa, sursa); self.v.deseneaza()
     def opreste(self): self.sursa = None; self.v.cv.delete("harta"); self.v.deseneaza()
 
     def _ia(self, z, x, y):
         k = (self.sursa, z, x, y)
         if k in self.c: return self.c[k]
         if k in self.in_lucru: return None
-        self.in_lucru.add(k)
+        self.in_lucru.add(k); straturi = SURSE.get(self.sursa, [])
         def lucru():
-            from PIL import Image
-            import urllib.request
-            f = os.path.join(_dosar_cache(), f"{list(SURSE).index(self.sursa)}_{z}_{x}_{y}.jpg"); im = None
-            try:
-                if os.path.exists(f): im = Image.open(f); im.load()
-                else:
-                    req = urllib.request.Request(SURSE[self.sursa].format(z=z, x=x, y=y), headers={"User-Agent": "CAD-PC/3.3"})
-                    data = urllib.request.urlopen(req, timeout=15).read(); open(f, "wb").write(data); im = Image.open(io.BytesIO(data)); im.load()
-                im = im.convert("RGB")
-            except Exception: im = False
+            im = None
+            for st in straturi:                                   # fundalul + etichetele transparente peste el
+                p = placa(st, z, x, y)
+                if p is None: continue
+                im = p if im is None else Image_alpha(im, p)
+            res = im.convert("RGB") if im is not None else False
             with self.lock:
                 if len(self.c) > 400: self.c.clear()
-                self.c[k] = im; self.in_lucru.discard(k)
+                self.c[k] = res; self.in_lucru.discard(k)
         threading.Thread(target=lucru, daemon=True).start()
         return None
 

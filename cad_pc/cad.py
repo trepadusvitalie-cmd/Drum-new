@@ -13,6 +13,7 @@ from imagini import Imagini
 from unelte import Unelte
 from desen import Desen
 from meniuri import Meniuri
+from gis import Gis
 import geo
 import tiparire
 
@@ -113,6 +114,11 @@ COMENZI = {
     "ЭКСПОРТKML": "c_export_gis:.kml", "ЭКСПОРТKMZ": "c_export_gis:.kmz", "SHP": "c_export_gis:.shp", "KML": "c_export_gis:.kml",
     "ГЕОМЕСТО": "c_geo_esri", "GEOGRAPHICLOCATION": "c_geo_esri", "ГЕОESRI": "c_geo_esri", "ГЕОBING": "c_geo_bing", "ГЕОФАЙЛ": "c_geo_fisier", "ГЕОКАРТА": "c_geo_esri",
     "РЗМСТИЛЬ": "c_stil_info:Размерный стиль", "МЛСТИЛЬ": "c_stil_info:Стиль мультивыноски", "ТАБЛСТИЛЬ": "c_stil_info:Стиль таблиц",
+    "БАЗКАРТА": "gis.galerie", "BASEMAP": "gis.galerie", "ДОБДАННЫЕ": "meniu_sub:ДОБДАННЫЕ", "ADDDATA": "meniu_sub:ДОБДАННЫЕ",
+    "ВЫБРАТЬФОРМА": "gis.selecteaza:poligon", "ВЫБПРЯМ": "gis.selecteaza:dreptunghi", "ВЫБПОЛИГОН": "gis.selecteaza:poligon", "ВЫБЛАССО": "gis.selecteaza:lasou",
+    "ВЫБКРУГ": "gis.selecteaza:cerc", "ВЫБЛИНИЯ": "gis.selecteaza:linie", "ВЫБТРАССА": "gis.selecteaza:traseu",
+    "ВЫБАТР": "gis.dupa_atribute", "SELECTBYATTRIBUTES": "gis.dupa_atribute", "ВЫБРАСП": "gis.dupa_locatie", "SELECTBYLOCATION": "gis.dupa_locatie",
+    "ОЧИСТВЫБ": "ed.goleste", "CLEARSELECTION": "ed.goleste",
     "ПРИСОЕД": "c_imagine", "ИЗОБР": "c_imagine", "IMAGEATTACH": "c_imagine", "IMAGE": "c_imagine", "IAT": "c_imagine", "ATTACH": "c_imagine", "TIFF": "c_imagine",
     "УГОЛИЗМ": "c_unghi", "РАДИУСИЗМ": "c_raza", "КООРД": "c_coord", "ID": "c_coord", "ВСТАВИТЬИСХ": "c_liporig", "PASTEORIG": "c_liporig",
 }
@@ -141,7 +147,7 @@ class App:
         z = tk.Frame(root, bg=DESEN); z.pack(fill="both", expand=True)
         self.cv = tk.Canvas(z, bg=DESEN, highlightthickness=0, cursor="none" if sys.platform == "win32" else "crosshair")
         self.cv.pack(fill="both", expand=True)
-        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.sim = Simboluri(self); self.img = Imagini(self); self.un = Unelte(self); self.ds = Desen(self); self.mn = Meniuri(self); self.ultim_mouse = (0, 0); self._prompt = None
+        self.v = Vedere(self.cv); self.ed = Editare(self); self.et = Etichete(self); self.sim = Simboluri(self); self.img = Imagini(self); self.un = Unelte(self); self.ds = Desen(self); self.mn = Meniuri(self); self.gis = Gis(self); self.ultim_mouse = (0, 0); self._prompt = None
         self._linie_comanda(z)
         self._start(z)
         self._legaturi()
