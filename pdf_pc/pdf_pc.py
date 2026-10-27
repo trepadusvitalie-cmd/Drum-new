@@ -82,17 +82,7 @@ class App:
         except Exception: pass
         st.configure("Ul.TButton", padding=(6, 2)); st.configure("Un.Toolbutton", padding=(6, 2), font=("Segoe UI", 11))
         m = tk.Menu(self.root); self.root.config(menu=m)
-        f = tk.Menu(m, tearoff=0); m.add_cascade(label="Fișier", menu=f)
-        f.add_command(label="Deschide…   Ctrl+O", command=self.deschide_dialog)
-        f.add_command(label="Combină fișiere…", command=lambda: self.combina_dialog([]))
-        f.add_separator()
-        f.add_command(label="Salvează   Ctrl+S", command=self.salveaza)
-        f.add_command(label="Salvează ca…   Ctrl+Shift+S", command=lambda: self.salveaza(ca=True))
-        f.add_command(label="Imprimă…   Ctrl+P", command=self.imprima)
-        f.add_separator()
-        f.add_command(label="Adaugă în meniul click-dreapta din Windows", command=lambda: self.meniu_windows(True))
-        f.add_command(label="Elimină din meniul click-dreapta", command=lambda: self.meniu_windows(False))
-        f.add_separator(); f.add_command(label="Ieșire", command=self.iesire)
+        self.m_fis = tk.Menu(m, tearoff=0, postcommand=self._meniu_fisier); m.add_cascade(label="Fișier", menu=self.m_fis)
         p = tk.Menu(m, tearoff=0); m.add_cascade(label="Pagini", menu=p)
         p.add_command(label="Pagină nouă (A0…A5)…", command=self.pagina_noua)
         p.add_command(label="Inserează din fișier (PDF, Word, Excel, imagine)…", command=self.insereaza_dialog)
@@ -177,6 +167,8 @@ class App:
         r = self.root
         r.bind_all("<Control-o>", lambda e: self.deschide_dialog()); r.bind_all("<Control-s>", lambda e: self.salveaza())
         r.bind_all("<Control-S>", lambda e: self.salveaza(ca=True)); r.bind_all("<Control-p>", lambda e: self.imprima())
+        r.bind_all("<Control-w>", lambda e: self.inchide()); r.bind_all("<Control-q>", lambda e: self.iesire())
+        r.bind_all("<Control-d>", lambda e: self.proprietati())
         r.bind_all("<Control-z>", lambda e: self.anuleaza()); r.bind_all("<Control-y>", lambda e: self.reface())
         r.bind_all("<Control-plus>", lambda e: self.zoom(1.25)); r.bind_all("<Control-equal>", lambda e: self.zoom(1.25)); r.bind_all("<Control-minus>", lambda e: self.zoom(0.8))
         r.bind_all("<Prior>", lambda e: self._tasta_nav(-1)); r.bind_all("<Next>", lambda e: self._tasta_nav(1))
@@ -189,8 +181,9 @@ class App:
 
     def _tasta_ctrl(self, e):
         """Ctrl+O/S/Z/Y/P merg și cu tastatura rusă/română (după codul tastei)"""
-        if not (e.state & 4) or e.keysym.lower() in "oszyp" and len(e.keysym) == 1: return
-        k = {79: self.deschide_dialog, 83: self.salveaza, 90: self.anuleaza, 89: self.reface, 80: self.imprima}.get(e.keycode)
+        if not (e.state & 4) or e.keysym.lower() in "oszypwqd" and len(e.keysym) == 1: return
+        k = {79: self.deschide_dialog, 83: self.salveaza, 90: self.anuleaza, 89: self.reface, 80: self.imprima,
+             87: self.inchide, 81: self.iesire, 68: self.proprietati}.get(e.keycode)
         if k and sys.platform == "win32": k()
 
     def _focus_text(self):
@@ -299,7 +292,7 @@ class App:
             p = simpledialog.askstring(NUME, "PDF protejat. Parola:", show="*", parent=self.root)
             if not p or not d.authenticate(p): messagebox.showerror(NUME, "Parolă greșită.", parent=self.root); d.close(); return
         ext = os.path.splitext(cale)[1].lower()
-        self._incarca(d, cale if ext == ".pdf" else None, os.path.basename(cale), modificat=ext != ".pdf")
+        self._recent(cale); self._incarca(d, cale if ext == ".pdf" else None, os.path.basename(cale), modificat=ext != ".pdf")
         if ext != ".pdf": self.stare(f"{os.path.basename(cale)} a fost convertit în PDF – salvează-l cu Ctrl+S.")
 
     def _incarca(self, d, cale, titlu, modificat=False):
@@ -342,7 +335,7 @@ class App:
             if not cale: return
         def op(): salveaza(self.doc, cale)
         def g(_):
-            self.cale = cale; self.modificat = False; self.titlu = os.path.basename(cale)
+            self.cale = cale; self.modificat = False; self.titlu = os.path.basename(cale); self._recent(cale)
             self.root.title(f"{self.titlu} – {NUME}"); self.undo = [x for x in self.undo if x[0] == "doc"]; self.redo = []
             self._reface_thumbs(); self._pagina_noua_afis(sus=False); self.stare("✔ Salvat: " + cale)
             if dupa: dupa()
@@ -361,7 +354,144 @@ class App:
 
     def iesire(self):
         if self.ocupat and not messagebox.askyesno(NUME, "O operație este în lucru. Închizi oricum?", parent=self.root): return
+        scr_cfg(sesiune=[self.cale] if self.cale else [])
         self._intreaba_salvare(self.root.destroy)
+
+    # ======================= meniul Fișier (ca în programele PDF obișnuite) =======================
+    def _meniu_fisier(self):
+        f = self.m_fis; f.delete(0, "end"); are = self.doc is not None
+        st = lambda c: "normal" if c else "disabled"
+        f.add_command(label="Deschide…", accelerator="Ctrl+O", command=self.deschide_dialog)
+        ses = [x for x in cit_cfg().get("sesiune", []) if os.path.exists(x)]
+        f.add_command(label="Redeschide PDF-urile din ultima sesiune", state=st(ses), command=lambda: self.deschide(ses[0]) if len(ses) == 1 else self.combina_dialog(ses))
+        f.add_command(label="Combină fișiere…", command=lambda: self.combina_dialog([]))
+        f.add_separator()
+        f.add_command(label="Salvează", accelerator="Ctrl+S", state=st(are), command=self.salveaza)
+        f.add_command(label="Salvează ca…", accelerator="Shift+Ctrl+S", state=st(are), command=lambda: self.salveaza(ca=True))
+        alt = tk.Menu(f, tearoff=0)
+        alt.add_command(label="Word (.docx)…", command=lambda: self.exporta("docx"))
+        alt.add_command(label="Imagini PNG (câte una pe pagină)…", command=lambda: self.exporta("png"))
+        alt.add_command(label="Imagini JPG (câte una pe pagină)…", command=lambda: self.exporta("jpg"))
+        alt.add_command(label="Text (.txt)…", command=lambda: self.exporta("txt"))
+        alt.add_command(label="PDF micșorat (dimensiune redusă)…", command=lambda: self.exporta("mic"))
+        f.add_cascade(label="Salvează în alt format", menu=alt, state=st(are))
+        f.add_separator()
+        f.add_command(label="Revino la versiunea salvată", state=st(are and self.cale), command=self.revino)
+        f.add_command(label="Închide fișierul", accelerator="Ctrl+W", state=st(are), command=self.inchide)
+        f.add_separator()
+        f.add_command(label="Proprietăți…", accelerator="Ctrl+D", state=st(are), command=self.proprietati)
+        f.add_separator()
+        f.add_command(label="Imprimă…", accelerator="Ctrl+P", state=st(are), command=self.imprima)
+        f.add_separator()
+        rec = [x for x in cit_cfg().get("recente", []) if os.path.exists(x)]
+        for k, x in enumerate(rec[:5]):
+            n = x if len(x) < 55 else x[:3] + "…" + x[-50:]
+            f.add_command(label=f"{k + 1}  {n}", underline=0, command=lambda x=x: self.deschide(x))
+        f.add_command(label="Toate fișierele recente…", state=st(rec), command=self.toate_recente)
+        f.add_separator()
+        f.add_command(label="Adaugă în meniul click-dreapta din Windows", command=lambda: self.meniu_windows(True))
+        f.add_command(label="Elimină din meniul click-dreapta", command=lambda: self.meniu_windows(False))
+        f.add_separator()
+        f.add_command(label="Ieșire", accelerator="Ctrl+Q", command=self.iesire)
+
+    def _recent(self, cale):
+        if not cale: return
+        r = [cale] + [x for x in cit_cfg().get("recente", []) if os.path.normcase(x) != os.path.normcase(cale)]
+        scr_cfg(recente=r[:30])
+
+    def toate_recente(self):
+        d = tk.Toplevel(self.root); d.title("Fișiere recente"); d.transient(self.root); d.geometry("700x400")
+        lb = tk.Listbox(d, font=("Segoe UI", 10)); lb.pack(fill="both", expand=True, padx=8, pady=8)
+        rec = [x for x in cit_cfg().get("recente", []) if os.path.exists(x)]
+        for x in rec: lb.insert("end", x)
+        def ok(_=None):
+            s_ = lb.curselection()
+            if s_: d.destroy(); self.deschide(rec[s_[0]])
+        lb.bind("<Double-1>", ok); ttk.Button(d, text="Deschide", command=ok).pack(pady=(0, 8))
+
+    def revino(self):
+        if not self.cale: return
+        if (self.modificat or any(self.over.values())) and not messagebox.askyesno(NUME, "Renunți la toate modificările nesalvate?", parent=self.root): return
+        self.modificat = False; self.over = {}; self._deschide(self.cale)
+
+    def inchide(self):
+        if self.doc is None: return
+        def fa():
+            def fn():
+                try: self.doc.close()
+                except Exception: pass
+                self.doc = None; self._dupa_doc()
+            def g(_):
+                self.cale = None; self.modificat = False; self.over = {}; self.undo = []; self.redo = []; self.sel = None
+                self.cv.delete("all"); self.cv_t.delete("all"); self._t_poz = []; self.root.title(NUME)
+                self.e_pag.delete(0, "end"); self.l_nr.config(text="/ 0"); self.stare("Fișier închis.")
+            self.lucru(fn, g, "Se închide…")
+        self._intreaba_salvare(fa)
+
+    def proprietati(self):
+        if self.doc is None: return
+        def fn():
+            md = dict(self.doc.metadata or {}); n = len(self.doc)
+            fm = {}
+            for w, h in self.dims: k = nume_format(w, h).split(" (")[0]; fm[k] = fm.get(k, 0) + 1
+            return md, n, fm
+        def g(r):
+            md, n, fm = r
+            d = tk.Toplevel(self.root); d.title("Proprietăți document"); d.transient(self.root); d.grab_set(); d.resizable(False, False)
+            fr = ttk.Frame(d, padding=12); fr.pack()
+            inf = [("Fișier", self.cale or "(nesalvat)"), ("Mărime", f"{os.path.getsize(self.cale) / 1048576:.2f} MB" if self.cale and os.path.exists(self.cale) else "–"),
+                   ("Pagini", str(n)), ("Formate", ", ".join(f"{k}: {v}" for k, v in fm.items())), ("Versiune PDF", md.get("format", "")),
+                   ("Creat cu", md.get("creator", "")), ("Produs de", md.get("producer", "")), ("Creat la", md.get("creationDate", "")), ("Modificat la", md.get("modDate", ""))]
+            for k, (a, b) in enumerate(inf):
+                ttk.Label(fr, text=a + ":", foreground="#555").grid(row=k, column=0, sticky="ne", padx=(0, 8), pady=1)
+                ttk.Label(fr, text=b, wraplength=420).grid(row=k, column=1, sticky="w", pady=1)
+            ed = {}
+            for j, (cheie, et) in enumerate((("title", "Titlu"), ("author", "Autor"), ("subject", "Subiect"), ("keywords", "Cuvinte cheie"))):
+                ttk.Label(fr, text=et + ":").grid(row=len(inf) + j, column=0, sticky="e", padx=(0, 8), pady=2)
+                e = ttk.Entry(fr, width=55); e.insert(0, md.get(cheie, "") or ""); e.grid(row=len(inf) + j, column=1, sticky="w", pady=2); ed[cheie] = e
+            def ok():
+                nou = {k: e.get() for k, e in ed.items()}; d.destroy()
+                if any((md.get(k) or "") != v for k, v in nou.items()):
+                    def fn2():
+                        m2 = dict(self.doc.metadata or {}); m2.update(nou); self.doc.set_metadata({k: v for k, v in m2.items() if k in ("title", "author", "subject", "keywords", "creator", "producer", "creationDate", "modDate")})
+                    def g2(_): self.modificat = True; self.stare_pag()
+                    self.lucru(fn2, g2, "Se salvează proprietățile…")
+            b = ttk.Frame(fr); b.grid(row=99, column=0, columnspan=2, pady=(10, 0))
+            ttk.Button(b, text="OK", command=ok).pack(side="left", padx=4); ttk.Button(b, text="Anulează", command=d.destroy).pack(side="left")
+        self.lucru(fn, g, "Se citesc proprietățile…")
+
+    def exporta(self, tip):
+        if self.doc is None: return
+        baza = os.path.splitext(getattr(self, "titlu", "Document"))[0]
+        if tip in ("png", "jpg"):
+            dest = filedialog.askdirectory(parent=self.root, title="Folderul pentru imagini")
+        else:
+            ext = {"docx": ".docx", "txt": ".txt", "mic": ".pdf"}[tip]
+            dest = filedialog.asksaveasfilename(parent=self.root, defaultextension=ext, initialfile=baza + ("_mic" if tip == "mic" else "") + ext,
+                                                filetypes=[({"docx": "Word", "txt": "Text", "mic": "PDF"}[tip], "*" + ext)])
+        if not dest: return
+        over = copy.deepcopy(self.over); img = dict(self.imagini)
+        def fn():
+            t = tmp(); self.doc.save(t); d = fitz.open(t); aplica(d, over, img)
+            try:
+                if tip in ("png", "jpg"):
+                    for k, p in enumerate(d):
+                        z = min(150 / 72, 9000 / max(p.rect.width, p.rect.height))       # A0 limitat la ~9000 px, ca să nu umple memoria
+                        pix = p.get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
+                        pix.save(os.path.join(dest, f"{baza}_pagina_{k + 1:03d}.{tip}")); del pix
+                    return f"{len(d)} imagini în {dest}"
+                if tip == "txt":
+                    open(dest, "w", encoding="utf-8").write("\n\f".join(p.get_text() for p in d)); return dest
+                if tip == "mic":
+                    try: d.rewrite_images(dpi_threshold=160, dpi_target=150, quality=75)
+                    except Exception: pass
+                    t2 = tmp(); d.save(t2, garbage=4, deflate=True, clean=True); shutil.move(t2, dest)
+                    return f"{dest}  ({os.path.getsize(dest) / 1048576:.1f} MB)"
+                t3 = tmp(); d.save(t3); d.close(); d = None
+                pdf_in_word(t3, dest); return dest
+            finally:
+                if d is not None: d.close()
+        self.lucru(fn, lambda r: self.stare("✔ Salvat: " + r), "Se salvează în alt format…")
 
     # ======================= pagini =======================
     def _pagini_sel(self):

@@ -162,6 +162,23 @@ def combina(intrari, fmt=None, orient="Automat", progres=None):
     return out
 
 
+def pdf_in_word(pdf, docx):
+    """PDF -> Word prin Microsoft Word (Word deschide PDF-ul și îl salvează ca .docx)"""
+    if sys.platform != "win32": raise RuntimeError("Conversia în Word merge doar pe Windows, cu Microsoft Word instalat.")
+    import pythoncom, win32com.client
+    pythoncom.CoInitialize(); app = None
+    try:
+        app = win32com.client.DispatchEx("Word.Application"); app.Visible = False; app.DisplayAlerts = 0
+        d = app.Documents.Open(os.path.abspath(pdf), False, True, False); d.SaveAs2(os.path.abspath(docx), 16); d.Close(False)
+    except Exception as e:
+        raise RuntimeError(f"Nu pot salva în Word: {e}\n\nTrebuie instalat Microsoft Word (2013 sau mai nou).")
+    finally:
+        if app is not None:
+            try: app.Quit()
+            except Exception: pass
+        pythoncom.CoUninitialize()
+
+
 def salveaza(doc, cale):
     """salvare sigură: întâi într-un fișier temporar, apoi se înlocuiește ținta"""
     t = tmp(); doc.save(t, garbage=3, deflate=True)
