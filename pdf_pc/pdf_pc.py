@@ -11,7 +11,21 @@ try:
     from tkinterdnd2 import TkinterDnD, DND_FILES
 except Exception:
     TkinterDnD = None
-NUME = "PDF PC"
+def langa_exe(nume):
+    """fișiere puse de utilizator lângă exe (titlu.txt, logo.png) – nu fac parte din codul programului"""
+    d = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(d, nume)
+
+
+def _titlu():
+    try:
+        t = open(langa_exe("titlu.txt"), encoding="utf-8-sig").read().strip()
+        if t: return t
+    except Exception: pass
+    return "PDF PC"
+
+
+NUME = _titlu()
 CFG_DIR = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "PDF_PC")
 os.makedirs(CFG_DIR, exist_ok=True)
 CFG = os.path.join(CFG_DIR, "setari.json")
@@ -64,6 +78,7 @@ class App:
         self.root.title(NUME); self.root.geometry("1280x820"); self.root.minsize(900, 560)
         try: self.root.iconbitmap(default=os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(__file__)), "pdf_pc.ico"))
         except Exception: pass
+        self._iconita()
         self.doc = None; self.cale = None; self.modificat = False
         self.dims = []; self.ver = 0; self.pag = 0; self.z = 96 / 72
         self.over = {}; self.imagini = {}; self.sel = None; self.undo = []; self.redo = []
@@ -77,6 +92,33 @@ class App:
         self._ui()
         self.root.after(40, self._sondaj)
         self.root.protocol("WM_DELETE_WINDOW", self.iesire)
+
+    def _iconita(self):
+        """iconița ferestrei: cercul din stânga lui logo.png (de lângă exe) cu eticheta „PDF”"""
+        try:
+            p = langa_exe("logo.png")
+            if not os.path.exists(p): return
+            im = Image.open(p).convert("RGBA"); im = im.crop((0, 0, min(im.height, im.width), im.height)).resize((256, 256), Image.LANCZOS)
+            d = ImageDraw.Draw(im); d.rounded_rectangle((96, 168, 254, 246), radius=16, fill=(205, 30, 30, 255), outline="white", width=5)
+            try:
+                from PIL import ImageFont
+                f = ImageFont.truetype("arialbd.ttf" if sys.platform == "win32" else "DejaVuSans-Bold.ttf", 52)
+            except Exception:
+                f = None
+            d.text((175, 207), "PDF", fill="white", anchor="mm", font=f)
+            self._icoane = [ImageTk.PhotoImage(im.resize((n, n), Image.LANCZOS)) for n in (64, 48, 32, 16)]
+            self.root.iconphoto(True, *self._icoane)
+        except Exception:
+            pass
+
+    def _logo(self, inaltime):
+        p = langa_exe("logo.png")
+        if not os.path.exists(p): return None
+        try:
+            im = Image.open(p).convert("RGBA"); k = inaltime / im.height
+            return ImageTk.PhotoImage(im.resize((max(1, int(im.width * k)), inaltime), Image.LANCZOS))
+        except Exception:
+            return None
 
     # ======================= interfață =======================
     def _ui(self):
@@ -146,6 +188,8 @@ class App:
         ttk.Label(b2, text="  Mărime:").pack(side="left")
         sp = ttk.Spinbox(b2, from_=4, to=200, increment=1, width=5, textvariable=self.marime, command=self._marime_schimbata); sp.pack(side="left")
         sp.bind("<Return>", lambda e: self._marime_schimbata())
+        self.img_logo = self._logo(30)
+        if self.img_logo: ttk.Label(b2, image=self.img_logo).pack(side="right", padx=10)
 
         # zona principală: miniaturi | pagină
         pw = ttk.PanedWindow(self.root, orient="horizontal"); pw.pack(fill="both", expand=True)
