@@ -114,7 +114,7 @@ COMENZI = {
     "ЭКСПОРТKML": "c_export_gis:.kml", "ЭКСПОРТKMZ": "c_export_gis:.kmz", "SHP": "c_export_gis:.shp", "KML": "c_export_gis:.kml",
     "ГЕОМЕСТО": "c_geo_esri", "GEOGRAPHICLOCATION": "c_geo_esri", "ГЕОESRI": "c_geo_esri", "ГЕОBING": "c_geo_bing", "ГЕОФАЙЛ": "c_geo_fisier", "ГЕОКАРТА": "c_geo_esri",
     "РЗМСТИЛЬ": "c_stil_info:Размерный стиль", "МЛСТИЛЬ": "c_stil_info:Стиль мультивыноски", "ТАБЛСТИЛЬ": "c_stil_info:Стиль таблиц",
-    "БАЗКАРТА": "gis.galerie", "BASEMAP": "gis.galerie", "ДОБДАННЫЕ": "meniu_sub:ДОБДАННЫЕ", "ADDDATA": "meniu_sub:ДОБДАННЫЕ",
+    "СНИМКИГОД": "gis.ani_harta", "WAYBACK": "gis.ani_harta", "БАЗКАРТА": "gis.galerie", "BASEMAP": "gis.galerie", "ДОБДАННЫЕ": "meniu_sub:ДОБДАННЫЕ", "ADDDATA": "meniu_sub:ДОБДАННЫЕ",
     "ВЫБРАТЬФОРМА": "gis.selecteaza:poligon", "ВЫБПРЯМ": "gis.selecteaza:dreptunghi", "ВЫБПОЛИГОН": "gis.selecteaza:poligon", "ВЫБЛАССО": "gis.selecteaza:lasou",
     "ВЫБКРУГ": "gis.selecteaza:cerc", "ВЫБЛИНИЯ": "gis.selecteaza:linie", "ВЫБТРАССА": "gis.selecteaza:traseu",
     "ВЫБАТР": "gis.dupa_atribute", "SELECTBYATTRIBUTES": "gis.dupa_atribute", "ВЫБРАСП": "gis.dupa_locatie", "SELECTBYLOCATION": "gis.dupa_locatie",

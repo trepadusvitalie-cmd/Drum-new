@@ -111,6 +111,8 @@ class Gis:
             for x in (c, cv) + tuple(c.winfo_children()):
                 x.bind("<Button-1>", lambda e, n=n: (d.destroy(), self.alege_harta(n)))
             if n in geo.SURSE: self._miniatura(cv, n)
+        b = tk.Label(d, text="📅  Спутниковые снимки по годам (2014 – сегодня)...", bg="#0078d7", fg="white", font=(F, -13, "bold"), padx=12, pady=6, cursor="hand2")
+        b.pack(anchor="w", padx=12, pady=4); b.bind("<Button-1>", lambda e: (d.destroy(), self.ani_harta()))
         tk.Label(d, text="Нужен интернет. Карта показывается под чертежом в системе MOLDREF99 и в DWG не сохраняется.\n" + geo.ATRIBUIRE,
                  bg="#f3f3f3", fg="#555", font=(F, -11), justify="left").pack(anchor="w", padx=12, pady=(4, 10))
 
@@ -134,8 +136,35 @@ class Gis:
             f = ImageTk.PhotoImage(im.convert("RGB").crop((53, 78, 203, 178))); cv._f = f; cv.create_image(0, 0, image=f, anchor="nw")
         cv.after(200, verifica)
 
+    def ani_harta(self):
+        """«Снимки по годам»: alegi anul și data imaginii din satelit (Esri World Imagery Wayback, din 2014)"""
+        app = self.app
+        if not self.doc: return app.mesaj("Нет открытого чертежа.")
+        app.root.config(cursor="watch"); app.root.update_idletasks()
+        try: lst = geo.wayback_versiuni()
+        finally: app.root.config(cursor="")
+        if not lst: return messagebox.showinfo("Снимки по годам", "Не удалось получить список снимков (нужен интернет).", parent=app.root)
+        d = dialog(app, "Спутниковые снимки по годам (World Imagery Wayback)")
+        ani = sorted({x[0][:4] for x in lst}, reverse=True)
+        eticheta(d, "Год:", 0, 0); ca = ttk.Combobox(d, values=ani, state="readonly", width=8); ca.set(ani[0]); ca.grid(row=0, column=1, sticky="w", padx=6, pady=6)
+        eticheta(d, "Дата снимка:", 1, 0)
+        lb = tk.Listbox(d, height=12, width=28, bg="#2b313a", fg=TEXT, selectbackground=ACTIV, exportselection=False); lb.grid(row=1, column=1, padx=6, pady=4)
+        def umple(e=None):
+            lb.delete(0, "end")
+            for data, nume, url in lst:
+                if data.startswith(ca.get()): lb.insert("end", data)
+            if lb.size(): lb.selection_set(0)
+        ca.bind("<<ComboboxSelected>>", umple); umple()
+        tk.Label(d, text="Каждая дата – весь мир, каким он был на снимках Esri в этот день.\nЕсли на вашей территории снимок не менялся, разные даты выглядят одинаково.",
+                 bg=CORP, fg=GRI, font=(F, -11), justify="left").grid(row=2, column=0, columnspan=2, sticky="w", padx=6, pady=4)
+        def ok(e=None):
+            if not lb.curselection(): return
+            data = lb.get(lb.curselection()[0]); d.destroy(); self.alege_harta("Снимок " + data)
+        lb.bind("<Double-Button-1>", ok)
+        buton(d, "OK", ok, bg=ALBASTRU).grid(row=3, column=1, sticky="e", padx=6, pady=8)
+
     def alege_harta(self, n):
-        if n in geo.SURSE: self.app.v.harta.porneste(n); self.app.mesaj(f"Базовая карта: {n}. Колесо мыши – масштаб, карта догружается.")
+        if n in geo.SURSE or n in geo.WAYBACK: self.app.v.harta.porneste(n); self.app.mesaj(f"Базовая карта: {n}. Колесо мыши – масштаб, карта догружается.")
         else: self.app.v.harta.opreste(); self.app.mesaj("Базовая карта выключена.")
 
     # ================================================================ Select ▾ (formă)

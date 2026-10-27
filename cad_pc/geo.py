@@ -340,6 +340,29 @@ SURSE = {
 SURSE_VECHI = {"Спутник (Esri World Imagery)": "Imagery (Спутник)", "Улицы (Esri World Street Map)": "Streets (Улицы)", "Топография (Esri World Topo Map)": "Topographic (Топография)"}
 
 
+WAYBACK_CFG = "https://s3-us-west-2.amazonaws.com/config.maptiles.arcgis.com/waybackconfig.json"
+WAYBACK = {}                                              # "Снимок 2019-05-15" → url plăci
+
+
+def wayback_versiuni():
+    """lista imaginilor din satelit pe date (Esri World Imagery Wayback): [(data, nume, url)] – de pe internet, apoi din cache"""
+    import json, re as _re, urllib.request
+    f = os.path.join(_dosar_cache(), "wayback.json"); d = None
+    try:
+        d = json.loads(urllib.request.urlopen(urllib.request.Request(WAYBACK_CFG, headers={"User-Agent": "CAD-PC/3.4"}), timeout=15).read())
+        open(f, "w", encoding="utf-8").write(json.dumps(d))
+    except Exception:
+        try: d = json.load(open(f, encoding="utf-8"))
+        except Exception: d = None
+    rez = []
+    for k, v in (d or {}).items():
+        m = _re.search(r"(\d{4}-\d{2}-\d{2})", v.get("itemTitle", ""))
+        if not m: continue
+        url = v["itemURL"].replace("{level}", "{z}").replace("{row}", "{y}").replace("{col}", "{x}")
+        nume = "Снимок " + m.group(1); WAYBACK[nume] = url; rez.append((m.group(1), nume, url))
+    return sorted(rez, reverse=True)
+
+
 def url_strat(s):
     return s if s.startswith("http") else ESRI.format(s)
 
@@ -394,7 +417,7 @@ class Harta:
         k = (self.sursa, z, x, y)
         if k in self.c: return self.c[k]
         if k in self.in_lucru: return None
-        self.in_lucru.add(k); straturi = SURSE.get(self.sursa, [])
+        self.in_lucru.add(k); straturi = SURSE.get(self.sursa) or ([WAYBACK[self.sursa]] if self.sursa in WAYBACK else [])
         def lucru():
             im = None
             for st in straturi:                                   # fundalul + etichetele transparente peste el

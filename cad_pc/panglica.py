@@ -91,7 +91,7 @@ FILE = {
  ],
  "Карта": [
   ("Слой", [("M", "Базовая\nкарта", "🗺", "#5fd36b", "БАЗКАРТА"), ("M", "Добавить\nданные", "✚", "#f0c040", "ДОБДАННЫЕ"),
-            [("m", "Растр TIFF / GeoTIFF", "🖼", "#e8ebef", "ПРИСОЕД"), ("m", "KML / KMZ / GPX", "🌐", "#7fb3ff", "ГЕОФАЙЛ"), ("m", "Импорт чертежа", "⇩", "#e8ebef", "ИМПОРТЧЕРТ")]]),
+            [("m", "Снимки по годам", "📅", "#5fd36b", "СНИМКИГОД"), ("m", "Растр TIFF / GeoTIFF", "🖼", "#e8ebef", "ПРИСОЕД"), ("m", "KML / KMZ / GPX", "🌐", "#7fb3ff", "ГЕОФАЙЛ"), ("m", "Импорт чертежа", "⇩", "#e8ebef", "ИМПОРТЧЕРТ")]]),
   ("Выборка", [("M", "Выбрать", "⬚", "#7fb3ff", "ВЫБРАТЬФОРМА"), ("M", "Выбор по\nатрибутам", "☰", "#7fb3ff", "ВЫБАТР"), ("M", "Выбор по\nрасположению", "◎", "#7fb3ff", "ВЫБРАСП"),
                [("m", "Очистить", "✖", "#e05050", "ОЧИСТВЫБ"), ("m", "Быстрый выбор", "▣", "#e8ebef", "БЫСТРВЫБ"), ("m", "Выбрать подобные", "⧉", "#e8ebef", "ВЫБРАТЬПОДОБНЫЕ")]]),
   ("Экспорт", [("M", "Экспорт\nГИС", "🗺", "#5fd36b", "ЭКСПОРТГИС")]),
@@ -362,6 +362,7 @@ class Panglica:
             import geo
             for n in geo.SURSE: m.add_command(label=("  ✔  " if n == self.app.v.harta.sursa else "      ") + n, command=lambda n=n: self.app.gis.alege_harta(n))
             m.add_separator(); m.add_command(label="      Без базовой карты", command=lambda: self.app.gis.alege_harta(None))
+            m.add_command(label="  📅  Спутниковые снимки по годам...", command=self.app.gis.ani_harta)
             m.add_command(label="      Галерея базовых карт...", command=self.app.gis.galerie)
             return m.tk_popup(w.winfo_rootx(), w.winfo_rooty() + w.winfo_height())
         if el == "blocuri":
