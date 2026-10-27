@@ -692,8 +692,7 @@ Enter или правая кнопка — завершить команду; п
         cv.bind("<Key>", self._tasta)
         r.bind("<Control-z>", lambda e: self.c_anuleaza()); r.bind("<Control-y>", lambda e: self.c_reface())
         r.bind("<Control-a>", lambda e: self.c_tot() if self.focus_desen() else None); r.bind("<Delete>", lambda e: self.c_sterge() if self.focus_desen() else None)
-        r.bind("<Control-c>", lambda e: self.c_copbuf() if self.focus_desen() else None); r.bind("<Control-v>", lambda e: self.c_lipbuf() if self.focus_desen() else None)
-        r.bind("<Control-x>", lambda e: self.c_taie() if self.focus_desen() else None); r.bind("<Control-f>", lambda e: self.c_cauta())
+        r.bind("<Control-f>", lambda e: self.c_cauta())
         r.bind("<Control-C>", lambda e: self.executa("КОПБАЗ") if self.focus_desen() else None)          # Ctrl+Shift+C
         r.bind("<Control-X>", lambda e: self.executa("ВЫРЕЗАТЬБАЗ") if self.focus_desen() else None)     # Ctrl+Shift+X
         r.bind("<Control-V>", lambda e: self.c_lipbuf() if self.focus_desen() else None)
