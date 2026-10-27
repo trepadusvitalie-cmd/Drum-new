@@ -18,6 +18,7 @@ CFG = os.path.join(CFG_DIR, "setari.json")
 SEMN = os.path.join(CFG_DIR, "semnatura.png")
 PORT = 47613
 OX = OY = 24                                              # marginea paginii în fereastră
+TEMA = {"panou": "#e8e8e8", "sursa": "#dfe7f2", "accent": "#1a73e8", "selectie": "#9cc3f5", "text2": "#444"}
 UNELTE = [("sel", "↖", "Selectare / mutare (dublu clic pe text = editare, Delete = șterge)"),
           ("text", "IAb", "Adaugă text: clic pe pagină și scrie"), ("x", "✗", "Pune un X"), ("v", "✓", "Pune o bifă"),
           ("oval", "◯", "Cerc / oval: trage cu mouse-ul"), ("linie", "—", "Linie: trage cu mouse-ul"), ("punct", "•", "Punct"),
@@ -68,6 +69,8 @@ class App:
         self.over = {}; self.imagini = {}; self.sel = None; self.undo = []; self.redo = []
         self.unealta = tk.StringVar(value="sel"); self.culoare = "#000000"; self.marime = tk.DoubleVar(value=12)
         self.sel_pag = {0}; self.thumbs = {}; self.render_ok = None; self._img = None; self._ovimg = []
+        self.src = None; self.src_ver = 0; self.src_dims = []; self._s_poz = []; self.s_thumbs = {}; self.s_sel = set(); self.src_nume = ""
+        self._t_poz = []; self._hover = None
         self._jobs = []; self._render_cer = None; self._thumb_cer = []; self._mx = threading.Lock(); self._ev = threading.Event()
         self._rez = queue.Queue(); self.ocupat = False; self._combina_asteapta = []; self._dlg_comb = None
         threading.Thread(target=self._lucrator, daemon=True).start()
@@ -146,9 +149,19 @@ class App:
 
         # zona principală: miniaturi | pagină
         pw = ttk.PanedWindow(self.root, orient="horizontal"); pw.pack(fill="both", expand=True)
-        st_ = ttk.Frame(pw); pw.add(st_, weight=0)
-        self.cv_t = tk.Canvas(st_, width=170, bg="#e8e8e8", highlightthickness=0); sb = ttk.Scrollbar(st_, command=self.cv_t.yview)
+        st_ = ttk.Frame(pw); pw.add(st_, weight=0); self.pw = pw
+        fr_t = ttk.Frame(st_); fr_t.pack(side="left", fill="y")
+        ttk.Label(fr_t, text="  Pagini").pack(anchor="w", pady=(4, 2))
+        self.cv_t = tk.Canvas(fr_t, width=170, bg=TEMA["panou"], highlightthickness=0); sb = ttk.Scrollbar(fr_t, command=self.cv_t.yview)
         self.cv_t.config(yscrollcommand=lambda a, b_: (sb.set(a, b_), self._cere_thumbs())); sb.pack(side="right", fill="y"); self.cv_t.pack(side="left", fill="both", expand=True)
+        self.fr_s = ttk.Frame(st_)                                  # coloana cu paginile fișierului adăugat (apare la „Inserează”)
+        h = ttk.Frame(self.fr_s); h.pack(fill="x", pady=(4, 2))
+        self.l_src = ttk.Label(h, text="", width=18); self.l_src.pack(side="left", padx=(4, 0))
+        w = ttk.Button(h, text="✕", width=2, command=self.inchide_sursa); w.pack(side="right"); Sfat(w, "Închide coloana")
+        w = ttk.Button(self.fr_s, text="⇇ Inserează toate", command=lambda: self.insereaza_din_sursa(None, None)); w.pack(fill="x", padx=4, pady=(0, 4))
+        Sfat(w, "Inserează toate paginile după pagina curentă")
+        self.cv_s = tk.Canvas(self.fr_s, width=170, bg=TEMA["sursa"], highlightthickness=0); sb2 = ttk.Scrollbar(self.fr_s, command=self.cv_s.yview)
+        self.cv_s.config(yscrollcommand=lambda a, b_: (sb2.set(a, b_), self._cere_thumbs())); sb2.pack(side="right", fill="y"); self.cv_s.pack(side="left", fill="both", expand=True)
         dr = ttk.Frame(pw); pw.add(dr, weight=1)
         self.cv = tk.Canvas(dr, bg="#8a8f96", highlightthickness=0)
         sy = ttk.Scrollbar(dr, command=self.cv.yview); sx = ttk.Scrollbar(dr, orient="horizontal", command=self.cv.xview)
@@ -164,6 +177,10 @@ class App:
         self.cv.bind("<MouseWheel>", self._rotita); self.cv.bind("<Button-4>", lambda e: self._rotita(e, 120)); self.cv.bind("<Button-5>", lambda e: self._rotita(e, -120))
         self.cv_t.bind("<MouseWheel>", lambda e: self.cv_t.yview_scroll(-1 if e.delta > 0 else 1, "units"))
         self.cv_t.bind("<ButtonPress-1>", self._t_apasa); self.cv_t.bind("<B1-Motion>", self._t_trage); self.cv_t.bind("<ButtonRelease-1>", self._t_elib)
+        self.cv_t.bind("<Button-3>", self._t_meniu); self.cv.bind("<Button-3>", self._cv_meniu)
+        self.cv_s.bind("<ButtonPress-1>", self._s_apasa); self.cv_s.bind("<B1-Motion>", self._s_trage); self.cv_s.bind("<ButtonRelease-1>", self._s_elib)
+        self.cv_s.bind("<Double-Button-1>", lambda e: self._s_dublu(e)); self.cv_s.bind("<Button-3>", self._s_meniu)
+        self.cv_s.bind("<MouseWheel>", lambda e: self.cv_s.yview_scroll(-1 if e.delta > 0 else 1, "units"))
         r = self.root
         r.bind_all("<Control-o>", lambda e: self.deschide_dialog()); r.bind_all("<Control-s>", lambda e: self.salveaza())
         r.bind_all("<Control-S>", lambda e: self.salveaza(ca=True)); r.bind_all("<Control-p>", lambda e: self.imprima())
@@ -176,7 +193,7 @@ class App:
         r.bind_all("<Escape>", lambda e: (self.unealta.set("sel"), self._selecteaza(None)))
         r.bind_all("<Key>", self._tasta_ctrl, add="+")
         if TkinterDnD:
-            for w in (self.cv, self.cv_t):
+            for w in (self.cv, self.cv_t, self.cv_s):
                 w.drop_target_register(DND_FILES); w.dnd_bind("<<Drop>>", lambda e, w=w: self._drop(e, w))
 
     def _tasta_ctrl(self, e):
@@ -208,6 +225,10 @@ class App:
             try:
                 if job:
                     fn, gata = job
+                    if gata is False:
+                        try: fn()
+                        except Exception: pass
+                        continue
                     try: self._rez.put(("gata", gata, fn(), None))
                     except Exception as ex: self._rez.put(("gata", gata, None, ex))
                 elif rc:
@@ -217,11 +238,11 @@ class App:
                     self._rez.put(("render", (ver, pno, z, tuple(clip)), Image.frombytes("RGB", (pix.width, pix.height), pix.samples), None))
                     del pix
                 else:
-                    ver, pno = th
-                    if self.doc is None or ver != self.ver or pno >= len(self.doc): continue
-                    pg = self.doc[pno]; z = 120 / max(pg.rect.width, pg.rect.height)
+                    tip_, ver, pno = th; d = self.doc if tip_ == "d" else self.src
+                    if d is None or ver != (self.ver if tip_ == "d" else self.src_ver) or pno >= len(d): continue
+                    pg = d[pno]; z = 120 / max(pg.rect.width, pg.rect.height)
                     pix = pg.get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
-                    self._rez.put(("thumb", (ver, pno), Image.frombytes("RGB", (pix.width, pix.height), pix.samples), None))
+                    self._rez.put(("thumb", (tip_, ver, pno), Image.frombytes("RGB", (pix.width, pix.height), pix.samples), None))
             except Exception as ex:
                 print("lucrator:", ex)
 
@@ -245,8 +266,9 @@ class App:
                     else: self.stare_pag()
                 elif tip == "render" and a[0] == self.ver and a[1] == self.pag:
                     self._arata_randare(a, b)
-                elif tip == "thumb" and a[0] == self.ver:
-                    self._arata_thumb(a[1], b)
+                elif tip == "thumb":
+                    if a[0] == "d" and a[1] == self.ver: self._arata_thumb(a[2], b)
+                    elif a[0] == "s" and a[1] == self.src_ver: self._arata_thumb_s(a[2], b)
                 elif tip == "combina":
                     self._primeste_combina(a)
                 elif tip == "deschide":
@@ -548,7 +570,9 @@ class App:
 
     def insereaza_dialog(self):
         f = filedialog.askopenfilenames(parent=self.root, title="Inserează pagini din", filetypes=TIPURI)
-        if f: self.insereaza(list(f))
+        if f:
+            if self.doc is None: self.insereaza(list(f))
+            else: self.deschide_sursa(list(f))
 
     def insereaza(self, fisiere, poz=None):
         if self.doc is None:
@@ -758,9 +782,11 @@ class App:
         self.cv_t.config(scrollregion=(0, 0, 165, y)); self._marcheaza_thumbs(); self._cere_thumbs()
 
     def _cere_thumbs(self):
-        if not getattr(self, "_t_poz", None): return
-        y0, y1 = self.cv_t.canvasy(0), self.cv_t.canvasy(self.cv_t.winfo_height())
-        vrei = [(self.ver, p) for p, (a, b, *_ ) in enumerate(self._t_poz) if b >= y0 - 300 and a <= y1 + 300 and p not in self.thumbs]
+        vrei = []
+        for tip_, cv, poz, gata, ver in (("d", self.cv_t, self._t_poz, self.thumbs, self.ver), ("s", self.cv_s, self._s_poz, self.s_thumbs, self.src_ver)):
+            if not poz or not cv.winfo_ismapped(): continue
+            y0, y1 = cv.canvasy(0), cv.canvasy(cv.winfo_height())
+            vrei += [(tip_, ver, p) for p, (a, b, *_ ) in enumerate(poz) if b >= y0 - 300 and a <= y1 + 300 and p not in gata]
         with self._mx: self._thumb_cer = vrei; self._ev.set()
 
     def _arata_thumb(self, p, im):
@@ -807,6 +833,165 @@ class App:
             if dest != p: self.muta(0, la=dest)
         self._t_drag = None
 
+    def _t_meniu(self, e):
+        p = self._t_pag(e)
+        if p is None or self.doc is None: return
+        if p not in self.sel_pag: self.mergi(p)
+        n = len(self._pagini_sel()); t = f"  ({n} pagini)" if n > 1 else ""
+        m = tk.Menu(self.root, tearoff=0)
+        m.add_command(label="Rotește la dreapta 90°" + t, command=lambda: self.roteste(90))
+        m.add_command(label="Rotește la stânga 90°" + t, command=lambda: self.roteste(-90))
+        m.add_command(label="Rotește 180°" + t, command=lambda: self.roteste(180))
+        m.add_separator()
+        m.add_command(label="Șterge" + t, command=self.sterge_pagini)
+        m.add_command(label="Duplică pagina", command=self.duplica)
+        m.add_command(label="Extrage" + t + "…", command=self.extrage)
+        m.add_separator()
+        m.add_command(label="Pagină nouă (A0…A5)…", command=self.pagina_noua)
+        m.add_command(label="Inserează din fișier…", command=self.insereaza_dialog)
+        m.add_command(label="Schimbă formatul" + t + "…", command=self.format_dialog)
+        m.add_separator()
+        m.add_command(label="Mută sus", command=lambda: self.muta(-1)); m.add_command(label="Mută jos", command=lambda: self.muta(1))
+        m.tk_popup(e.x_root, e.y_root)
+
+    def _cv_meniu(self, e):
+        if not self.dims: return
+        x, y = self._pt(e); k = self._gaseste(x, y); m = tk.Menu(self.root, tearoff=0)
+        if k is not None:
+            self._selecteaza(k); m.add_command(label="Șterge obiectul", command=self.sterge_obiect)
+            o = self.over[self.pag][k]
+            if o["t"] == "text": m.add_command(label="Editează textul", command=lambda: self._editeaza_text(o["r"][0], o["r"][1], o))
+            m.add_separator()
+        self.sel_pag = {self.pag}; self._marcheaza_thumbs()
+        m.add_command(label="Rotește pagina la dreapta", command=lambda: self.roteste(90))
+        m.add_command(label="Rotește pagina la stânga", command=lambda: self.roteste(-90))
+        m.add_command(label="Șterge pagina", command=self.sterge_pagini)
+        m.tk_popup(e.x_root, e.y_root)
+
+    # ======================= coloana cu paginile fișierului adăugat =======================
+    def deschide_sursa(self, fisiere):
+        def fn():
+            d = fitz.open()
+            for f in fisiere:
+                s_ = deschide_pdf(f)
+                if s_.needs_pass and not s_.authenticate(""): raise RuntimeError("PDF protejat cu parolă: " + os.path.basename(f))
+                d.insert_pdf(s_); s_.close()
+            vechi = self.src; self.src = d; self.src_dims = [(p.rect.width, p.rect.height) for p in d]; self.src_ver += 1
+            if vechi is not None:
+                try: vechi.close()
+                except Exception: pass
+            return len(d)
+        def g(n):
+            self.src_nume = ", ".join(os.path.basename(f) for f in fisiere)
+            self.l_src.config(text=(self.src_nume[:20] + "…") if len(self.src_nume) > 21 else self.src_nume)
+            self.s_sel = set(); self._arata_sursa(True); self._reface_s()
+            self.stare(f"{self.src_nume}: {n} pagini – trage paginile în coloana „Pagini” (Ctrl/Shift = mai multe), dublu clic = inserează după pagina curentă.")
+        self.lucru(fn, g, "Se pregătesc paginile (conversie în PDF dacă e nevoie)…")
+
+    def _arata_sursa(self, da):
+        if da and not self.fr_s.winfo_ismapped(): self.fr_s.pack(side="left", fill="y", padx=(4, 0))
+        if not da: self.fr_s.pack_forget()
+        self.root.update_idletasks()
+        try: self.pw.sashpos(0, 385 if da else 190)
+        except Exception: pass
+
+    def inchide_sursa(self):
+        self._arata_sursa(False); self.cv_s.delete("all"); self._s_poz = []; self.s_thumbs = {}; self.s_sel = set()
+        def fn():
+            d = self.src; self.src = None; self.src_ver += 1
+            if d is not None: d.close()
+        with self._mx: self._jobs.append((fn, False)); self._ev.set()
+
+    def _reface_s(self):
+        cv = self.cv_s; cv.delete("all"); self.s_thumbs = {}; self._s_poz = []; y = 8
+        for p, (w, h) in enumerate(self.src_dims):
+            sc = 120 / max(w, h); tw, th = w * sc, h * sc; x = (165 - tw) / 2
+            cv.create_rectangle(x - 4, y - 4, x + tw + 4, y + th + 4, outline="", fill="", width=2, tags=(f"cadru{p}", "cadru"))
+            cv.create_rectangle(x, y, x + tw, y + th, fill="white", outline="#b9c2cf")
+            cv.create_text(82, y + th + 10, text=f"{p + 1}  ·  {nume_format(w, h).split(' (')[0]}", font=("Segoe UI", 8), fill=TEMA["text2"])
+            self._s_poz.append((y, y + th + 18, x, tw, th)); y += th + 28
+        cv.config(scrollregion=(0, 0, 165, y)); cv.yview_moveto(0); self._marcheaza_s(); self.root.after(50, self._cere_thumbs)
+
+    def _arata_thumb_s(self, p, im):
+        if p >= len(self._s_poz): return
+        y, _, x, tw, th = self._s_poz[p]; ph = ImageTk.PhotoImage(im.resize((max(1, int(tw)), max(1, int(th)))))
+        self.s_thumbs[p] = ph; self.cv_s.create_image(x, y, image=ph, anchor="nw")
+
+    def _marcheaza_s(self):
+        self.cv_s.itemconfig("cadru", fill="", outline="")
+        for p in self.s_sel: self.cv_s.itemconfig(f"cadru{p}", fill=TEMA["selectie"], outline=TEMA["accent"])
+
+    def _s_pag(self, e):
+        y = self.cv_s.canvasy(e.y)
+        for p, (a, b, *_ ) in enumerate(self._s_poz):
+            if a - 4 <= y <= b + 4: return p
+        return None
+
+    def _s_apasa(self, e):
+        p = self._s_pag(e); self._s_drag = None
+        if p is None: return
+        if e.state & 4: self.s_sel ^= {p}
+        elif e.state & 1 and self.s_sel: a, b = sorted((min(self.s_sel), p)); self.s_sel = set(range(a, b + 1))
+        elif p not in self.s_sel: self.s_sel = {p}
+        self._marcheaza_s(); self._s_drag = (p, e.x_root, e.y_root)
+
+    def _tinta_t(self, y_root):
+        if not self._t_poz: return 0
+        y = self.cv_t.canvasy(y_root - self.cv_t.winfo_rooty())
+        for p, (a, b, *_ ) in enumerate(self._t_poz):
+            if y < (a + b) / 2: return p
+        return len(self._t_poz)
+
+    def _s_trage(self, e):
+        if not self._s_drag or (abs(e.y_root - self._s_drag[2]) < 6 and abs(e.x_root - self._s_drag[1]) < 6): return
+        n = len(self.s_sel) or 1; self.cv_t.delete("linie_drag"); self.cv_s.config(cursor="plus")
+        w = self.root.winfo_containing(e.x_root, e.y_root)
+        if w is self.cv_t:
+            t = self._tinta_t(e.y_root)
+            yy = (self._t_poz[t][0] - 8) if t < len(self._t_poz) else ((self._t_poz[-1][1] + 6) if self._t_poz else 6)
+            self.cv_t.create_line(8, yy, 162, yy, fill=TEMA["accent"], width=4, tags="linie_drag")
+            self.stare(f"Eliberează pentru a insera {n} pagini la poziția {t + 1}.")
+        elif w is self.cv:
+            self.stare(f"Eliberează pentru a insera {n} pagini după pagina {self.pag + 1}.")
+
+    def _s_elib(self, e):
+        self.cv_t.delete("linie_drag"); self.cv_s.config(cursor="")
+        d = getattr(self, "_s_drag", None); self._s_drag = None
+        if not d or (abs(e.y_root - d[2]) < 6 and abs(e.x_root - d[1]) < 6): return
+        pag = sorted(self.s_sel) if d[0] in self.s_sel else [d[0]]
+        w = self.root.winfo_containing(e.x_root, e.y_root)
+        if w is self.cv_t: self.insereaza_din_sursa(pag, self._tinta_t(e.y_root))
+        elif w is self.cv: self.insereaza_din_sursa(pag, self.pag + 1)
+        else: self.stare_pag()
+
+    def _s_dublu(self, e):
+        p = self._s_pag(e)
+        if p is not None: self.insereaza_din_sursa([p], None)
+
+    def _s_meniu(self, e):
+        p = self._s_pag(e)
+        if p is None: return
+        if p not in self.s_sel: self.s_sel = {p}; self._marcheaza_s()
+        pag = sorted(self.s_sel); t = f"{len(pag)} pagini" if len(pag) > 1 else f"pagina {p + 1}"
+        m = tk.Menu(self.root, tearoff=0)
+        m.add_command(label=f"Inserează {t} după pagina curentă", command=lambda: self.insereaza_din_sursa(pag, None))
+        m.add_command(label=f"Inserează {t} la început", command=lambda: self.insereaza_din_sursa(pag, 0))
+        m.add_command(label=f"Inserează {t} la sfârșit", command=lambda: self.insereaza_din_sursa(pag, len(self.dims)))
+        m.add_separator()
+        m.add_command(label="Selectează toate paginile", command=lambda: (setattr(self, "s_sel", set(range(len(self.src_dims)))), self._marcheaza_s()))
+        m.add_command(label="Închide coloana", command=self.inchide_sursa)
+        m.tk_popup(e.x_root, e.y_root)
+
+    def insereaza_din_sursa(self, pagini, poz):
+        if self.doc is None or self.src is None: return
+        pagini = list(range(len(self.src_dims))) if pagini is None else pagini
+        poz = self.pag + 1 if poz is None else poz
+        def op():
+            for k, p in enumerate(pagini): self.doc.insert_pdf(self.src, from_page=p, to_page=p, start_at=poz + k)
+            return len(pagini)
+        self._cu_completari(op, lambda n: (self._dupa_pagini(poz), self.stare(f"✔ Inserat {n} pagini din {self.src_nume} la poziția {poz + 1}.")),
+                            "Se inserează paginile…")
+
     # ======================= drag & drop din Explorer =======================
     def _drop(self, e, w):
         f = [x for x in self.root.tk.splitlist(e.data) if os.path.isfile(x)]
@@ -816,10 +1001,7 @@ class App:
             if len(f) == 1: self.deschide(f[0])
             else: self.combina_dialog(f)
             return
-        poz = self.pag + 1
-        if w is self.cv_t:
-            t = self._t_tinta(type("E", (), {"y": e.y_root - self.cv_t.winfo_rooty()})); poz = t
-        self.insereaza(f, poz)
+        self.deschide_sursa(f)                              # paginile apar în coloana alăturată; le tragi unde ai nevoie
 
     # ======================= completări pe pagină =======================
     def _pt(self, e):
