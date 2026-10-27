@@ -372,6 +372,7 @@ class Editare:
         if c == "BAZABUF":
             self.stare = None; self.app.prompt(None); self.app.cv.delete("snap")
             self.copiaza_buf(); self.clip_baza = p
+            if hasattr(self.app, "_marcheaza_clip"): self.app._marcheaza_clip()
             if st.get("taie"): self.sterge()
             return self.app.mesaj("Базовая точка задана: " + ("вырезано" if st.get("taie") else "скопировано") + " в буфер.")
         if c == "ВСТАВКА":

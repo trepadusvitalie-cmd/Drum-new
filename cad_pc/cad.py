@@ -694,13 +694,36 @@ Enter или правая кнопка — завершить команду; п
         r.bind("<Control-a>", lambda e: self.c_tot() if self.focus_desen() else None); r.bind("<Delete>", lambda e: self.c_sterge() if self.focus_desen() else None)
         r.bind("<Control-c>", lambda e: self.c_copbuf() if self.focus_desen() else None); r.bind("<Control-v>", lambda e: self.c_lipbuf() if self.focus_desen() else None)
         r.bind("<Control-x>", lambda e: self.c_taie() if self.focus_desen() else None); r.bind("<Control-f>", lambda e: self.c_cauta())
+        r.bind("<Control-C>", lambda e: self.executa("КОПБАЗ") if self.focus_desen() else None)          # Ctrl+Shift+C
+        r.bind("<Control-X>", lambda e: self.executa("ВЫРЕЗАТЬБАЗ") if self.focus_desen() else None)     # Ctrl+Shift+X
+        r.bind("<Control-V>", lambda e: self.c_lipbuf() if self.focus_desen() else None)
+        r.bind("<Control-KeyPress>", self._ctrl_tasta, add="+")
+        for sec, f in (("<Control-v>", self.c_lipbuf), ("<Control-c>", self.c_copbuf), ("<Control-x>", self.c_taie)):   # și când focusul e pe panglică / tab-uri
+            r.bind_all(sec, lambda e, f=f: (f(), "break")[1] if self.focus_desen() else None, add="+")
         r.bind("<F3>", lambda e: self.comuta_stare("osnap"))
         r.bind("<Control-o>", lambda e: self.deschide()); r.bind("<Control-s>", lambda e: self.salveaza()); r.bind("<Control-S>", lambda e: self.salveaza_ca())
         r.bind("<Control-n>", lambda e: self.nou()); r.bind("<Control-p>", lambda e: self.c_print()); r.bind("<F7>", lambda e: self.comuta_grila()); r.bind("<F8>", lambda e: self.comuta_orto())
         r.protocol("WM_DELETE_WINDOW", self.iesire)
 
     def focus_desen(self):
-        f = self.root.focus_get(); return f is self.cv or f is None
+        """scurtăturile (Ctrl+C/V/X/A, Delete) merg peste tot, în afară de câmpurile unde scrii text"""
+        try: f = self.root.focus_get()
+        except Exception: return True
+        if f is None or f is self.cv: return True
+        if f is getattr(self, "cmd", None):
+            t = self.cmd.get().strip(); return t in ("", "Введите команду", getattr(self, "_prompt", None) or "")
+        return not isinstance(f, (tk.Entry, ttk.Entry, ttk.Combobox, tk.Text, tk.Spinbox, tk.Listbox))
+
+    def _ctrl_tasta(self, e):
+        """Ctrl+litera pe orice limbă a tastaturii (rusă, română…): pe Windows după codul tastei, nu după literă"""
+        if sys.platform != "win32" or (len(e.keysym) == 1 and e.keysym.isascii()): return
+        shift = bool(e.state & 0x1)
+        act = {65: self.c_tot, 67: (lambda: self.executa("КОПБАЗ")) if shift else self.c_copbuf, 86: self.c_lipbuf,
+               88: (lambda: self.executa("ВЫРЕЗАТЬБАЗ")) if shift else self.c_taie, 90: self.c_anuleaza, 89: self.c_reface,
+               70: self.c_cauta, 79: self.deschide, 83: self.salveaza_ca if shift else self.salveaza, 78: self.nou, 80: self.c_print}.get(e.keycode)
+        if act is None: return
+        if e.keycode in (65, 67, 86, 88) and not self.focus_desen(): return
+        act(); return "break"
 
     def _dublu_clic(self, e):
         h = self.ed.la_entitate(e.x, e.y)
@@ -893,16 +916,24 @@ Enter или правая кнопка — завершить команду; п
             self.v.selectie = {"vp" + e.dxf.handle for e in self.doc.layouts.get(self.v.foaie) if e.dxftype() == "VIEWPORT" and e.dxf.get("id", 2) != 1}
             self.v.deseneaza(); return self.mesaj(f"Выбрано видовых экранов: {len(self.v.selectie)}")
         self.ed.tot()
-    def c_copbuf(self): self.ed.copiaza_buf() if self.doc else None
+    def c_copbuf(self):
+        if not self.doc: return
+        self.ed.copiaza_buf(); self._marcheaza_clip()
+
+    def _marcheaza_clip(self):
+        try: self.root.clipboard_clear(); self.root.clipboard_append("CAD PC: объекты чертежа")
+        except Exception: pass
     def c_lipbuf(self):
         if not self.doc: return
         try: txt = self.root.clipboard_get()
         except Exception: txt = ""
         if txt and "\t" in txt and txt != getattr(self, "_clip_folosit", None):     # tabel copiat din Excel / Word
-            return self.un.lipeste_tabel(txt)
+            self._clip_folosit = txt; return self.un.lipeste_tabel(txt)
+        if not self.ed.clip: return self.mesaj("Буфер пуст: выберите объекты и нажмите Ctrl+C (или «Копировать» на ленте).")
         self.ed.lipeste_buf()
+        self.mesaj("Укажите точку вставки" + (" на листе." if self.v.foaie else "."))
     def c_taie(self):
-        if self.doc and self.ed.sel: self.ed.copiaza_buf(); self.ed.sterge()
+        if self.doc and self.ed.sel: self.ed.copiaza_buf(); self._marcheaza_clip(); self.ed.sterge()
     def c_muta(self): self.ed.incepe("ПЕРЕНЕСТИ", "ПЕРЕНЕСТИ  Базовая точка:")
     def c_copiaza(self): self.ed.incepe("КОПИРОВАТЬ", "КОПИРОВАТЬ  Базовая точка:")
     def c_roteste(self): self.ed.incepe("ПОВЕРНУТЬ", "ПОВЕРНУТЬ  Базовая точка:")
