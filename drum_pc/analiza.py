@@ -29,8 +29,9 @@ PAS_M = 1.0              # se analizează un cadru la fiecare ~1 m parcurs
 MIN_OBS = 3              # un obiect trebuie văzut în cel puțin 3 cadre
 UNIRE = {"groapa": 2.0, "copac": 1.8, "semn": 4.0}
 SIGN_W = 0.7
-IMPARTE_TRUNCHIURI = False   # împărțirea rândurilor pe trunchiuri (trunchiuri.py): oprită până la modelul antrenat;
-                             # fără ea rămân detecțiile modelului (mai puțini copaci, dar fără puncte puse alături)
+IMPARTE_TRUNCHIURI = True    # împărțirea rândurilor pe trunchiuri (trunchiuri.py): toți copacii apar în vector; cei găsiți
+                             # astfel (nu direct de model) primesc în Nota „de verificat poziția”
+COPACI_MARGINE_M = 15.0      # se păstrează doar copacii de pe marginea drumului: cel mult atâția metri de traseul mașinii
 PRAG_RAND = 0.08         # rândurile de copaci (alei dese) au scor mic: se iau de aici și se împart pe trunchiuri
 
 
@@ -568,7 +569,9 @@ def analizeaza(zip_path, model, out_root, progres=None, oprit=None, viz=None, pa
         H, W = img.shape[:2]; f = (W / 2.0) / math.tan(math.radians(hfov / 2))
         dets = []
         dets_model = model(img)
+        din_model = {tuple(round(v, 1) for v in d[:4]) for d in dets_model}
         for x0, y0, x1, y1, s, lab in (trunchiuri.imparte(img, dets_model, PRAG_RAND) if IMPARTE_TRUNCHIURI else dets_model):
+            pe_forma = tuple(round(v, 1) for v in (x0, y0, x1, y1)) not in din_model   # găsit după trunchi / coroană
             k = tip(lab)
             if s < PRAG[k]: continue
             if k == "copac" and y1 >= H - 3: continue        # baza nu se vede
@@ -587,7 +590,7 @@ def analizeaza(zip_path, model, out_root, progres=None, oprit=None, viz=None, pa
                         b2 = br + yaw
                         g = (E + fwd * math.sin(b2) + right * math.cos(b2), N + fwd * math.cos(b2) - right * math.sin(b2))
                         dd = math.hypot(fwd, right)
-            dets.append(dict(frame=fi, t=tms, fw=W, fh=H, box=(x0, y0, x1, y1), score=s, kind=k, cam=(E, N), az=az, br=br + yaw, gnd=g,
+            dets.append(dict(frame=fi, t=tms, fw=W, fh=H, box=(x0, y0, x1, y1), score=s, kind=k, cam=(E, N), az=az, br=br + yaw, gnd=g, forma=pe_forma,
                              dist=dd if dd else 25.0))
             if k == "semn":                                     # pentru filtrul „doar indicatoare rutiere”
                 crop = img[max(0, int(y0)):int(y1), max(0, int(x0)):int(x1)]
@@ -669,6 +672,8 @@ def analizeaza(zip_path, model, out_root, progres=None, oprit=None, viz=None, pa
         objs.append(dict(specie=rcr.get("rcr_nr") or sp, specie_txt=rcr.get("rcr_txt") or ("plop (după formă, {:.0f}%)".format(si * 100) if sp == "plop" else
                                            "posibil nuc (coroană lată, după formă)" if sp == "nuc" else ""), id=t.id, ids={t.id}, kind=t.kind, E=float(X[0]), N=float(X[1]), met=met, n=len(t.obs), score=max(o["score"] for o in t.obs),
                          frames={o["frame"] for o in t.obs}, best=t.best, t=t.best["t"], obs=t.obs, **rcr))
+        if t.kind == "copac" and sum(1 for o in t.obs if o.get("forma")) * 2 > len(t.obs):
+            objs[-1]["nota"] = "găsit după trunchi/coroană (nu de model) – de verificat poziția pe poză"
     objs.sort(key=lambda o: -o["n"]); keep = []
     for o in objs:
         dup = next((k for k in keep if k["kind"] == o["kind"] and math.hypot(k["E"] - o["E"], k["N"] - o["N"]) < UNIRE[o["kind"]]
@@ -678,6 +683,12 @@ def analizeaza(zip_path, model, out_root, progres=None, oprit=None, viz=None, pa
             if o["kind"] == "semn": dup["obs"] = dup["obs"] + o["obs"]; dup.update(indicatoare_rcr(dup["obs"]))   # votul din ambele urme
         else: keep.append(o)
     keep.sort(key=lambda o: o["t"])
+    # doar copacii de pe marginea drumului (nu cei din câmp, pădure sau de pe dealurile din fundal)
+    if len(tr.E) >= 2:
+        trl = np.column_stack([tr.E, tr.N]); dep = 0
+        for o in [o for o in keep if o["kind"] == "copac"]:
+            if osm_comparare._fata_de_traseu(o["E"], o["N"], trl)[0] > COPACI_MARGINE_M: keep.remove(o); dep += 1
+        if dep: log(f"Copaci departe de drum (peste {COPACI_MARGINE_M:.0f} m), scoși: {dep}")
     if ignorate:
         from collections import Counter
         log(f"Obiecte ignorate: {len(ignorate)} – " + "; ".join(f"{n}× {m}" for m, n in Counter(m for _, m in ignorate).most_common()))
