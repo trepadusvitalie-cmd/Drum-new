@@ -31,7 +31,7 @@ UNIRE = {"groapa": 2.0, "copac": 1.8, "semn": 4.0}
 SIGN_W = 0.7
 IMPARTE_TRUNCHIURI = True    # împărțirea rândurilor pe trunchiuri (trunchiuri.py): toți copacii apar în vector; cei găsiți
                              # astfel (nu direct de model) primesc în Nota „de verificat poziția”
-COPACI_MARGINE_M = 30.0      # se păstrează doar copacii de pe marginea drumului: cel mult atâția metri de traseul mașinii
+COPACI_MARGINE_M = 50.0      # se păstrează doar copacii de pe marginea drumului: cel mult atâția metri de traseul mașinii
 PRAG_RAND = 0.08         # rândurile de copaci (alei dese) au scor mic: se iau de aici și se împart pe trunchiuri
 
 
