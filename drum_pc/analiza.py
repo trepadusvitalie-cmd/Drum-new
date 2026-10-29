@@ -29,6 +29,8 @@ PAS_M = 1.0              # se analizează un cadru la fiecare ~1 m parcurs
 MIN_OBS = 3              # un obiect trebuie văzut în cel puțin 3 cadre
 UNIRE = {"groapa": 2.0, "copac": 1.8, "semn": 4.0}
 SIGN_W = 0.7
+IMPARTE_TRUNCHIURI = False   # împărțirea rândurilor pe trunchiuri (trunchiuri.py): oprită până la modelul antrenat;
+                             # fără ea rămân detecțiile modelului (mai puțini copaci, dar fără puncte puse alături)
 PRAG_RAND = 0.08         # rândurile de copaci (alei dese) au scor mic: se iau de aici și se împart pe trunchiuri
 
 
@@ -565,7 +567,8 @@ def analizeaza(zip_path, model, out_root, progres=None, oprit=None, viz=None, pa
         nproc += 1
         H, W = img.shape[:2]; f = (W / 2.0) / math.tan(math.radians(hfov / 2))
         dets = []
-        for x0, y0, x1, y1, s, lab in trunchiuri.imparte(img, model(img), PRAG_RAND):
+        dets_model = model(img)
+        for x0, y0, x1, y1, s, lab in (trunchiuri.imparte(img, dets_model, PRAG_RAND) if IMPARTE_TRUNCHIURI else dets_model):
             k = tip(lab)
             if s < PRAG[k]: continue
             if k == "copac" and y1 >= H - 3: continue        # baza nu se vede
