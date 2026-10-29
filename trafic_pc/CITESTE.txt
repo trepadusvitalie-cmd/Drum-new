@@ -1,0 +1,35 @@
+﻿TRAFIC PC – analiza video a traficului
+======================================
+
+Ce face
+- Recunoaște în filmare: pietoni, biciclete, mașini, motociclete, autobuze, tramvaie, camioane, animale.
+- Urmărește fiecare obiect (număr ID și traiectorie).
+- PORȚI: o linie desenată pe imagine; numără câți trec, pe clase și pe sens (A→B / B→A).
+- ZONE: un poligon; arată cine intră, cât stă, și dă alertă dacă stă prea mult (secunde alese de tine).
+- VITEZĂ (opțional): după calibrare – 4 colțuri ale unui dreptunghi real de pe sol și dimensiunile lui în metri.
+- EXCEL: Rezumat porți, fiecare trecere (ora, clasa, sens, viteză), pe intervale de 5 / 15 / 60 minute, zone, alerte.
+- Video cu desenele (chenare, ID, traiectorii, porți) – opțional.
+
+Cum se folosește
+1. Pornește Trafic_PC.exe (sau PORNESTE.bat din cod).
+2. „Deschide film” (mp4, avi, mov, mkv…) sau „Cameră live” (adresa rtsp:// a camerei IP).
+3. Verifică „Ora începutului filmării” – din ea se calculează orele din Excel.
+4. „Poartă”: clic capătul A, clic capătul B, apoi numele. „Zonă”: clic pe colțuri, clic dreapta închide zona.
+5. Alege „Camera e: în unghi” (camera de stradă obișnuită) sau „drept de sus” (dronă, cameră deasupra).
+6. Start. Poți pune Pauză sau Stop; rezultatul se salvează lângă film: <film>_trafic.xlsx, <film>_trafic.mp4,
+   iar desenul porților/zonelor în <film>_trafic.json (se încarcă singur data viitoare).
+
+Fără poartă
+- Dacă nu desenezi nicio poartă, se numără fiecare vehicul care trece prin imagine, o singură dată,
+  pe sensuri: în jos (A→B) și în sus (B→A). Mașinile parcate (care nu se mișcă) nu se numără.
+  În Excel apare ca „Toate vehiculele”. Pentru numărare pe benzi / intersecții desenează porți.
+
+Sfaturi
+- Programul lucrează cu prioritate mică și folosește jumătate din nucleele procesorului,
+  ca să poți lucra liniștit pe calculator în timpul analizei.
+- Camera în unghi (de pe stâlp, din clădire) recunoaște mult mai bine decât filmarea drept de sus.
+- „Cadre analizate pe secundă”: 8–10 ajung pentru numărare; mai mult = mai precis la viteze mari, dar mai lent.
+- „Model Rapid” merge de ~3 ori mai repede pe calculatoarele slabe, puțin mai puțin precis.
+- Programul alege singur placa video, dacă e mai rapidă decât procesorul.
+
+Modelul de recunoaștere: YOLOX (Megvii, licență Apache-2.0), antrenat pe setul COCO.

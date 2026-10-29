@@ -1,0 +1,1 @@
+Modelele yolox_s.onnx si yolox_tiny.onnx: YOLOX (Megvii-BaseDetection), https://github.com/Megvii-BaseDetection/YOLOX, release 0.1.1rc0, licenta Apache-2.0 (LICENSE_YOLOX.txt). Nemodificate.

@@ -1,0 +1,8 @@
+env/
+unelte/
+dist/
+build/
+build1/
+__pycache__/
+*.xlsx
+*_trafic.mp4
