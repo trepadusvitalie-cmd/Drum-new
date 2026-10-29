@@ -1,0 +1,49 @@
+name: Antrenare model copaci (YOLO-World)
+
+# Modelul care caută după nume (trunchi de copac, groapă, indicator), exportat în ONNX pentru programul Drum.
+# Rezultatul: Release "model" -> drum_v2.onnx (îl descarcă analiza și construirea exe-ului).
+on:
+  workflow_dispatch:
+    inputs:
+      varianta:
+        description: "s (mic, rapid) sau m (mai precis)"
+        default: "s"
+
+permissions:
+  contents: write
+
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Unelte
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install ultralytics onnx onnxslim onnxruntime
+      - name: Export
+        env:
+          VARIANTA: ${{ inputs.varianta }}
+        run: |
+          case "$VARIANTA" in s|m|l) ;; *) echo "varianta trebuie sa fie s, m sau l"; exit 1;; esac
+          python - <<'EOF'
+          from ultralytics import YOLOWorld
+          import shutil, os
+          m = YOLOWorld(f"yolov8{os.environ['VARIANTA']}-worldv2.pt")
+          m.set_classes(["pothole", "tree trunk", "traffic sign"])   # ordinea din model/labels.txt: groapa, copac, semn
+          f = m.export(format="onnx", imgsz=640, simplify=True)
+          shutil.copy(f, "drum_v2.onnx")
+          import onnxruntime as ort, numpy as np
+          s = ort.InferenceSession("drum_v2.onnx"); i = s.get_inputs()[0]
+          print("intrare", i.shape, "iesire", s.run(None, {i.name: np.zeros((1, 3, 640, 640), np.float32)})[0].shape)
+          EOF
+          ls -la drum_v2.onnx
+      - name: Publicare (Release "model")
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VARIANTA: ${{ inputs.varianta }}
+        run: |
+          gh release delete model -R $GITHUB_REPOSITORY --yes --cleanup-tag 2>/dev/null || true
+          gh release create model drum_v2.onnx -R $GITHUB_REPOSITORY --target $GITHUB_SHA \
+            --title "Model copaci (YOLO-World $VARIANTA)" \
+            --notes "Model care cauta dupa nume: groapa (pothole), copac (tree trunk), indicator (traffic sign). Se pune in folderul model al programului Drum."
