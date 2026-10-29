@@ -20,6 +20,7 @@ import csv, json, math, os, shutil, sys, time, uuid, zipfile, glob, datetime
 import numpy as np
 import cv2
 import indicatoare
+import trunchiuri
 
 AICI = os.path.dirname(os.path.abspath(__file__))
 KINDS = {"groapa": "Gropi", "copac": "Copaci", "semn": "Indicatoare"}
@@ -28,6 +29,7 @@ PAS_M = 1.0              # se analizează un cadru la fiecare ~1 m parcurs
 MIN_OBS = 3              # un obiect trebuie văzut în cel puțin 3 cadre
 UNIRE = {"groapa": 2.0, "copac": 1.8, "semn": 4.0}
 SIGN_W = 0.7
+PRAG_RAND = 0.08         # rândurile de copaci (alei dese) au scor mic: se iau de aici și se împart pe trunchiuri
 
 
 _logf = [print]
@@ -120,7 +122,7 @@ class Model:
     def __call__(self, img):
         """img BGR -> listă (x0,y0,x1,y1,scor,clasa)"""
         if self.kind == "pt":
-            r = self.yolo.predict(img, imgsz=640, conf=min(PRAG.values()), device=self.dev, verbose=False)[0]
+            r = self.yolo.predict(img, imgsz=640, conf=min(min(PRAG.values()), PRAG_RAND), device=self.dev, verbose=False)[0]
             out = []
             for b, s, c in zip(r.boxes.xyxy.cpu().numpy(), r.boxes.conf.cpu().numpy(), r.boxes.cls.cpu().numpy()):
                 out.append((*map(float, b), float(s), self.names[int(c)]))
@@ -136,7 +138,7 @@ class Model:
         res = []
         sc = o[4:]; best = sc.max(0); cls = sc.argmax(0)
         for i in np.argsort(-best):
-            if best[i] < min(PRAG.values()): break
+            if best[i] < min(min(PRAG.values()), PRAG_RAND): break
             cx, cy, bw, bh = o[:4, i]
             b = ((cx - bw / 2 - (S - w) / 2) / s, (cy - bh / 2 - (S - h) / 2) / s, (cx + bw / 2 - (S - w) / 2) / s, (cy + bh / 2 - (S - h) / 2) / s)
             k = self.names[int(cls[i])]
@@ -563,7 +565,7 @@ def analizeaza(zip_path, model, out_root, progres=None, oprit=None, viz=None, pa
         nproc += 1
         H, W = img.shape[:2]; f = (W / 2.0) / math.tan(math.radians(hfov / 2))
         dets = []
-        for x0, y0, x1, y1, s, lab in model(img):
+        for x0, y0, x1, y1, s, lab in trunchiuri.imparte(img, model(img), PRAG_RAND):
             k = tip(lab)
             if s < PRAG[k]: continue
             if k == "copac" and y1 >= H - 3: continue        # baza nu se vede

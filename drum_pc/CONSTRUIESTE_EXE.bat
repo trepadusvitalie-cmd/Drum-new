@@ -19,7 +19,7 @@ rem onnxruntime-directml: modelul ruleaza pe placa video (orice placa cu DirectX
   --collect-all tkinterdnd2 --collect-binaries onnxruntime ^
   --hidden-import osgeo._gdal --hidden-import osgeo._ogr --hidden-import osgeo._osr ^
   --hidden-import analiza --hidden-import gdb_scriere --hidden-import qgis_proiect ^
-  --hidden-import osm_comparare --hidden-import trimite_portal --hidden-import panouri --hidden-import stil --hidden-import vizualizare --hidden-import fundal ^
+  --hidden-import osm_comparare --hidden-import trimite_portal --hidden-import panouri --hidden-import stil --hidden-import vizualizare --hidden-import fundal --hidden-import trunchiuri ^
   --exclude-module torch --exclude-module ultralytics --exclude-module torchvision ^
   --paths "%AICI%." "%AICI%gui.py"
 if not exist "%AICI%dist\Drum_Analiza\Drum_Analiza.exe" (echo  Construirea a esuat. & pause & exit /b 1)
@@ -45,7 +45,7 @@ echo  Construiesc si varianta intr-un singur fisier: dist\Drum_Analiza_autonom.e
   --collect-all tkinterdnd2 --collect-binaries onnxruntime ^
   --hidden-import osgeo._gdal --hidden-import osgeo._ogr --hidden-import osgeo._osr ^
   --hidden-import analiza --hidden-import gdb_scriere --hidden-import qgis_proiect ^
-  --hidden-import osm_comparare --hidden-import trimite_portal --hidden-import panouri --hidden-import stil --hidden-import vizualizare --hidden-import fundal ^
+  --hidden-import osm_comparare --hidden-import trimite_portal --hidden-import panouri --hidden-import stil --hidden-import vizualizare --hidden-import fundal --hidden-import trunchiuri ^
   --exclude-module torch --exclude-module ultralytics --exclude-module torchvision ^
   --paths "%AICI%." "%AICI%gui.py"
 if exist "%AICI%dist\Drum_Analiza_autonom.exe" (echo  Gata: dist\Drum_Analiza_autonom.exe - un singur fisier, se porneste direct) else (echo  Varianta autonoma a esuat - foloseste arhiva portabila.)

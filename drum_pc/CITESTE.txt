@@ -38,3 +38,19 @@ Modelul de detectare: folderul "model".
    - drum_v1.onnx    – modelul din aplicatie (merge pe procesor, fara alte programe).
    - Pune aici un model .pt (de ex. cel antrenat pe placa ta video) – va fi folosit el, pe placa video,
      mai repede si mai bine.
+
+ANTRENAREA MODELULUI (copaci mai buni, mai ales in alei dese)
+   1. SCOATE_CADRE.bat  - trage peste el o arhiva de filmare (.zip) sau un folder cu filmari/poze.
+                          Scoate un cadru la ~8 m in antrenare\date\imagini.
+   2. MARCHEAZA.bat     - fiecare cadru vine cu chenarele gasite de program; tu corectezi:
+                          tragi = chenar nou (de la varf pana JOS, unde trunchiul intra in pamant),
+                          click dreapta = sterge, 1/2/3 = copac/groapa/indicator,
+                          sageata dreapta = urmatorul cadru, Delete = cadru nefolositor, Ctrl+Z = anuleaza.
+                          Nu pune copaci pe carosabil si nu pune acelasi copac de doua ori.
+                          Ideal 150-300 de cadre (minim 20).
+   3. ANTRENEAZA.bat    - antreneaza si pune modelul nou in model\drum_v2.onnx (folosit automat).
+                          Lasa 2 nuclee libere, foloseste cel mult jumatate din memoria libera (max 8 GB),
+                          prioritate scazuta: calculatorul ramane utilizabil.
+                          Cu placa video NVIDIA: 20-40 min; doar pe procesor: cateva ore.
+   Fara placa video: antrenare\antrenare_colab.ipynb in Google Colab (gratuit, ~30 min) -
+   arhivezi antrenare\date ca date.zip, Runtime > Run all, iar la final descarci drum_v2.onnx in model\.
