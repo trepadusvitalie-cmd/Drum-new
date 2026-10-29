@@ -8,6 +8,9 @@ on:
       varianta:
         description: "s (mic, rapid) sau m (mai precis)"
         default: "s"
+      copac:
+        description: "cuvantul cautat pentru copac (tree, tree trunk...)"
+        default: "tree"
 
 permissions:
   contents: write
@@ -24,13 +27,14 @@ jobs:
       - name: Export
         env:
           VARIANTA: ${{ inputs.varianta }}
+          COPAC: ${{ inputs.copac }}
         run: |
           case "$VARIANTA" in s|m|l) ;; *) echo "varianta trebuie sa fie s, m sau l"; exit 1;; esac
           python - <<'EOF'
           from ultralytics import YOLOWorld
           import shutil, os
           m = YOLOWorld(f"yolov8{os.environ['VARIANTA']}-worldv2.pt")
-          m.set_classes(["pothole", "tree trunk", "traffic sign"])   # ordinea din model/labels.txt: groapa, copac, semn
+          m.set_classes(["pothole", os.environ["COPAC"], "traffic sign"])   # ordinea din model/labels.txt: groapa, copac, semn
           f = m.export(format="onnx", imgsz=640, simplify=True)
           shutil.copy(f, "drum_v2.onnx")
           import onnxruntime as ort, numpy as np
