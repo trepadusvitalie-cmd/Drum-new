@@ -46,7 +46,7 @@ jobs:
           m.train(data=f"{ds}/copaci.yaml", epochs=int(os.environ["EPOCI"]), imgsz=640, batch=8, workers=2, device="cpu",
                   patience=60, project="rez", name="copaci", exist_ok=True, plots=False, verbose=False,
                   fliplr=0.5, degrees=3, scale=0.5, translate=0.1, hsv_h=0.02, hsv_s=0.6, hsv_v=0.4, mosaic=1.0, mixup=0.1)
-          best = "rez/copaci/weights/best.pt"
+          best = str(m.trainer.best); print("model:", best)
           r = YOLO(best).val(data=f"{ds}/copaci.yaml", imgsz=640, device="cpu", verbose=False)
           print(f"REZULTAT: precizie {r.box.mp*100:.0f}%, gasiti {r.box.mr*100:.0f}%, mAP50 {r.box.map50*100:.0f}%")
           f = YOLO(best).export(format="onnx", imgsz=640, simplify=True)
