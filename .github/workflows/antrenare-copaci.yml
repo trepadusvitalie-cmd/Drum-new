@@ -1,0 +1,64 @@
+name: Antrenare model copaci (cadre marcate)
+
+# Antrenează modelul de copaci pe drum_pc/antrenare/date_copaci (imagini + etichete YOLO, clasa 1 = copac)
+# și îl publică în Release "copaci-model" -> copaci.onnx (programul Drum îl folosește pentru copaci).
+on:
+  workflow_dispatch:
+    inputs:
+      epoci:
+        description: "numar de epoci"
+        default: "150"
+
+permissions:
+  contents: write
+
+jobs:
+  antrenare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unelte
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install ultralytics onnx onnxslim onnxruntime
+      - name: Antrenare
+        env:
+          EPOCI: ${{ inputs.epoci }}
+        run: |
+          case "$EPOCI" in ''|*[!0-9]*) echo "epoci trebuie sa fie un numar"; exit 1;; esac
+          python - <<'PY'
+          import os, glob, shutil, random
+          from ultralytics import YOLO
+          src = "drum_pc/antrenare/date_copaci"; ds = "set"
+          imgs = sorted(glob.glob(f"{src}/images/*.jpg")); random.Random(7).shuffle(imgs)
+          val = imgs[:5]
+          for part, lst in (("train", imgs), ("val", val)):
+              for sub in ("images", "labels"): os.makedirs(f"{ds}/{part}/{sub}", exist_ok=True)
+              for f in lst:
+                  n = os.path.basename(f)[:-4]
+                  shutil.copy(f, f"{ds}/{part}/images/")
+                  # o singura clasa: copac (in etichete e 1, in setul de antrenare devine 0)
+                  rows = [l.split() for l in open(f"{src}/labels/{n}.txt") if l.strip()]
+                  open(f"{ds}/{part}/labels/{n}.txt", "w").write("".join("0 " + " ".join(r[1:]) + "\n" for r in rows if r[0] == "1"))
+          open(f"{ds}/copaci.yaml", "w").write(f"path: {os.path.abspath(ds)}\ntrain: train/images\nval: val/images\nnames:\n  0: copac\n")
+          m = YOLO("yolo11s.pt")
+          m.train(data=f"{ds}/copaci.yaml", epochs=int(os.environ["EPOCI"]), imgsz=640, batch=8, workers=2, device="cpu",
+                  patience=60, project="rez", name="copaci", exist_ok=True, plots=False, verbose=False,
+                  fliplr=0.5, degrees=3, scale=0.5, translate=0.1, hsv_h=0.02, hsv_s=0.6, hsv_v=0.4, mosaic=1.0, mixup=0.1)
+          best = "rez/copaci/weights/best.pt"
+          r = YOLO(best).val(data=f"{ds}/copaci.yaml", imgsz=640, device="cpu", verbose=False)
+          print(f"REZULTAT: precizie {r.box.mp*100:.0f}%, gasiti {r.box.mr*100:.0f}%, mAP50 {r.box.map50*100:.0f}%")
+          f = YOLO(best).export(format="onnx", imgsz=640, simplify=True)
+          shutil.copy(f, "copaci.onnx")
+          PY
+          ls -la copaci.onnx
+      - name: Publicare (Release copaci-model)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo copac > copaci.labels.txt
+          gh release delete copaci-model -R $GITHUB_REPOSITORY --yes --cleanup-tag 2>/dev/null || true
+          gh release create copaci-model copaci.onnx copaci.labels.txt -R $GITHUB_REPOSITORY --target $GITHUB_SHA \
+            --title "Model copaci (antrenat pe cadre marcate)" \
+            --notes "Model de copaci antrenat pe pozele marcate din drum_pc/antrenare/date_copaci. Se pune in folderul model al programului Drum (copaci.onnx)."
