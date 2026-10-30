@@ -61,9 +61,10 @@ class Model:
                                      "Pentru Drum_Analiza.exe alege un model .onnx.")
         else:
             pts = sorted(glob.glob(os.path.join(folder, "*.pt")))
-            onx = sorted(glob.glob(os.path.join(folder, "*.onnx")))
+            onx = sorted(f for f in glob.glob(os.path.join(folder, "*.onnx")) if os.path.basename(f) != "copaci.onnx")
             tfl = sorted(glob.glob(os.path.join(folder, "*.tflite")))
             lab = os.path.join(folder, "labels.txt")
+        self.folder = folder
         self.names = [l.strip() for l in open(lab, encoding="utf-8") if l.strip()] if os.path.exists(lab) else ["groapa", "copac", "semn"]
         if pts:
             try:
@@ -122,8 +123,22 @@ class Model:
         else:
             raise SystemExit("Nu e niciun model în folderul model/ (drum.pt, drum_v1.onnx sau drum_v1.tflite).")
 
+    def copaci(self):
+        """Modelul antrenat doar pe copaci (model/copaci.onnx), dacă există: copacii se iau din el, nu din modelul principal."""
+        if not hasattr(self, "_copaci"):
+            f = os.path.join(self.folder, "copaci.onnx")
+            self._copaci = Model(f) if os.path.exists(f) and getattr(self, "kind", "") != "copaci" else None
+            if self._copaci: self._copaci.kind_ = "copaci"; log("Copacii: modelul copaci.onnx (antrenat pe copaci de pe drum)")
+        return self._copaci
+
     def __call__(self, img):
         """img BGR -> listă (x0,y0,x1,y1,scor,clasa)"""
+        mc = self.copaci() if getattr(self, "kind_", "") != "copaci" else None
+        if mc is not None:
+            return [d for d in self._detecteaza(img) if tip(d[5]) != "copac"] + [(*d[:5], "copac") for d in mc._detecteaza(img)]
+        return self._detecteaza(img)
+
+    def _detecteaza(self, img):
         if self.kind == "pt":
             r = self.yolo.predict(img, imgsz=640, conf=min(min(PRAG.values()), PRAG_RAND), device=self.dev, verbose=False)[0]
             out = []
@@ -570,7 +585,8 @@ def analizeaza(zip_path, model, out_root, progres=None, oprit=None, viz=None, pa
         dets = []
         dets_model = model(img)
         din_model = {tuple(round(v, 1) for v in d[:4]) for d in dets_model}
-        for x0, y0, x1, y1, s, lab in (trunchiuri.imparte(img, dets_model, PRAG_RAND) if IMPARTE_TRUNCHIURI else dets_model):
+        imparte = IMPARTE_TRUNCHIURI and model.copaci() is None    # modelul de copaci găsește singur fiecare trunchi
+        for x0, y0, x1, y1, s, lab in (trunchiuri.imparte(img, dets_model, PRAG_RAND) if imparte else dets_model):
             pe_forma = tuple(round(v, 1) for v in (x0, y0, x1, y1)) not in din_model   # găsit după trunchi / coroană
             k = tip(lab)
             if s < PRAG[k]: continue
