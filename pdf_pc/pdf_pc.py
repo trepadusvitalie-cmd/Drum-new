@@ -31,6 +31,13 @@ def langa_exe(nume):
     return os.path.join(d, nume)
 
 
+def cale_logo():
+    """logo.png de lângă exe (îl poate schimba oricine), altfel cel inclus în program"""
+    p = langa_exe("logo.png")
+    if os.path.exists(p): return p
+    return os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))), "logo.png")
+
+
 def _titlu():
     try:
         t = open(langa_exe("titlu.txt"), encoding="utf-8-sig").read().strip()
@@ -119,7 +126,7 @@ class App:
     def _iconita(self):
         """iconița ferestrei: cercul din stânga lui logo.png (de lângă exe) cu eticheta „PDF”"""
         try:
-            p = langa_exe("logo.png")
+            p = cale_logo()
             if not os.path.exists(p): return
             im = Image.open(p).convert("RGBA"); im = im.crop((0, 0, min(im.height, im.width), im.height)).resize((256, 256), Image.LANCZOS)
             d = ImageDraw.Draw(im); d.rounded_rectangle((96, 168, 254, 246), radius=16, fill=(205, 30, 30, 255), outline="white", width=5)
@@ -135,7 +142,7 @@ class App:
             pass
 
     def _logo(self, inaltime):
-        p = langa_exe("logo.png")
+        p = cale_logo()
         if not os.path.exists(p): return None
         try:
             im = Image.open(p).convert("RGBA"); k = inaltime / im.height
@@ -167,7 +174,11 @@ class App:
         st.configure("TProgressbar", background=T["accent"], troughcolor="#e8eaed", borderwidth=0)
         # antetul: numele programului și logo
         an = tk.Frame(self.root, bg=T["antet"], height=42); an.pack(fill="x"); an.pack_propagate(False)
-        tk.Label(an, text="  PDF", bg="#d93025", fg="white", font=("Segoe UI", 10, "bold"), padx=4).pack(side="left", padx=(12, 0), pady=9)
+        self.img_logo_antet = self._logo(28)
+        if self.img_logo_antet:                                    # logo.png (de lângă exe sau inclus în program) pe un fundal alb
+            tk.Label(an, image=self.img_logo_antet, bg="white", padx=6, pady=2).pack(side="left", padx=(10, 0), pady=5)
+        else:
+            tk.Label(an, text="  PDF", bg="#d93025", fg="white", font=("Segoe UI", 10, "bold"), padx=4).pack(side="left", padx=(12, 0), pady=9)
         tk.Label(an, text=NUME, bg=T["antet"], fg="white", font=("Segoe UI", 13, "bold")).pack(side="left", padx=8)
         self.l_antet = tk.Label(an, text="", bg=T["antet"], fg="#c6d4ea", font=("Segoe UI", 10)); self.l_antet.pack(side="left", padx=6)
         m = tk.Menu(self.root); self.root.config(menu=m)
