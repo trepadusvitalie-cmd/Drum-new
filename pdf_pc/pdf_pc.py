@@ -1537,6 +1537,10 @@ def main():
             if messagebox.askyesno(NUME, "Adaug „Combină fișierele în PDF PC…” în meniul click-dreapta din Windows?", parent=app.root):
                 app.meniu_windows(True)
         app.root.after(1200, intreaba)
+    demo = os.environ.get("PDF_PC_DEMO", "")                 # doar pentru capturile de ecran făcute la construire
+    if demo:
+        app.root.state("zoomed")
+        if demo == "semn": app.root.after(4000, app._semn_din_nume)
     app.root.mainloop()
     try: shutil.rmtree(TMP, ignore_errors=True)
     except Exception: pass
