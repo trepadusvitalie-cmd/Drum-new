@@ -9,6 +9,20 @@ from pdf_nucleu import *
 
 try:
     from tkinterdnd2 import TkinterDnD, DND_FILES
+
+    def _tkdnd_potrivit(tkroot):
+        """încarcă tkdnd potrivit cu programul (32 sau 64 de biți), nu cu Windows-ul:
+        tkinterdnd2 se uită la Windows și pe 64 de biți ia biblioteca de 64, care nu merge într-un program de 32"""
+        import struct
+        biti = struct.calcsize("P") * 8
+        rep = {32: "win-x86", 64: "win-x64"}[biti] if sys.platform == "win32" else None
+        if rep is None: return TkinterDnD._require_orig(tkroot)
+        cale = os.path.join(os.path.dirname(TkinterDnD.__file__), "tkdnd", rep)
+        tkroot.tk.call("lappend", "auto_path", cale)
+        TkinterDnD.TkdndVersion = tkroot.tk.call("package", "require", "tkdnd")
+        return TkinterDnD.TkdndVersion
+    if not hasattr(TkinterDnD, "_require_orig"):
+        TkinterDnD._require_orig = TkinterDnD._require; TkinterDnD._require = _tkdnd_potrivit
 except Exception:
     TkinterDnD = None
 def langa_exe(nume):
