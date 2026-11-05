@@ -256,7 +256,7 @@ def rand_la(pg, x, y):
             d = abs((r.y0 + r.y1) / 2 - P.y)
             if d < bd:
                 s0 = sp[0]
-                best, bd = {"rect": tuple(r), "text": "".join(s["text"] for s in l["spans"]).strip(), "size": s0["size"],
+                best, bd = {"rect": tuple(r), "text": "".join(s["text"] for s in l["spans"]).replace("\xa0", " ").strip(), "size": s0["size"],
                             "color": s0["color"], "origin": tuple(s0["origin"]), "bold": bool(s0["flags"] & 16),
                             "italic": bool(s0["flags"] & 2), "font": s0.get("font", ""), "dir": tuple(l.get("dir", (1, 0)))}, d
     return best
