@@ -1277,23 +1277,27 @@ class App:
         tk.Checkbutton(opt, text="linie dedesubt", variable=v_lin, bg="white", font=("Segoe UI", 10), command=lambda: arata()).pack(side="left", padx=8)
         tk.Label(opt, text="grosime:", bg="white", font=("Segoe UI", 10)).pack(side="left", padx=(8, 2))
         ttk.Scale(opt, from_=0.6, to=2.2, variable=v_gros, length=120, command=lambda _v: arata()).pack(side="left")
-        tk.Label(d, text="Alege stilul (clic):", bg="white", fg="#555", font=("Segoe UI", 9)).pack(anchor="w", padx=14, pady=(10, 2))
+        jos = tk.Frame(d, bg="white"); jos.pack(side="bottom", fill="x", padx=14, pady=12)      # butoanele rămân mereu vizibile
+        tk.Label(d, text="Alege stilul (clic; dublu clic = folosește):", bg="white", fg="#555", font=("Segoe UI", 9)).pack(anchor="w", padx=14, pady=(10, 2))
         lista = tk.Frame(d, bg="white"); lista.pack(fill="both", expand=True, padx=14)
         ales = tk.IntVar(d, value=min(cfg.get("semn_stil", 0), len(fonturi) - 1)); previz = []; job = [None]
         def randeaza():
             job[0] = None
             for w in lista.winfo_children(): w.destroy()
             previz.clear(); n = v_nume.get().strip() or "Semnătura"
+            loc = max(3, min(6, (d.winfo_screenheight() - 300) // 76))     # câte stiluri încap pe ecran
             for i, (fn, cale) in enumerate(fonturi[:10]):
+                if len(previz) >= loc: break
                 if not SN.are_literele(cale, n): continue                 # stilul n-are toate literele numelui (ex. Ț)
                 try: im = SN.deseneaza(n, cale, v_col.get(), 90, linie=v_lin.get(), grosime=v_gros.get())
                 except Exception: continue
-                k = min(1.0, 430 / im.width, 70 / im.height); im = im.resize((max(1, int(im.width * k)), max(1, int(im.height * k))), Image.LANCZOS)
-                fond = Image.new("RGBA", im.size, (255, 255, 255, 255)); fond.alpha_composite(im); ph = ImageTk.PhotoImage(fond, master=d); previz.append(ph)
+                k = min(1.0, 430 / im.width, 58 / im.height); im = im.resize((max(1, int(im.width * k)), max(1, int(im.height * k))), Image.LANCZOS)
+                sel = ales.get() == i
+                fond = Image.new("RGBA", im.size, (232, 240, 254, 255) if sel else (255, 255, 255, 255)); fond.alpha_composite(im); ph = ImageTk.PhotoImage(fond, master=d); previz.append(ph)
                 sel = ales.get() == i
                 f = tk.Frame(lista, bg="#e8f0fe" if sel else "white", highlightthickness=2, highlightbackground="#1a73e8" if sel else "#e3e6ea", cursor="hand2")
                 f.pack(fill="x", pady=3)
-                l1 = tk.Label(f, image=ph, bg=f["bg"], height=78, width=440); l1.pack(side="left", padx=6, pady=2)
+                l1 = tk.Label(f, image=ph, bg=f["bg"], height=62, width=440); l1.pack(side="left", padx=6, pady=2)
                 l2 = tk.Label(f, text=fn, bg=f["bg"], fg="#777", font=("Segoe UI", 8)); l2.pack(side="right", padx=8)
                 for w in (f, l1, l2): w.bind("<Button-1>", lambda e, i=i: (ales.set(i), randeaza()))
                 for w in (f, l1, l2): w.bind("<Double-Button-1>", lambda e, i=i: (ales.set(i), ok()))
@@ -1313,7 +1317,6 @@ class App:
             except Exception: pass
             scr_cfg(semn_nume=n, semn_culoare=v_col.get(), semn_linie=v_lin.get(), semn_grosime=v_gros.get(), semn_stil=i)
             d.destroy(); self._foloseste_semn(data)
-        jos = tk.Frame(d, bg="white"); jos.pack(fill="x", padx=14, pady=12)
         ttk.Button(jos, text="Anulează", command=lambda: (d.destroy(), self.unealta.set("sel"))).pack(side="right")
         ttk.Button(jos, text="✓ Folosește semnătura", command=ok).pack(side="right", padx=6)
         e.bind("<Return>", ok); d.bind("<Escape>", lambda e: (d.destroy(), self.unealta.set("sel")))
