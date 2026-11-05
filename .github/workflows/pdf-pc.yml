@@ -40,7 +40,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force "$env:APPDATA\PDF_PC", capturi | Out-Null
-          '{"meniu_intrebat": true, "semn_nume": "Alexandru Jalbă"}' | Set-Content -Encoding utf8 "$env:APPDATA\PDF_PC\setari.json"
+          '{"meniu_intrebat": true, "semn_nume": "Ion Popescu"}' | Set-Content -Encoding utf8 "$env:APPDATA\PDF_PC\setari.json"
           python -c "import fitz; d=fitz.open(); p=d.new_page(); p.insert_text((72,90),'Contract de prestari servicii',fontsize=20); [p.insert_text((72,140+i*18),'Textul documentului, randul %d.'%(i+1),fontsize=11) for i in range(25)]; d.save('capturi/exemplu.pdf')"
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           function Poza($f) { $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp = New-Object Drawing.Bitmap $b.Width, $b.Height
