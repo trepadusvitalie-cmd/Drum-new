@@ -240,3 +240,50 @@ def aplica(doc, over, imagini):
                 pg.draw_rect(R, color=None, fill=col, fill_opacity=0.35, width=0, overlay=True)
             elif t in ("img", "semn"):
                 pg.insert_image(R, stream=imagini[o["img"]], keep_proportion=False, rotate=rot)
+
+
+# ---------- editarea textului existent din PDF ----------
+def rand_la(pg, x, y):
+    """rândul de text de sub punctul (x, y) al paginii afișate -> dict (text, mărime, culoare, poziție) sau None"""
+    P = fitz.Point(x, y) * pg.derotation_matrix
+    best, bd = None, 1e9
+    for b in pg.get_text("dict").get("blocks", []):
+        for l in b.get("lines", []):
+            sp = [s for s in l.get("spans", []) if s.get("text", "").strip()]
+            if not sp: continue
+            r = fitz.Rect(l["bbox"])
+            if not (r + (-3, -3, 3, 3)).contains(P): continue
+            d = abs((r.y0 + r.y1) / 2 - P.y)
+            if d < bd:
+                s0 = sp[0]
+                best, bd = {"rect": tuple(r), "text": "".join(s["text"] for s in l["spans"]).replace("\xa0", " ").strip(), "size": s0["size"],
+                            "color": s0["color"], "origin": tuple(s0["origin"]), "bold": bool(s0["flags"] & 16),
+                            "italic": bool(s0["flags"] & 2), "font": s0.get("font", ""), "dir": tuple(l.get("dir", (1, 0)))}, d
+    return best
+
+
+def _font_pentru(info):
+    """fontul textului nou: Arial (cu diacritice) normal / aldin / cursiv, după textul vechi"""
+    nume = (info.get("font") or "").lower()
+    bold = info.get("bold") or "bold" in nume; ital = info.get("italic") or "italic" in nume or "oblique" in nume
+    f = {(True, True): "arialbi.ttf", (True, False): "arialbd.ttf", (False, True): "ariali.ttf"}.get((bold, ital))
+    if f:
+        p = os.path.join(r"C:\Windows\Fonts", f)
+        if os.path.exists(p): return "F0" + ("b" if bold else "") + ("i" if ital else ""), p
+    return ("F0", FONT) if FONT else ("helv", None)
+
+
+def inlocuieste_rand(pg, info, nou):
+    """șterge textul vechi al rândului (fără să atingă imaginile și desenele) și scrie textul nou în locul lui"""
+    R = fitz.Rect(info["rect"]); h = R.height
+    R = fitz.Rect(R.x0 - 0.5, R.y0 + h * 0.12, R.x1 + 0.5, R.y1 - h * 0.12)      # nu taie rândurile vecine
+    pg.add_redact_annot(R, fill=False)
+    pg.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+    nou = nou.strip()
+    if not nou: return
+    c = int(info.get("color", 0)); col = (((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255)
+    fn, ff = _font_pentru(info)
+    kw = dict(fontname=fn, fontfile=ff) if ff else dict(fontname=fn)
+    dx, dy = info.get("dir", (1, 0))                        # aceeași direcție ca textul vechi (în pagina nerotită)
+    rot = {(1, 0): 0, (0, -1): 90, (-1, 0): 180, (0, 1): 270}.get((round(dx), round(dy)), 0)
+    pg.insert_text(fitz.Point(*info["origin"]), nou, fontsize=info["size"], color=col, rotate=rot, **kw)
