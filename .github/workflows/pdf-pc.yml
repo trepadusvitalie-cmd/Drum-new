@@ -42,13 +42,15 @@ jobs:
           New-Item -ItemType Directory -Force "$env:APPDATA\PDF_PC", capturi | Out-Null
           '{"meniu_intrebat": true, "semn_nume": "Ion Popescu"}' | Set-Content -Encoding utf8 "$env:APPDATA\PDF_PC\setari.json"
           python -c "import fitz; d=fitz.open(); p=d.new_page(); p.insert_text((72,90),'Contract de prestari servicii',fontsize=20); [p.insert_text((72,140+i*18),'Textul documentului, randul %d.'%(i+1),fontsize=11) for i in range(25)]; d.save('capturi/exemplu.pdf')"
+          function Inchide { Get-Process PDF_PC -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep 2 }
+          Inchide
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           function Poza($f) { $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp = New-Object Drawing.Bitmap $b.Width, $b.Height
             $g = [Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($b.Location, [Drawing.Point]::Empty, $b.Size); $bmp.Save($f); $g.Dispose(); $bmp.Dispose() }
           $env:PDF_PC_DEMO = "fereastra"; $p = Start-Process pdf_pc\dist\PDF_PC.exe -ArgumentList "capturi\exemplu.pdf" -PassThru
-          Start-Sleep 12; Poza "capturi\1_fereastra.png"; Stop-Process -Id $p.Id -Force; Start-Sleep 2
+          Start-Sleep 12; Poza "capturi\1_fereastra.png"; Inchide
           $env:PDF_PC_DEMO = "semn"; $p = Start-Process pdf_pc\dist\PDF_PC.exe -ArgumentList "capturi\exemplu.pdf" -PassThru
-          Start-Sleep 14; Poza "capturi\2_semnatura_din_nume.png"; Stop-Process -Id $p.Id -Force
+          Start-Sleep 14; Poza "capturi\2_semnatura_din_nume.png"; Inchide
           Copy-Item pdf_pc\dist\PDF_PC.exe capturi\
           Compress-Archive -Path pdf_pc\dist\PDF_PC.exe -DestinationPath capturi\PDF_PC.zip -Force
           Remove-Item capturi\PDF_PC.exe
