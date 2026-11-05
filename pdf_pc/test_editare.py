@@ -17,8 +17,9 @@ for rot in (0, 90):
     assert info and info["text"].startswith("Pret total"), info
     nou = "Pret total: 250 lei" if rot == 0 else "Pret total: 300 lei"
     inlocuieste_rand(p, info, nou)
-    t = p.get_text()
-    assert nou in t, t
+    import re
+    t = re.sub(r"[^\w:]+", " ", p.get_text())               # spațiile din fontul Arial pot ieși la citire ca alt caracter
+    assert re.sub(r"[^\w:]+", " ", nou) in t, t
     assert "100 lei" not in t and "Randul de dedesubt ramane" in t, t
     assert any(dr["rect"] for dr in p.get_drawings()), "desenul a dispărut"
     print("rotatie", rot, "ok:", nou)
