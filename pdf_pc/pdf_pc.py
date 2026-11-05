@@ -1264,7 +1264,7 @@ class App:
         fonturi = SN.fonturi()
         if not fonturi: messagebox.showerror(NUME, "Nu găsesc fonturi de scris de mână.", parent=self.root); self.unealta.set("sel"); return
         d = tk.Toplevel(self.root); d.title("Semnătură din nume"); d.transient(self.root); d.grab_set(); d.configure(bg="white")
-        d.geometry(f"+{self.root.winfo_rootx() + 120}+{self.root.winfo_rooty() + 80}")
+        d.geometry(f"+{self.root.winfo_rootx() + 120}+{max(10, min(self.root.winfo_rooty() + 80, d.winfo_screenheight() // 12))}")
         cfg = cit_cfg()
         sus = tk.Frame(d, bg="white"); sus.pack(fill="x", padx=14, pady=(12, 6))
         tk.Label(sus, text="Numele:", bg="white", font=("Segoe UI", 10)).pack(side="left")
@@ -1285,7 +1285,7 @@ class App:
             job[0] = None
             for w in lista.winfo_children(): w.destroy()
             previz.clear(); n = v_nume.get().strip() or "Semnătura"
-            loc = max(3, min(6, (d.winfo_screenheight() - 300) // 76))     # câte stiluri încap pe ecran
+            loc = max(3, min(6, (d.winfo_screenheight() - 400) // 82))     # câte stiluri încap pe ecran (cu butoanele vizibile)
             for i, (fn, cale) in enumerate(fonturi[:10]):
                 if len(previz) >= loc: break
                 if not SN.are_literele(cale, n): continue                 # stilul n-are toate literele numelui (ex. Ț)
