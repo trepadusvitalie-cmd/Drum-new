@@ -77,7 +77,12 @@ class App:
     def __init__(self):
         global TkinterDnD
         try: self.root = TkinterDnD.Tk() if TkinterDnD else tk.Tk()
-        except Exception: TkinterDnD = None; self.root = tk.Tk()          # fără „trage fișiere aici” dacă tkdnd nu se încarcă
+        except Exception:                                                   # tkdnd nu se încarcă: fără „trage fișiere aici”
+            TkinterDnD = None
+            try: tk._default_root.destroy()                                 # fereastra pe jumătate creată nu trebuie să rămână
+            except Exception: pass
+            tk._default_root = None
+            self.root = tk.Tk()
         self.root.title(NUME); self.root.geometry("1280x820"); self.root.minsize(900, 560)
         try: self.root.iconbitmap(default=os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(__file__)), "pdf_pc.ico"))
         except Exception: pass
@@ -1263,9 +1268,9 @@ class App:
         cfg = cit_cfg()
         sus = tk.Frame(d, bg="white"); sus.pack(fill="x", padx=14, pady=(12, 6))
         tk.Label(sus, text="Numele:", bg="white", font=("Segoe UI", 10)).pack(side="left")
-        v_nume = tk.StringVar(value=cfg.get("semn_nume", "")); e = ttk.Entry(sus, textvariable=v_nume, width=34, font=("Segoe UI", 11)); e.pack(side="left", padx=6); e.focus_set()
-        v_col = tk.StringVar(value=cfg.get("semn_culoare", "#1f3fa0")); v_lin = tk.BooleanVar(value=cfg.get("semn_linie", True))
-        v_gros = tk.DoubleVar(value=cfg.get("semn_grosime", 1.0))
+        v_nume = tk.StringVar(d, value=cfg.get("semn_nume", "")); e = ttk.Entry(sus, textvariable=v_nume, width=34, font=("Segoe UI", 11)); e.pack(side="left", padx=6); e.focus_set()
+        v_col = tk.StringVar(d, value=cfg.get("semn_culoare", "#1f3fa0")); v_lin = tk.BooleanVar(d, value=cfg.get("semn_linie", True))
+        v_gros = tk.DoubleVar(d, value=cfg.get("semn_grosime", 1.0))
         opt = tk.Frame(d, bg="white"); opt.pack(fill="x", padx=14)
         for t, c in (("Albastru", "#1f3fa0"), ("Negru", "#111111")):
             tk.Radiobutton(opt, text=t, value=c, variable=v_col, bg="white", fg=c, font=("Segoe UI", 10, "bold"), command=lambda: arata()).pack(side="left", padx=(0, 8))
@@ -1274,7 +1279,7 @@ class App:
         ttk.Scale(opt, from_=0.6, to=2.2, variable=v_gros, length=120, command=lambda _v: arata()).pack(side="left")
         tk.Label(d, text="Alege stilul (clic):", bg="white", fg="#555", font=("Segoe UI", 9)).pack(anchor="w", padx=14, pady=(10, 2))
         lista = tk.Frame(d, bg="white"); lista.pack(fill="both", expand=True, padx=14)
-        ales = tk.IntVar(value=min(cfg.get("semn_stil", 0), len(fonturi) - 1)); previz = []; job = [None]
+        ales = tk.IntVar(d, value=min(cfg.get("semn_stil", 0), len(fonturi) - 1)); previz = []; job = [None]
         def randeaza():
             job[0] = None
             for w in lista.winfo_children(): w.destroy()
@@ -1284,7 +1289,7 @@ class App:
                 try: im = SN.deseneaza(n, cale, v_col.get(), 90, linie=v_lin.get(), grosime=v_gros.get())
                 except Exception: continue
                 k = min(1.0, 430 / im.width, 70 / im.height); im = im.resize((max(1, int(im.width * k)), max(1, int(im.height * k))), Image.LANCZOS)
-                fond = Image.new("RGBA", im.size, (255, 255, 255, 255)); fond.alpha_composite(im); ph = ImageTk.PhotoImage(fond); previz.append(ph)
+                fond = Image.new("RGBA", im.size, (255, 255, 255, 255)); fond.alpha_composite(im); ph = ImageTk.PhotoImage(fond, master=d); previz.append(ph)
                 sel = ales.get() == i
                 f = tk.Frame(lista, bg="#e8f0fe" if sel else "white", highlightthickness=2, highlightbackground="#1a73e8" if sel else "#e3e6ea", cursor="hand2")
                 f.pack(fill="x", pady=3)
