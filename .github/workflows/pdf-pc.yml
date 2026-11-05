@@ -3,7 +3,7 @@ name: Construieste PDF_PC.exe
 # Construiește exe-ul din pdf_pc/ și îl publică în Release pdf-pc (același link de descărcare).
 on:
   push:
-    branches: [main]
+    branches: [main, "claude/**"]
     paths: ["pdf_pc/**", ".github/workflows/pdf-pc.yml"]
   workflow_dispatch:
 
@@ -18,13 +18,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.8"          # ultima versiune care merge pe Windows 7
+          architecture: x86              # 32 de biți: pornește pe Windows 7/8/10/11, 32 și 64 de biți
 
       - name: Construire
         working-directory: pdf_pc
         run: |
-          python -m pip install -q pyinstaller pymupdf pillow pywin32 tkinterdnd2
-          python -m PyInstaller --noconfirm --onefile --windowed --name PDF_PC --icon pdf_pc.ico --add-data "pdf_pc.ico;." --collect-all pymupdf --collect-all tkinterdnd2 --hidden-import win32com.client --hidden-import pythoncom --hidden-import pywintypes --hidden-import PIL.ImageTk --exclude-module matplotlib --exclude-module numpy --exclude-module PyQt5 --exclude-module PySide6 pdf_pc.py
+          python -m pip install -q "pyinstaller==5.13.2" "pymupdf==1.22.5" "pillow==9.5.0" "pywin32==306" "tkinterdnd2==0.3.0"
+          python -c "import fitz, PIL, semnatura_nume as S; print(fitz.VersionBind, PIL.__version__, [n for n, _ in S.fonturi()])"
+          python -m PyInstaller --noconfirm --onefile --windowed --name PDF_PC --icon pdf_pc.ico --add-data "pdf_pc.ico;." --add-data "fonturi;fonturi" --hidden-import semnatura_nume --collect-all fitz --collect-all tkinterdnd2 --hidden-import win32com.client --hidden-import pythoncom --hidden-import pywintypes --hidden-import PIL.ImageTk --exclude-module matplotlib --exclude-module numpy --exclude-module PyQt5 --exclude-module PySide6 pdf_pc.py
 
       - name: Test pornire (15 s fara eroare)
         shell: pwsh

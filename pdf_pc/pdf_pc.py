@@ -32,13 +32,14 @@ CFG = os.path.join(CFG_DIR, "setari.json")
 SEMN = os.path.join(CFG_DIR, "semnatura.png")
 PORT = 47613
 OX = OY = 24                                              # marginea paginii în fereastră
-TEMA = {"panou": "#e8e8e8", "sursa": "#dfe7f2", "accent": "#1a73e8", "selectie": "#9cc3f5", "text2": "#444"}
+TEMA = {"panou": "#f1f3f6", "sursa": "#e3ecf8", "accent": "#1a73e8", "selectie": "#cfe0fb", "text2": "#5f6368",
+        "antet": "#1b3a6b", "bara": "#ffffff", "fond": "#f5f7fa", "pagina": "#e6e9ee", "umbra": "#c3c8cf", "hover": "#e8f0fe"}
 UNELTE = [("sel", "↖", "Selectare / mutare (dublu clic pe text = editare, Delete = șterge)"),
           ("text", "IAb", "Adaugă text: clic pe pagină și scrie"), ("x", "✗", "Pune un X"), ("v", "✓", "Pune o bifă"),
           ("oval", "◯", "Cerc / oval: trage cu mouse-ul"), ("linie", "—", "Linie: trage cu mouse-ul"), ("punct", "•", "Punct"),
-          ("drept", "▭", "Dreptunghi"), ("alb", "⬜", "Acoperă (alb): ascunde un text existent, apoi scrie peste"),
-          ("evid", "🖍", "Evidențiere"), ("img", "🖼", "Imagine: alege fișierul, apoi clic pe pagină"),
-          ("semn", "✍", "Semnătură")]
+          ("drept", "▭", "Dreptunghi"), ("alb", "▢ Alb", "Acoperă (alb): ascunde un text existent, apoi scrie peste"),
+          ("evid", "▬ Evid.", "Evidențiere"), ("img", "Imagine", "Imagine: alege fișierul, apoi clic pe pagină"),
+          ("semn", "✎ Semnătură", "Semnătură: scrie numele (devine semnătură de mână), desenează sau încarcă")]
 
 
 def cit_cfg():
@@ -74,7 +75,9 @@ class Sfat:
 
 class App:
     def __init__(self):
-        self.root = TkinterDnD.Tk() if TkinterDnD else tk.Tk()
+        global TkinterDnD
+        try: self.root = TkinterDnD.Tk() if TkinterDnD else tk.Tk()
+        except Exception: TkinterDnD = None; self.root = tk.Tk()          # fără „trage fișiere aici” dacă tkdnd nu se încarcă
         self.root.title(NUME); self.root.geometry("1280x820"); self.root.minsize(900, 560)
         try: self.root.iconbitmap(default=os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(__file__)), "pdf_pc.ico"))
         except Exception: pass
@@ -123,9 +126,30 @@ class App:
     # ======================= interfață =======================
     def _ui(self):
         st = ttk.Style()
-        try: st.theme_use("vista" if sys.platform == "win32" else "clam")
+        try: st.theme_use("clam")
         except Exception: pass
-        st.configure("Ul.TButton", padding=(6, 2)); st.configure("Un.Toolbutton", padding=(6, 2), font=("Segoe UI", 11))
+        T = TEMA; F = ("Segoe UI", 10)
+        self.root.configure(bg=T["fond"])
+        st.configure(".", font=F, background=T["fond"])
+        st.configure("TFrame", background=T["fond"]); st.configure("TLabel", background=T["fond"], foreground="#202124")
+        st.configure("Bara.TFrame", background=T["bara"]); st.configure("Bara.TLabel", background=T["bara"], foreground=T["text2"])
+        st.configure("Ul.TButton", padding=(9, 5), background=T["bara"], borderwidth=0, relief="flat", foreground="#202124", focusthickness=0)
+        st.map("Ul.TButton", background=[("pressed", "#d2e3fc"), ("active", T["hover"])], foreground=[("active", T["accent"])])
+        st.configure("Acc.TButton", padding=(12, 5), background=T["accent"], foreground="white", borderwidth=0, font=("Segoe UI", 10, "bold"))
+        st.map("Acc.TButton", background=[("pressed", "#1557b0"), ("active", "#2b7de9")], foreground=[("active", "white")])
+        st.configure("Un.Toolbutton", padding=(9, 4), font=("Segoe UI", 11), background=T["bara"], borderwidth=0, relief="flat")
+        st.map("Un.Toolbutton", background=[("selected", "#d2e3fc"), ("active", T["hover"])], foreground=[("selected", T["accent"])])
+        st.configure("TSeparator", background="#dadce0")
+        st.configure("Vertical.TScrollbar", background="#dadce0", troughcolor=T["fond"], borderwidth=0, arrowsize=12)
+        st.configure("Horizontal.TScrollbar", background="#dadce0", troughcolor=T["fond"], borderwidth=0, arrowsize=12)
+        st.configure("TEntry", padding=3); st.configure("TCombobox", padding=2)
+        st.configure("Stare.TLabel", background=T["bara"], foreground=T["text2"], font=("Segoe UI", 9))
+        st.configure("TProgressbar", background=T["accent"], troughcolor="#e8eaed", borderwidth=0)
+        # antetul: numele programului și logo
+        an = tk.Frame(self.root, bg=T["antet"], height=42); an.pack(fill="x"); an.pack_propagate(False)
+        tk.Label(an, text="  PDF", bg="#d93025", fg="white", font=("Segoe UI", 10, "bold"), padx=4).pack(side="left", padx=(12, 0), pady=9)
+        tk.Label(an, text=NUME, bg=T["antet"], fg="white", font=("Segoe UI", 13, "bold")).pack(side="left", padx=8)
+        self.l_antet = tk.Label(an, text="", bg=T["antet"], fg="#c6d4ea", font=("Segoe UI", 10)); self.l_antet.pack(side="left", padx=6)
         m = tk.Menu(self.root); self.root.config(menu=m)
         self.m_fis = tk.Menu(m, tearoff=0, postcommand=self._meniu_fisier); m.add_cascade(label="Fișier", menu=self.m_fis)
         p = tk.Menu(m, tearoff=0); m.add_cascade(label="Pagini", menu=p)
@@ -148,54 +172,57 @@ class App:
         v.add_command(label="100%", command=lambda: self.zoom_la(96 / 72))
 
         # bara 1: fișier, navigare, zoom, pagini
-        b = ttk.Frame(self.root, padding=(4, 3)); b.pack(fill="x")
+        b = ttk.Frame(self.root, padding=(6, 4), style="Bara.TFrame"); b.pack(fill="x")
         def bt(par, t, cmd, sfat, **kw):
             w = ttk.Button(par, text=t, command=cmd, style="Ul.TButton", width=-2, **kw); w.pack(side="left", padx=1); Sfat(w, sfat); return w
-        bt(b, "📂 Deschide", self.deschide_dialog, "Deschide PDF, Word, Excel, PowerPoint sau imagine (Ctrl+O)")
-        bt(b, "💾 Salvează", self.salveaza, "Salvează (Ctrl+S)")
-        bt(b, "🗂 Combină", lambda: self.combina_dialog([]), "Combină fișiere: unește mai multe fișiere într-un singur PDF")
-        bt(b, "🖨", self.imprima, "Imprimă (Ctrl+P)")
+        w = ttk.Button(b, text="Deschide", command=self.deschide_dialog, style="Acc.TButton"); w.pack(side="left", padx=(0, 4))
+        Sfat(w, "Deschide PDF, Word, Excel, PowerPoint sau imagine (Ctrl+O)")
+        bt(b, "Salvează", self.salveaza, "Salvează (Ctrl+S)")
+        bt(b, "Combină", lambda: self.combina_dialog([]), "Combină fișiere: unește mai multe fișiere într-un singur PDF")
+        bt(b, "Imprimă", self.imprima, "Imprimă (Ctrl+P)")
         ttk.Separator(b, orient="vertical").pack(side="left", fill="y", padx=6)
         bt(b, "◀", lambda: self.mergi(self.pag - 1), "Pagina anterioară (PgUp)")
         self.e_pag = ttk.Entry(b, width=5, justify="center"); self.e_pag.pack(side="left")
         self.e_pag.bind("<Return>", lambda e: self._mergi_text())
-        self.l_nr = ttk.Label(b, text="/ 0"); self.l_nr.pack(side="left", padx=3)
+        self.l_nr = ttk.Label(b, text="/ 0", style="Bara.TLabel"); self.l_nr.pack(side="left", padx=3)
         bt(b, "▶", lambda: self.mergi(self.pag + 1), "Pagina următoare (PgDn)")
         ttk.Separator(b, orient="vertical").pack(side="left", fill="y", padx=6)
         bt(b, "−", lambda: self.zoom(0.8), "Micșorează"); self.cb_zoom = ttk.Combobox(b, width=7, values=["25%", "50%", "75%", "100%", "125%", "150%", "200%", "300%", "400%", "Pe lățime", "Pagină"])
         self.cb_zoom.pack(side="left"); self.cb_zoom.bind("<<ComboboxSelected>>", lambda e: self._zoom_text()); self.cb_zoom.bind("<Return>", lambda e: self._zoom_text())
         bt(b, "+", lambda: self.zoom(1.25), "Mărește")
         ttk.Separator(b, orient="vertical").pack(side="left", fill="y", padx=6)
-        bt(b, "➕ Pagină", self.pagina_noua, "Adaugă pagină goală A0, A1, A2, A3, A4 sau A5")
-        bt(b, "📥 Inserează", self.insereaza_dialog, "Inserează pagini din PDF, DOC, DOCX, Excel sau imagine după pagina curentă")
-        bt(b, "📐 Format", self.format_dialog, "Schimbă formatul paginilor selectate (A0…A5)")
-        bt(b, "⟲", lambda: self.roteste(-90), "Rotește la stânga"); bt(b, "⟳", lambda: self.roteste(90), "Rotește la dreapta")
+        bt(b, "+ Pagină", self.pagina_noua, "Adaugă pagină goală A0, A1, A2, A3, A4 sau A5")
+        bt(b, "Inserează", self.insereaza_dialog, "Inserează pagini din PDF, DOC, DOCX, Excel sau imagine după pagina curentă")
+        bt(b, "Format", self.format_dialog, "Schimbă formatul paginilor selectate (A0…A5)")
+        bt(b, "↺", lambda: self.roteste(-90), "Rotește la stânga"); bt(b, "↻", lambda: self.roteste(90), "Rotește la dreapta")
         bt(b, "▲", lambda: self.muta(-1), "Mută pagina mai sus"); bt(b, "▼", lambda: self.muta(1), "Mută pagina mai jos")
-        bt(b, "🗑", self.sterge_pagini, "Șterge paginile selectate")
+        bt(b, "✕ Șterge", self.sterge_pagini, "Șterge paginile selectate")
         bt(b, "↶", self.anuleaza, "Anulează (Ctrl+Z)"); bt(b, "↷", self.reface, "Refă (Ctrl+Y)")
 
         # bara 2: completare și semnare
-        b2 = ttk.Frame(self.root, padding=(4, 2)); b2.pack(fill="x")
-        ttk.Label(b2, text="Completare și semnare:").pack(side="left", padx=(2, 6))
+        tk.Frame(self.root, bg="#e3e6ea", height=1).pack(fill="x")
+        b2 = ttk.Frame(self.root, padding=(6, 3), style="Bara.TFrame"); b2.pack(fill="x")
+        ttk.Label(b2, text="Completare și semnare", style="Bara.TLabel", font=("Segoe UI", 9, "bold")).pack(side="left", padx=(2, 8))
         for k, t, s in UNELTE:
             w = ttk.Radiobutton(b2, text=t, value=k, variable=self.unealta, style="Un.Toolbutton", command=self._unealta_aleasa)
             w.pack(side="left", padx=1); Sfat(w, s)
         ttk.Separator(b2, orient="vertical").pack(side="left", fill="y", padx=6)
-        self.b_col = tk.Button(b2, text="●", fg=self.culoare, font=("Segoe UI", 14), bd=0, command=self.alege_culoare, cursor="hand2"); self.b_col.pack(side="left")
+        self.b_col = tk.Button(b2, text="●", fg=self.culoare, bg=TEMA["bara"], activebackground=TEMA["hover"], font=("Segoe UI", 14), bd=0, command=self.alege_culoare, cursor="hand2"); self.b_col.pack(side="left")
         Sfat(self.b_col, "Culoarea")
         for c in ("#000000", "#1f4fbf", "#d01010", "#108020"):
-            w = tk.Button(b2, text="■", fg=c, bd=0, font=("Segoe UI", 11), command=lambda c=c: self.seteaza_culoare(c), cursor="hand2"); w.pack(side="left")
-        ttk.Label(b2, text="  Mărime:").pack(side="left")
+            w = tk.Button(b2, text="■", fg=c, bg=TEMA["bara"], activebackground=TEMA["hover"], bd=0, font=("Segoe UI", 12), command=lambda c=c: self.seteaza_culoare(c), cursor="hand2"); w.pack(side="left")
+        ttk.Label(b2, text="  Mărime:", style="Bara.TLabel").pack(side="left")
         sp = ttk.Spinbox(b2, from_=4, to=200, increment=1, width=5, textvariable=self.marime, command=self._marime_schimbata); sp.pack(side="left")
         sp.bind("<Return>", lambda e: self._marime_schimbata())
         self.img_logo = self._logo(30)
-        if self.img_logo: ttk.Label(b2, image=self.img_logo).pack(side="right", padx=10)
+        if self.img_logo: ttk.Label(b2, image=self.img_logo, style="Bara.TLabel").pack(side="right", padx=10)
+        tk.Frame(self.root, bg="#dadce0", height=1).pack(fill="x")
 
         # zona principală: miniaturi | pagină
         pw = ttk.PanedWindow(self.root, orient="horizontal"); pw.pack(fill="both", expand=True)
         st_ = ttk.Frame(pw); pw.add(st_, weight=0); self.pw = pw
         fr_t = ttk.Frame(st_); fr_t.pack(side="left", fill="y")
-        ttk.Label(fr_t, text="  Pagini").pack(anchor="w", pady=(4, 2))
+        ttk.Label(fr_t, text="  PAGINI", foreground=TEMA["text2"], font=("Segoe UI", 8, "bold"), background=TEMA["panou"]).pack(anchor="w", fill="x", pady=(0, 0), ipady=4)
         self.cv_t = tk.Canvas(fr_t, width=170, bg=TEMA["panou"], highlightthickness=0); sb = ttk.Scrollbar(fr_t, command=self.cv_t.yview)
         self.cv_t.config(yscrollcommand=lambda a, b_: (sb.set(a, b_), self._cere_thumbs())); sb.pack(side="right", fill="y"); self.cv_t.pack(side="left", fill="both", expand=True)
         self.fr_s = ttk.Frame(st_)                                  # coloana cu paginile fișierului adăugat (apare la „Inserează”)
@@ -207,12 +234,12 @@ class App:
         self.cv_s = tk.Canvas(self.fr_s, width=170, bg=TEMA["sursa"], highlightthickness=0); sb2 = ttk.Scrollbar(self.fr_s, command=self.cv_s.yview)
         self.cv_s.config(yscrollcommand=lambda a, b_: (sb2.set(a, b_), self._cere_thumbs())); sb2.pack(side="right", fill="y"); self.cv_s.pack(side="left", fill="both", expand=True)
         dr = ttk.Frame(pw); pw.add(dr, weight=1)
-        self.cv = tk.Canvas(dr, bg="#8a8f96", highlightthickness=0)
+        self.cv = tk.Canvas(dr, bg=TEMA["pagina"], highlightthickness=0)
         sy = ttk.Scrollbar(dr, command=self.cv.yview); sx = ttk.Scrollbar(dr, orient="horizontal", command=self.cv.xview)
         self.cv.config(yscrollcommand=lambda a, b_: (sy.set(a, b_), self._cere_render()), xscrollcommand=lambda a, b_: (sx.set(a, b_), self._cere_render()))
         sy.pack(side="right", fill="y"); sx.pack(side="bottom", fill="x"); self.cv.pack(fill="both", expand=True)
-        self.status = ttk.Label(self.root, text="Deschide un fișier (Ctrl+O), trage fișiere aici sau folosește „Combină fișiere”.", anchor="w", padding=(6, 2))
-        self.status.pack(fill="x", side="bottom")
+        self.status = ttk.Label(self.root, text="Deschide un fișier (Ctrl+O), trage fișiere aici sau folosește „Combină fișiere”.", anchor="w", padding=(10, 4), style="Stare.TLabel")
+        self.status.pack(fill="x", side="bottom"); tk.Frame(self.root, bg="#dadce0", height=1).pack(fill="x", side="bottom")
         self.pb = ttk.Progressbar(self.status, mode="indeterminate", length=160)
 
         self.cv.bind("<Configure>", lambda e: self._cere_render())
@@ -716,6 +743,8 @@ class App:
     def stare(self, t): self.status.config(text=t)
 
     def stare_pag(self):
+        try: self.l_antet.config(text=("·  " + self.titlu + ("  •" if self.modificat else "")) if self.doc is not None and getattr(self, "titlu", "") else "")
+        except Exception: pass
         if not self.dims: return
         w, h = self.dims[self.pag]
         self.stare(f"Pagina {self.pag + 1} din {len(self.dims)}  ·  {nume_format(w, h)}  ·  {self.z * 72 / 96 * 100:.0f}%"
@@ -735,8 +764,8 @@ class App:
         if not self.dims: return
         w, h = self.dims[self.pag]; z = self.z
         self.cv.delete("all"); self._img = None; self.render_ok = None
-        self.cv.create_rectangle(OX + 4, OY + 4, OX + w * z + 4, OY + h * z + 4, fill="#5c6066", outline="")
-        self.cv.create_rectangle(OX, OY, OX + w * z, OY + h * z, fill="white", outline="#444", tags="foaie")
+        self.cv.create_rectangle(OX + 2, OY + 3, OX + w * z + 3, OY + h * z + 4, fill=TEMA["umbra"], outline="")
+        self.cv.create_rectangle(OX, OY, OX + w * z, OY + h * z, fill="white", outline="#b8bec6", tags="foaie")
         self.cv.config(scrollregion=(0, 0, w * z + 2 * OX, h * z + 2 * OY))
         if sus: self.cv.yview_moveto(0)
         self.e_pag.delete(0, "end"); self.e_pag.insert(0, str(self.pag + 1)); self.l_nr.config(text=f"/ {len(self.dims)}")
@@ -1218,10 +1247,72 @@ class App:
     def _meniu_semnatura(self):
         m = tk.Menu(self.root, tearoff=0)
         if os.path.exists(SEMN): m.add_command(label="Folosește semnătura salvată", command=lambda: self._foloseste_semn(open(SEMN, "rb").read()))
+        m.add_command(label="Scrie numele (devine semnătură de mână)…", command=self._semn_din_nume)
         m.add_command(label="Desenează semnătura…", command=self._deseneaza_semn)
         m.add_command(label="Încarcă imagine cu semnătura…", command=self._incarca_semn)
         m.add_separator(); m.add_command(label="Anulează", command=lambda: self.unealta.set("sel"))
         m.tk_popup(self.root.winfo_pointerx(), self.root.winfo_pointery())
+
+    def _semn_din_nume(self):
+        """ca în programele PDF: scrii numele, alegi stilul de scris de mână din previzualizări, apoi clic pe pagină"""
+        import semnatura_nume as SN
+        fonturi = SN.fonturi()
+        if not fonturi: messagebox.showerror(NUME, "Nu găsesc fonturi de scris de mână.", parent=self.root); self.unealta.set("sel"); return
+        d = tk.Toplevel(self.root); d.title("Semnătură din nume"); d.transient(self.root); d.grab_set(); d.configure(bg="white")
+        d.geometry(f"+{self.root.winfo_rootx() + 120}+{self.root.winfo_rooty() + 80}")
+        cfg = cit_cfg()
+        sus = tk.Frame(d, bg="white"); sus.pack(fill="x", padx=14, pady=(12, 6))
+        tk.Label(sus, text="Numele:", bg="white", font=("Segoe UI", 10)).pack(side="left")
+        v_nume = tk.StringVar(value=cfg.get("semn_nume", "")); e = ttk.Entry(sus, textvariable=v_nume, width=34, font=("Segoe UI", 11)); e.pack(side="left", padx=6); e.focus_set()
+        v_col = tk.StringVar(value=cfg.get("semn_culoare", "#1f3fa0")); v_lin = tk.BooleanVar(value=cfg.get("semn_linie", True))
+        v_gros = tk.DoubleVar(value=cfg.get("semn_grosime", 1.0))
+        opt = tk.Frame(d, bg="white"); opt.pack(fill="x", padx=14)
+        for t, c in (("Albastru", "#1f3fa0"), ("Negru", "#111111")):
+            tk.Radiobutton(opt, text=t, value=c, variable=v_col, bg="white", fg=c, font=("Segoe UI", 10, "bold"), command=lambda: arata()).pack(side="left", padx=(0, 8))
+        tk.Checkbutton(opt, text="linie dedesubt", variable=v_lin, bg="white", font=("Segoe UI", 10), command=lambda: arata()).pack(side="left", padx=8)
+        tk.Label(opt, text="grosime:", bg="white", font=("Segoe UI", 10)).pack(side="left", padx=(8, 2))
+        ttk.Scale(opt, from_=0.6, to=2.2, variable=v_gros, length=120, command=lambda _v: arata()).pack(side="left")
+        tk.Label(d, text="Alege stilul (clic):", bg="white", fg="#555", font=("Segoe UI", 9)).pack(anchor="w", padx=14, pady=(10, 2))
+        lista = tk.Frame(d, bg="white"); lista.pack(fill="both", expand=True, padx=14)
+        ales = tk.IntVar(value=min(cfg.get("semn_stil", 0), len(fonturi) - 1)); previz = []; job = [None]
+        def randeaza():
+            job[0] = None
+            for w in lista.winfo_children(): w.destroy()
+            previz.clear(); n = v_nume.get().strip() or "Semnătura"
+            for i, (fn, cale) in enumerate(fonturi[:10]):
+                if not SN.are_literele(cale, n): continue                 # stilul n-are toate literele numelui (ex. Ț)
+                try: im = SN.deseneaza(n, cale, v_col.get(), 90, linie=v_lin.get(), grosime=v_gros.get())
+                except Exception: continue
+                k = min(1.0, 430 / im.width, 70 / im.height); im = im.resize((max(1, int(im.width * k)), max(1, int(im.height * k))), Image.LANCZOS)
+                fond = Image.new("RGBA", im.size, (255, 255, 255, 255)); fond.alpha_composite(im); ph = ImageTk.PhotoImage(fond); previz.append(ph)
+                sel = ales.get() == i
+                f = tk.Frame(lista, bg="#e8f0fe" if sel else "white", highlightthickness=2, highlightbackground="#1a73e8" if sel else "#e3e6ea", cursor="hand2")
+                f.pack(fill="x", pady=3)
+                l1 = tk.Label(f, image=ph, bg=f["bg"], height=78, width=440); l1.pack(side="left", padx=6, pady=2)
+                l2 = tk.Label(f, text=fn, bg=f["bg"], fg="#777", font=("Segoe UI", 8)); l2.pack(side="right", padx=8)
+                for w in (f, l1, l2): w.bind("<Button-1>", lambda e, i=i: (ales.set(i), randeaza()))
+                for w in (f, l1, l2): w.bind("<Double-Button-1>", lambda e, i=i: (ales.set(i), ok()))
+        def arata(*_):
+            if job[0]: d.after_cancel(job[0])
+            job[0] = d.after(250, randeaza)
+        v_nume.trace_add("write", arata)
+        def ok(_=None):
+            n = v_nume.get().strip()
+            if not n: messagebox.showinfo(NUME, "Scrie numele.", parent=d); return
+            i = min(ales.get(), len(fonturi) - 1)
+            if not SN.are_literele(fonturi[i][1], n):
+                i = next((k for k, (_, c_) in enumerate(fonturi) if SN.are_literele(c_, n)), i)
+            im = SN.deseneaza(n, fonturi[i][1], v_col.get(), 220, linie=v_lin.get(), grosime=v_gros.get())
+            b_ = io.BytesIO(); im.save(b_, "PNG"); data = b_.getvalue()
+            try: open(SEMN, "wb").write(data)
+            except Exception: pass
+            scr_cfg(semn_nume=n, semn_culoare=v_col.get(), semn_linie=v_lin.get(), semn_grosime=v_gros.get(), semn_stil=i)
+            d.destroy(); self._foloseste_semn(data)
+        jos = tk.Frame(d, bg="white"); jos.pack(fill="x", padx=14, pady=12)
+        ttk.Button(jos, text="Anulează", command=lambda: (d.destroy(), self.unealta.set("sel"))).pack(side="right")
+        ttk.Button(jos, text="✓ Folosește semnătura", command=ok).pack(side="right", padx=6)
+        e.bind("<Return>", ok); d.bind("<Escape>", lambda e: (d.destroy(), self.unealta.set("sel")))
+        randeaza()
 
     def _foloseste_semn(self, data):
         self._semn_k = self._incarca_img(data); self.unealta.set("semn"); self.cv.config(cursor="crosshair")
