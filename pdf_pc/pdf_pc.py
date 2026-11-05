@@ -49,6 +49,7 @@ OX = OY = 24                                              # marginea paginii în
 TEMA = {"panou": "#f1f3f6", "sursa": "#e3ecf8", "accent": "#1a73e8", "selectie": "#cfe0fb", "text2": "#5f6368",
         "antet": "#1b3a6b", "bara": "#ffffff", "fond": "#f5f7fa", "pagina": "#e6e9ee", "umbra": "#c3c8cf", "hover": "#e8f0fe"}
 UNELTE = [("sel", "↖", "Selectare / mutare (dublu clic pe text = editare, Delete = șterge)"),
+          ("edit", "Aa Editează", "Editează textul existent din PDF: clic pe un rând de text și scrie-l din nou"),
           ("text", "IAb", "Adaugă text: clic pe pagină și scrie"), ("x", "✗", "Pune un X"), ("v", "✓", "Pune o bifă"),
           ("oval", "◯", "Cerc / oval: trage cu mouse-ul"), ("linie", "—", "Linie: trage cu mouse-ul"), ("punct", "•", "Punct"),
           ("drept", "▭", "Dreptunghi"), ("alb", "▢ Alb", "Acoperă (alb): ascunde un text existent, apoi scrie peste"),
@@ -1103,7 +1104,8 @@ class App:
 
     def _unealta_aleasa(self):
         u = self.unealta.get(); self._selecteaza(None)
-        self.cv.config(cursor={"sel": "arrow", "text": "xterm"}.get(u, "crosshair"))
+        self.cv.config(cursor={"sel": "arrow", "text": "xterm", "edit": "xterm"}.get(u, "crosshair"))
+        if u == "edit": self.stare("Clic pe un rând de text din PDF ca să-l modifici. (PDF-urile scanate nu au text de editat.)")
         if u == "img":
             f = filedialog.askopenfilename(parent=self.root, filetypes=[("Imagini", "*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff")])
             if not f: self.unealta.set("sel"); return
@@ -1178,6 +1180,7 @@ class App:
                 if o["t"] == "text": self.marime.set(o["s"])
                 self._salv_ov(); self._drag = ("muta", x, y, copy.deepcopy(o))
             return
+        if u == "edit": self._editeaza_existent(x, y); return
         s = float(self.marime.get())
         if u == "text": self._editeaza_text(x, y); return
         if u in ("x", "v", "punct"):
@@ -1257,6 +1260,31 @@ class App:
         f = ttk.Frame(d); f.pack(pady=(0, 8))
         ttk.Button(f, text="OK (Ctrl+Enter)", command=ok).pack(side="left", padx=4); ttk.Button(f, text="Anulează", command=d.destroy).pack(side="left")
         t.bind("<Control-Return>", ok); d.bind("<Escape>", lambda e: d.destroy())
+
+    def _editeaza_existent(self, x, y):
+        """modifică un rând de text care e deja în PDF: textul vechi se șterge și se scrie cel nou, cu aceeași mărime și culoare"""
+        if self.doc is None: return
+        pag = self.pag
+        def fn(): return rand_la(self.doc[pag], x, y)
+        def g(info):
+            if not info:
+                self.stare("Aici nu e text de editat (poate e o imagine sau un PDF scanat). Poți folosi „Alb” + „IAb”."); return
+            d = tk.Toplevel(self.root); d.title("Editează textul"); d.transient(self.root); d.grab_set()
+            d.geometry(f"+{self.root.winfo_pointerx() - 40}+{self.root.winfo_pointery() + 16}")
+            tk.Label(d, text=f"Textul din PDF  ·  mărime {info['size']:.1f}" + ("  ·  aldin" if info.get("bold") else ""), fg="#5f6368",
+                     font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+            v = tk.StringVar(d, value=info["text"]); e = ttk.Entry(d, textvariable=v, width=max(40, min(100, len(info["text"]) + 10)), font=("Arial", 11))
+            e.pack(padx=10, pady=(0, 6), fill="x"); e.focus_set(); e.select_range(0, "end")
+            def ok(_=None):
+                nou = v.get(); d.destroy()
+                if nou.strip() == info["text"]: return
+                def op(): inlocuieste_rand(self.doc[pag], info, nou)
+                self._cu_completari(op, lambda _: (self._reface_thumbs(), self._pagina_noua_afis(), self.stare("✔ Text modificat. Anulează: Ctrl+Z")),
+                                    "Se modifică textul…")
+            f = ttk.Frame(d); f.pack(pady=(0, 8))
+            ttk.Button(f, text="OK (Enter)", command=ok).pack(side="left", padx=4); ttk.Button(f, text="Anulează", command=d.destroy).pack(side="left")
+            e.bind("<Return>", ok); d.bind("<Escape>", lambda _e: d.destroy())
+        self.lucru(fn, g, "Caut textul…")
 
     def sterge_obiect(self):
         if self.sel and self.sel[0] == self.pag:
