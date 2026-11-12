@@ -10,11 +10,12 @@ FORMATE = {"A0": (841, 1189), "A1": (594, 841), "A2": (420, 594), "A3": (297, 42
 EXT_W = {".doc", ".docx", ".rtf", ".odt", ".txt"}
 EXT_X = {".xls", ".xlsx", ".xlsm", ".ods", ".csv"}
 EXT_P = {".ppt", ".pptx", ".odp"}
+EXT_V = {".vsd", ".vsdx", ".vsdm", ".vdx"}
 EXT_I = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".gif"}
-EXT_TOATE = {".pdf"} | EXT_W | EXT_X | EXT_P | EXT_I
+EXT_TOATE = {".pdf"} | EXT_W | EXT_X | EXT_P | EXT_V | EXT_I
 TIPURI = [("Toate fișierele suportate", " ".join("*" + e for e in sorted(EXT_TOATE))), ("PDF", "*.pdf"),
           ("Word", "*.doc *.docx *.rtf *.odt *.txt"), ("Excel", "*.xls *.xlsx *.xlsm *.ods *.csv"),
-          ("PowerPoint", "*.ppt *.pptx *.odp"), ("Imagini", "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.gif")]
+          ("PowerPoint", "*.ppt *.pptx *.odp"), ("Visio", "*.vsd *.vsdx *.vsdm *.vdx"), ("Imagini", "*.jpg *.jpeg *.png *.tif *.tiff *.bmp *.gif")]
 TMP = tempfile.mkdtemp(prefix="pdfpc_")
 _nr = itertools.count()
 
@@ -96,6 +97,13 @@ def _prin_office(cale, iesire, ext):
         elif ext in EXT_X:
             app = win32com.client.DispatchEx("Excel.Application"); app.Visible = False; app.DisplayAlerts = False
             w = app.Workbooks.Open(src, 0, True); w.ExportAsFixedFormat(0, dst); w.Close(False)
+        elif ext in EXT_V:
+            app = win32com.client.DispatchEx("Visio.Application"); app.Visible = False
+            try: app.AlertResponse = 7                                       # fără ferestre de întrebare din Visio
+            except Exception: pass
+            d = app.Documents.OpenEx(src, 2 | 8 | 64 | 128)                  # doar citire, ascuns, fără macro-uri
+            d.ExportAsFixedFormat(1, dst, 1, 0)                              # PDF, calitate de tipar, toate paginile
+            d.Close()
         else:
             app = win32com.client.DispatchEx("PowerPoint.Application")
             p = app.Presentations.Open(src, True, False, False); p.SaveAs(dst, 32); p.Close()
@@ -114,7 +122,7 @@ def deschide_pdf(cale):
     if ext in EXT_I:
         with fitz.open(cale) as im: data = im.convert_to_pdf()
         t = tmp(); open(t, "wb").write(data); return fitz.open(t)
-    if ext in EXT_W | EXT_X | EXT_P:
+    if ext in EXT_W | EXT_X | EXT_P | EXT_V:
         out = tmp(); err = []
         if sys.platform == "win32":
             try: _prin_office(cale, out, ext)
@@ -131,9 +139,25 @@ def deschide_pdf(cale):
                 err.append("LibreOffice nu este instalat.")
         if not os.path.exists(out):
             raise RuntimeError(f"Nu pot converti în PDF: {os.path.basename(cale)}\n\n" + "\n".join(err) +
-                               "\n\nPentru Word/Excel/PowerPoint trebuie instalat Microsoft Office sau LibreOffice (gratuit).")
+                               "\n\nPentru Word/Excel/PowerPoint/Visio trebuie instalat Microsoft Office (Visio) sau LibreOffice (gratuit).")
         return fitz.open(out)
     raise RuntimeError("Tip de fișier nesuportat: " + (ext or os.path.basename(cale)))
+
+
+def nume_pagini_visio(cale):
+    """numele paginilor (fără cele de fundal) dintr-un .vsdx/.vsdm, în ordine; pentru .vsd vechi -> []"""
+    import zipfile, re, html
+    try:
+        with zipfile.ZipFile(cale) as z: s = z.read("visio/pages/pages.xml").decode("utf-8", "replace")
+    except Exception:
+        return []
+    rez = []
+    for m in re.finditer(r"<Page\b([^>]*)>(.*?)</Page>", s, re.S):
+        a = m.group(1)
+        if re.search(r"\bBackground=['\"]1['\"]", a): continue
+        n = re.search(r"\bName=['\"]([^'\"]*)['\"]", a) or re.search(r"\bNameU=['\"]([^'\"]*)['\"]", a)
+        rez.append(html.unescape(n.group(1)) if n else f"Pagina {len(rez) + 1}")
+    return rez
 
 
 # ---------- pagini ----------

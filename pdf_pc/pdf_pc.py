@@ -210,9 +210,10 @@ class App:
         def bt(par, t, cmd, sfat, **kw):
             w = ttk.Button(par, text=t, command=cmd, style="Ul.TButton", width=-2, **kw); w.pack(side="left", padx=1); Sfat(w, sfat); return w
         w = ttk.Button(b, text="Deschide", command=self.deschide_dialog, style="Acc.TButton"); w.pack(side="left", padx=(0, 4))
-        Sfat(w, "Deschide PDF, Word, Excel, PowerPoint sau imagine (Ctrl+O)")
+        Sfat(w, "Deschide PDF, Word, Excel, PowerPoint, Visio sau imagine (Ctrl+O)")
         bt(b, "Salvează", self.salveaza, "Salvează (Ctrl+S)")
         bt(b, "Combină", lambda: self.combina_dialog([]), "Combină fișiere: unește mai multe fișiere într-un singur PDF")
+        bt(b, "Visio → PDF", self.visio_in_pdf, "Deschide o schemă Visio (.vsd, .vsdx): vezi paginile, alegi pagina, o editezi sau o salvezi ca PDF")
         bt(b, "Imprimă", self.imprima, "Imprimă (Ctrl+P)")
         ttk.Separator(b, orient="vertical").pack(side="left", fill="y", padx=6)
         bt(b, "◀", lambda: self.mergi(self.pag - 1), "Pagina anterioară (PgUp)")
@@ -403,7 +404,113 @@ class App:
         self.deschide(f[0])
 
     def deschide(self, cale):
+        if os.path.splitext(cale)[1].lower() in EXT_V: self.deschide_visio(cale); return
         self._intreaba_salvare(lambda: self._deschide(cale))
+
+    # ======================= Visio (.vsd / .vsdx) -> PDF =======================
+    def visio_in_pdf(self):
+        f = filedialog.askopenfilename(parent=self.root, title="Alege schema Visio", filetypes=[("Visio", "*.vsd *.vsdx *.vsdm *.vdx")])
+        if f: self.deschide_visio(f)
+
+    def deschide_visio(self, cale):
+        """Visio -> PDF (prin Visio de pe calculator sau LibreOffice), apoi fereastra cu previzualizarea paginilor"""
+        def fn(): return deschide_pdf(cale), nume_pagini_visio(cale)
+        self.lucru(fn, lambda r: self._dialog_visio(r[0], r[1], cale),
+                   "Se convertește " + os.path.basename(cale) + " în PDF (câteva secunde)…")
+
+    def _dialog_visio(self, d, nume, cale):
+        T = TEMA; n = len(d); baza = os.path.splitext(os.path.basename(cale))[0]
+        if len(nume) != n: nume = [f"Pagina {i + 1}" for i in range(n)]
+        sel = {0}
+        w = tk.Toplevel(self.root); w.title(f"Visio – {os.path.basename(cale)}"); w.transient(self.root); w.grab_set(); w.configure(bg="white")
+        ttk.Label(w, text=f"{os.path.basename(cale)}  ·  {n} " + ("pagină" if n == 1 else "pagini"), font=("Segoe UI", 12, "bold"),
+                  background="white").pack(anchor="w", padx=14, pady=(12, 0))
+        ttk.Label(w, text="Clic pe pagina pe care o vrei (Ctrl+clic = mai multe). Dublu clic = o deschid pentru editare.",
+                  foreground=T["text2"], background="white").pack(anchor="w", padx=14, pady=(2, 8))
+        lat = 460 if n > 1 else 680                                             # previzualizarea: o pagină = mare, mai multe = câte 2 pe rând
+        col = 1 if n == 1 else 2
+        cad = tk.Frame(w, bg="white"); cad.pack(fill="both", expand=True, padx=10)
+        cv = tk.Canvas(cad, bg="white", highlightthickness=0); sb = ttk.Scrollbar(cad, orient="vertical", command=cv.yview)
+        cv.configure(yscrollcommand=sb.set); cv.pack(side="left", fill="both", expand=True)
+        interior = tk.Frame(cv, bg="white"); cv.create_window(0, 0, window=interior, anchor="nw")
+        w._img = []; rame = []
+        def arata():
+            for i, (r, _) in enumerate(rame): r.configure(bg=T["accent"] if i in sel else "#dadce0")
+            k = len(sel)
+            b_ok.config(text="Deschide pentru editare" + (f" ({k} pag.)" if k > 1 else ""))
+            st = "normal" if k else "disabled"
+            for b in (b_ok, b_pdf) + ((b_ins,) if b_ins else ()): b.config(state=st)
+        def clic(i, e):
+            if e.state & 0x4: sel.symmetric_difference_update({i})
+            else: sel.clear(); sel.add(i)
+            arata()
+        for i, p in enumerate(d):
+            z = lat / max(p.rect.width, p.rect.height)
+            pm = p.get_pixmap(matrix=fitz.Matrix(z, z), alpha=False)
+            im = ImageTk.PhotoImage(Image.frombytes("RGB", (pm.width, pm.height), pm.samples)); w._img.append(im)
+            rama = tk.Frame(interior, bg="#dadce0", padx=3, pady=3); rama.grid(row=(i // col) * 2, column=i % col, padx=8, pady=(8, 0))
+            l = tk.Label(rama, image=im, bg="white", cursor="hand2"); l.pack()
+            et = tk.Label(interior, text=f"{i + 1}. {nume[i]}   ({nume_format(p.rect.width, p.rect.height)})", bg="white", font=("Segoe UI", 9))
+            et.grid(row=(i // col) * 2 + 1, column=i % col, pady=(2, 6))
+            for x in (rama, l, et):
+                x.bind("<Button-1>", lambda e, i=i: clic(i, e)); x.bind("<Double-Button-1>", lambda e, i=i: (sel.clear(), sel.add(i), deschide_ed()))
+            rame.append((rama, l))
+        interior.update_idletasks()
+        cv.configure(scrollregion=cv.bbox("all"), width=interior.winfo_reqwidth(), height=min(interior.winfo_reqheight(), 560))
+        if interior.winfo_reqheight() > 560: sb.pack(side="right", fill="y")
+        cv.bind_all("<MouseWheel>", lambda e: cv.yview_scroll(-1 if e.delta > 0 else 1, "units"))
+        gata = [False]
+        def pastreaza():
+            d.select(sorted(sel))
+        def inchide():
+            try: cv.unbind_all("<MouseWheel>")
+            except Exception: pass
+            w.destroy()
+            if not gata[0]: d.close()
+        def titlu():
+            return baza + (f" – {nume[min(sel)]}" if len(sel) == 1 and n > 1 else "")
+        def deschide_ed():
+            pastreaza(); t = titlu(); gata[0] = True; inchide()
+            def incarca():
+                self._recent(cale); self._incarca(d, None, t + ".pdf", modificat=True)
+                self.stare(f"{os.path.basename(cale)} → PDF ({len(d)} pag.). Editează, apoi salvează cu Ctrl+S.")
+            self._intreaba_salvare(incarca)
+        def salveaza_pdf():
+            dest = filedialog.asksaveasfilename(parent=w, title="Salvează Visio în PDF", defaultextension=".pdf", filetypes=[("PDF", "*.pdf")],
+                                                initialdir=os.path.dirname(cale), initialfile=titlu() + ".pdf")
+            if not dest: return
+            pastreaza()
+            try: d.save(dest, garbage=3, deflate=True)
+            except Exception as e: messagebox.showerror(NUME, f"Nu pot salva:\n{e}", parent=w); return
+            gata[0] = True; inchide()
+            self.stare("✔ Salvat: " + dest)
+            if messagebox.askyesno(NUME, f"Am salvat PDF-ul:\n{dest}\n\nÎl deschid aici, ca să-l vezi sau să-l editezi?", parent=self.root):
+                d.close(); self.deschide(dest)
+            else:
+                d.close()
+        def insereaza():
+            pastreaza(); gata[0] = True; inchide(); poz = self.pag + 1
+            def op():
+                self.doc.insert_pdf(d, start_at=poz); k = len(d); d.close(); return k
+            self._cu_completari(op, lambda k: (self._dupa_pagini(poz), self.stare(f"Inserat {k} pagini din {os.path.basename(cale)}.")),
+                                "Se inserează paginile Visio…")
+        def in_visio():
+            try: os.startfile(cale)
+            except Exception as e: messagebox.showerror(NUME, f"Nu pot deschide în Visio:\n{e}", parent=w)
+        bb = tk.Frame(w, bg="white"); bb.pack(fill="x", padx=14, pady=12)
+        b_ok = ttk.Button(bb, text="Deschide pentru editare", style="Acc.TButton", command=deschide_ed); b_ok.pack(side="left")
+        b_pdf = ttk.Button(bb, text="Salvează în PDF…", command=salveaza_pdf); b_pdf.pack(side="left", padx=6)
+        b_ins = None
+        if self.doc is not None:
+            b_ins = ttk.Button(bb, text="Inserează în PDF-ul deschis", command=insereaza); b_ins.pack(side="left")
+        if sys.platform == "win32":
+            b_v = ttk.Button(bb, text="Editează în Visio", command=in_visio); b_v.pack(side="left", padx=6)
+            Sfat(b_v, "Deschide schema originală în programul Visio, ca s-o modifici acolo; apoi o deschizi din nou aici")
+        ttk.Button(bb, text="Anulează", command=inchide).pack(side="right")
+        Sfat(b_pdf, "Salvează direct paginile alese ca PDF, fără editare")
+        w.protocol("WM_DELETE_WINDOW", inchide); w.bind("<Escape>", lambda e: inchide()); w.bind("<Return>", lambda e: deschide_ed())
+        arata()
+        w.deschide_ed = deschide_ed; self.dlg_visio = w                         # (pentru test)
 
     def _deschide(self, cale):
         def fn():
@@ -492,6 +599,7 @@ class App:
         ses = [x for x in cit_cfg().get("sesiune", []) if os.path.exists(x)]
         f.add_command(label="Redeschide PDF-urile din ultima sesiune", state=st(ses), command=lambda: self.deschide(ses[0]) if len(ses) == 1 else self.combina_dialog(ses))
         f.add_command(label="Combină fișiere…", command=lambda: self.combina_dialog([]))
+        f.add_command(label="Salvează Visio în PDF…", command=self.visio_in_pdf)
         f.add_separator()
         f.add_command(label="Salvează", accelerator="Ctrl+S", state=st(are), command=self.salveaza)
         f.add_command(label="Salvează ca…", accelerator="Shift+Ctrl+S", state=st(are), command=lambda: self.salveaza(ca=True))
@@ -1104,6 +1212,7 @@ class App:
         f = [x for x in self.root.tk.splitlist(e.data) if os.path.isfile(x)]
         f = [x for x in f if os.path.splitext(x)[1].lower() in EXT_TOATE]
         if not f: self.stare("Tip de fișier nesuportat."); return
+        if len(f) == 1 and os.path.splitext(f[0])[1].lower() in EXT_V: self.deschide_visio(f[0]); return
         if self.doc is None:
             if len(f) == 1: self.deschide(f[0])
             else: self.combina_dialog(f)
